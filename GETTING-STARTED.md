@@ -55,7 +55,7 @@ $ tree .
 |   |-- appinfo.json
 |   |-- src
 |   |   |-- Makefile
-|   |   |-- field_agent.c
+|   |   |-- field-agent.c
 |   |   |-- js
 |   |   |   |-- app.js
 |   |   `-- mission.h             <<< official cs50 header ***please don't modify***
@@ -75,13 +75,13 @@ $ tree .
 
 * `Makefile`: a top-level Makefile with a few PHONY targets defined that will make it easy for you to (1) install any proxy dependencies, (2) start an instance of the proxy, and (3) kill a running proxy. Please update and modify the `Makefile` file as you see fit for your project development.
 
-* `examples/appinfo.json`: You must create a file `field_agent/appinfo.json` that holds special configurations for your Pebble application. The Pebble SDK will consult that file to determine how to properly build your Pebble application. For this project, the `appinfo` includes fields for specifying the address (IP and Port) of the Proxy and Game Servers. The file `examples/appinfo.json` is an *example* you can copy when making your file `field_agent/appinfo.json`; do not modify the example file. If we release updates to `examples/appinfo.json` you'll want update or replace your existing `field_agent/appinfo.json`.
+* `examples/appinfo.json`: You must create a file `field-agent/appinfo.json` that holds special configurations for your Pebble application. The Pebble SDK will consult that file to determine how to properly build your Pebble application. For this project, the `appinfo` includes fields for specifying the address (IP and Port) of the Proxy and Game Servers. The file `examples/appinfo.json` is an *example* you can copy when making your file `field-agent/appinfo.json`; do not modify the example file. If we release updates to `examples/appinfo.json` you'll want update or replace your existing `field-agent/appinfo.json`.
 
-* `field_agent/`: A starting point for your Pebble app, including
+* `field-agent/`: A starting point for your Pebble app, including
     * `appinfo.json`: primary configuration file!  Edit it to specify YOUR host/port config. 
     * `wscript`: slightly customized version of the pebble application build script (exports `appinfo.json` as variable to phone proxy code base).
     * `src/field_agent.c`: main file for your pebble application.
-    * `src/mission.h`: important definitions needed for communications with the phone proxy.  ***please don't modify!***
+    * `src/key_assembly.h`: important definitions needed for communications with the phone proxy.  ***please don't modify!***
     * `src/js/app.js`: the phone proxy. ***please don't modify!***
 
 * `proxy/`: The Unix Proxy that sits between the Game Server and your Field Agents. 
@@ -96,18 +96,18 @@ In this section we hope to clarify a few matters regarding how the various compo
 
 #### Proxies Explained
 
-It is essential that you and your team have a good understanding of how all of the Mission Incomputable components work together. The diagram below shows the following:
+It is essential that you and your team have a good understanding of how all of the Key Assembly components work together. The diagram below shows the following:
 
 * You are only responsible for building the Field Agent, Guide Agent, and Game Server components -- the Unix and smartphone proxy components are provided.
 * There is a 1-to-1 mapping between Field Agents and phone proxies. Each Field Agent (Pebble) is paired with a companion smartphone that enables the Field Agent to deliver messages to the Game Server over the Internet. The phone proxy's primary role is to run indefinitely, sending messages from the Field Agent to the Game Server (via the Unix Proxy) and vice versa.
 * Field Agents, by virtue of their relationship with the phone proxy, can't communicate directly with other Field Agents. Field Agents can only communicate with the Game Server through the phone proxy and the Unix proxy.  The phone proxy must know the address (IP and port) of the Unix proxy and the Game Server, in advance, which is why that address is configured in `appinfo.json`. Guide Agents are able to communicate directly over UDP with the Game Server; they must be given the address (IP and port) of the Game Server. 
 * There is a 1-to-1 mapping between a Unix proxy and Game Server. In orther words, all Field Agents in a given game communicate (via their phone proxy) with the Game Server via one, and only one, Unix proxy. All Field Agent communications with the Unix Proxy are over a reliable WebSocket (TCP) connection (because phone proxies are able to create WebSockets but are unable to create UDP sockets). The Unix proxy, able to create UDP sockets, creates a new UDP socket for each player (to receive datagrams back from the Game Server) and sends all of its "traffic" to the pre-defined UDP address on the Game Server. Thus, although there is only one Unix proxy, each Field Agent appears to the Game Server as being at a distinct address. 
     * Digging Deeper (for those interested): Every phone proxy that connects to the Unix proxy has a single, reliable connection for communication. As part of handling the new connection, the Unix proxy creates a new UDP socket for sending/receiving datagrams to/from that websocket connection. This means that every Field Agent connected to the Unix proxy gets a unique UDP socket which makes the player appear as if it is communicating with the Game Server via UDP all by itself/directly! This is why, as the builder of the Game Server, you need only worry about handling datagrams received over a single UDP socket - just pay attention to the address (IP/port) from whence those datagrams arrive. 
-* Your Game Server is responsible for managing information about the various clients that are actively involved in game play. I like to think of my Game Server representing each agent with a sort of tuple consisting of `<remoteAddress, remotePort, agentId>` where `agentId` can be a unique identifier for either a Field Agent (`pebbleId`) or Guide Agent (`guideId`). (In reality my "mental tuple" is a `struct` with the aforementioned information plus more). Our ability to uniquely identifer any given player is entirely dependent on the unique ID. To communicate back to specific players we can identify them by their unique ID and then use their remote address/port information to send datagrams.
+* Your Game Server is responsible for managing information about the various clients that are actively involved in game play. I like to think of my Game Server representing each agent with a sort of tuple consisting of `<remoteAddress, remotePort, agentId>` where `agentId` can be a unique identifier for either a Field Agent (`pebbleId`) or Guide Agent (`guideId`). (In reality my "mental tuple" is a `struct` with the aforementioned information plus more). Our ability to uniquely identify any given player is entirely dependent on the unique ID. To communicate back to specific players we can identify them by their unique ID and then use their remote address/port information to send datagrams.
 
 <!--center tag not supported in html5?-->
 <center> 
-![Mission Incomputable Network Diagram](docs/MI-network.png)
+![Key Assembly Network Diagram](docs/KA-network.png)
 </center>
 
 ***=>*** *In summary: your Game Server needs to (1) open a single UDP socket which it will read from, and (2) keep track of the remote client's address (IP/port) for all known agents (both Guide Agents and Field Agents).* 
@@ -166,10 +166,10 @@ static void inbox_received_handler(DictionaryIterator *iterator, void *context) 
 
 All data between your Pebble and smartphone is stored in a *dictionary* ([`DictionaryIterator`](https://developer.pebble.com/docs/c/Foundation/Dictionary/#DictionaryIterator)), making it possible for your Pebble code to receive data from the smartphone by looking up a predefined key (`AppKeyJSReady`) in the dictionary and processing the data (value) returned. The `dict_find(...)` routine will return `NULL` if the key is not found in `iterator`.
 
-The companion smartphone will send many other kinds of messages; in `mission.h` we provide only the keys you should need.
+The companion smartphone will send many other kinds of messages; in `key_assembly.h` we provide only the keys you should need.
 
 ```c
-// see: mission.h -- AppMessage keys (***DO NOT MODIFY***)
+// see: key_assembly.h -- AppMessage keys (***DO NOT MODIFY***)
 enum {
   AppKeyJSReady = 0,      // The JS environment on the companion smartphone is up and running!
   AppKeySendMsg,          // Send a message over Bluetooth to the companion smartphone and then on to the Game Server
@@ -234,7 +234,7 @@ It is our goal to provide some ideas on how to get going with the project here, 
 
 ## Getting Future Updates for Provided Code
 
-> *Please inform Travis Peters & Professor David Kotz if you find bugs in the provided code, using Piazza. If you find a bug in the provided code, everyone else has this problem and we will want to release a fix via the upstream repository for everyone to pull.* 
+> *Please inform Taylor Hardin & Professor David Kotz if you find bugs in the provided code, using Piazza. If you find a bug in the provided code, everyone else has this problem and we will want to release a fix via the upstream repository for everyone to pull.* 
 
 We may need to update some of the code that we've provided (e.g., bug-fixes) for this project.  To ensure that you can get updates, you'll need to add the original repo as a *remote* in your local copy of this project. 
 
@@ -242,8 +242,8 @@ You can view the current configured remotes as follows (example output shown):
 
 ```bash
 $ git remote -v
-origin	https://gitlab.cs.dartmouth.edu/USERNAME/project-starter-kit.git (fetch)
-origin	https://gitlab.cs.dartmouth.edu/USERNAME/project-starter-kit.git (push)
+origin	https://gitlab.cs.dartmouth.edu/USERNAME/project-starter-kit-17s.git (fetch)
+origin	https://gitlab.cs.dartmouth.edu/USERNAME/project-starter-kit-17s.git (push)
 ```
 
 where `USERNAME` is the username of the GitLab user that forked the project starter-kit. When you run git commands such as `git pull` and `git push`, the git command-line tool uses these URLs to determine from where to pull code and where to push code. Notice that, after `fork`ing the project, your default remote is a copy of the starter-kit for the project in `USERNAME`'s GitLab account.
@@ -251,19 +251,19 @@ where `USERNAME` is the username of the GitLab user that forked the project star
 To add the *original* repo to the remotes that you are tracking, use the `git remote add` command:
 
 ```bash
-$ git remote add upstream https://gitlab.cs.dartmouth.edu/traviswpeters/project-starter-kit.git
+$ git remote add upstream https://gitlab.cs.dartmouth.edu/CS50/project-starter-kit-17s.git
 ```
 
-where `upstream` is a human readable alias for the new remote you are adding, where `traviswpeters` is the original owner of the repo which you `fork`ed, and `project-starter-kit.git` is the original name of the repository which you `fork`ed.
+where `upstream` is a human readable alias for the new remote you are adding, where `traviswpeters` is the original owner of the repo which you `fork`ed, and `project-starter-kit-17s.git` is the original name of the repository which you `fork`ed.
 
 You can verify that the remote was added by again running `git remote -v`. For example:
 
 ```bash
 $ git remote -v
-origin	https://gitlab.cs.dartmouth.edu/USERNAME/project-starter-kit.git (fetch)
-origin	https://gitlab.cs.dartmouth.edu/USERNAME/project-starter-kit.git (push)
-upstream	https://gitlab.cs.dartmouth.edu/traviswpeters/project-starter-kit.git (fetch)
-upstream	https://gitlab.cs.dartmouth.edu/traviswpeters/project-starter-kit.git (push)
+origin	https://gitlab.cs.dartmouth.edu/USERNAME/project-starter-kit-17s.git (fetch)
+origin	https://gitlab.cs.dartmouth.edu/USERNAME/project-starter-kit-17s.git (push)
+upstream	https://gitlab.cs.dartmouth.edu/traviswpeters/project-starter-kit-17s.git (fetch)
+upstream	https://gitlab.cs.dartmouth.edu/traviswpeters/project-starter-kit-17s.git (push)
 ```
 
 Suppose you post a message about updating the provided code.
