@@ -1,27 +1,27 @@
-CS50 Project: Mission Incomputable
+CS50 Project: Key Assembly
 
 ## Project: Getting Started
 
-Recall from the Mission Incomputable project overview page, 
+Recall from the Key Assembly project overview page, 
 
-> One person on your team should fork the `project-starter-kit` Gitlab project, rename the project with your team’s assigned name, edit the project description to list team members, then invite your teammates to share the project. All team members should clone the project to a local repository.
+> One person on your team should fork the `project-starter-kit-17s` Gitlab project, rename the project with your team’s assigned name, edit the project description to list team members, then invite your teammates to share the project. All team members should clone the project to a local repository.
 
 To get started, *one* project team member should
 
 * click the "Fork" button above; this should create a copy of this project in your Gitlab account.
 * ensure that your new project is marked PRIVATE.
-* grant "Master" access to your new project for Professor Kotz (`dfkotz`), TA Travis Peters (`traviswpeters`), and [your assigned TA for the project](https://docs.google.com/spreadsheets/d/1XBjgzSwDg67dQ_ylaTJbXtpaVS_JNBnygsyT2NqZCGg/edit#gid=106970956).
+* grant "Master" access to your new project to `cs50-17s`.
 * copy the **https** URL shown in the box in the middle of the screen.
 * go to your terminal (locally and/or one of the CS50 Unix hosts).
 * `mkdir -p cs50/project; cd cs50/project`
 * git clone `URL` #<<<paste the URL you copied above here
-* explore the provided files (see: "Overview of Provided Code", and start building the *Mission Incomputable* project! Good luck!
+* explore the provided files (see: [Overview of Provided Code](overview-of-provided-code), and start building the *Key Assembly* project! Good luck!
 
 See the official project files on our website for more information:
 
 * [Final Project Logistics](http://www.cs.dartmouth.edu/~cs50/Labs/Project/)
-* [Mission Incomputable Specifics](http://www.cs.dartmouth.edu/~cs50/Labs/Project/mission.html)
-* [Mission Incomputable Protocol](http://www.cs.dartmouth.edu/~cs50/Labs/Project/protocol.html) (and a helpful [diagram](http://www.cs.dartmouth.edu/~cs50/Labs/Project/imgs/MI-network.png))
+* [Key Assembly Requirements](http://www.cs.dartmouth.edu/~cs50/Labs/Project/REQUIREMENTS.html)
+* [Pebble Information](http://www.cs.dartmouth.edu/~cs50/Labs/Project/pebble.html) (and a helpful [diagram](http://www.cs.dartmouth.edu/~cs50/Labs/Project/imgs/MI-network.png))
 
 ### Update the top-level `README`
 
@@ -31,10 +31,11 @@ After you've completed the above steps, you should modify the `README` (the top-
 * names of all of the members in your team,
 * brief description about each of the directories and significant files in the top-level directory,
 * instructions on how to configure, compile, and run your project.
+* delete the information on forking and creating a new project
 
 ## Overview of Provided Code
 
-In this section we provide a brief overview of the provided code. You'll see that the directory structure that we have given you as a starting point is designed to keep each major component in this project separate and encourage modular design. Please build eacg component in the respective directory. Feel free to add other folders as needed (e.g., `libs/`, `common/`, `build/`).
+In this section we provide a brief overview of the provided code. You'll see that the directory structure that we have given you as a starting point is designed to keep each major component in this project separate and encourage modular design. Please build each component in the respective directory. Feel free to add other folders as needed (e.g., `libs/`, `common/`, `build/`).
 
 ```
 $ tree .
@@ -45,11 +46,11 @@ $ tree .
 |-- docs                         <<< placeholders...
 |   |-- DESIGN.md
 |   |-- IMPLEMENTATION.md
-|   |-- MI-network.png
+|   |-- KA-network.png
 |   `-- TESTING.md
 |-- examples                     <<< provided examples ***please don't modify***
 |   `-- appinfo.json
-|-- field_agent                  <<< minimal base for field agent (customized build script, app.js phone proxy)
+|-- field-agent                  <<< minimal base for field agent (customized build script, app.js phone proxy)
 |   |-- Makefile
 |   |-- appinfo.json
 |   |-- src
@@ -59,9 +60,9 @@ $ tree .
 |   |   |   |-- app.js
 |   |   `-- mission.h             <<< official cs50 header ***please don't modify***
 |   `-- wscript
-|-- game_server                   <<< placeholder...
+|-- game-server                   <<< placeholder...
 |   `-- Makefile
-|-- guide_agent                   <<< placeholder...
+|-- guide-agent                   <<< placeholder...
 |   `-- Makefile
 `-- proxy                         <<< unix proxy ***please don't modify***
     |-- package.json

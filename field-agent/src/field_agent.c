@@ -1,7 +1,7 @@
 #include <pebble.h>
 
 // Local includes
-#include "mission.h"
+#include "key_assembly.h"
 
 static void init() {
   // TODO: initializations...

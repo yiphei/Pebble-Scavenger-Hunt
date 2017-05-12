@@ -1,5 +1,5 @@
-#ifndef __MISSION_H
-#define __MISSION_H
+#ifndef __KEY_ASSEMBLY_H
+#define __KEY_ASSEMBLY_H
 
 /* 
  * AppMessage keys (***DO NOT MODIFY***).
@@ -39,4 +39,4 @@ enum {
 #define LOG_ERROR(fmt, args...) \
   app_log(APP_LOG_LEVEL_ERROR, __FILE_NAME__, __LINE__, fmt, ## args)
 
-#endif // __MISSION_H
+#endif // __KEY_ASSEMBLY_H
