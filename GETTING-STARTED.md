@@ -262,8 +262,8 @@ You can verify that the remote was added by again running `git remote -v`. For e
 $ git remote -v
 origin	https://gitlab.cs.dartmouth.edu/USERNAME/project-starter-kit-17s.git (fetch)
 origin	https://gitlab.cs.dartmouth.edu/USERNAME/project-starter-kit-17s.git (push)
-upstream	https://gitlab.cs.dartmouth.edu/traviswpeters/project-starter-kit-17s.git (fetch)
-upstream	https://gitlab.cs.dartmouth.edu/traviswpeters/project-starter-kit-17s.git (push)
+upstream	https://gitlab.cs.dartmouth.edu/CS50/project-starter-kit-17s.git (fetch)
+upstream	https://gitlab.cs.dartmouth.edu/CS50/project-starter-kit-17s.git (push)
 ```
 
 Suppose you post a message about updating the provided code.
