@@ -254,7 +254,7 @@ To add the *original* repo to the remotes that you are tracking, use the `git re
 $ git remote add upstream https://gitlab.cs.dartmouth.edu/CS50/project-starter-kit-17s.git
 ```
 
-where `upstream` is a human readable alias for the new remote you are adding, where `traviswpeters` is the original owner of the repo which you `fork`ed, and `project-starter-kit-17s.git` is the original name of the repository which you `fork`ed.
+where `upstream` is a human readable alias for the new remote you are adding, where `CS50` is the original owner of the repo which you `fork`ed, and `project-starter-kit-17s.git` is the original name of the repository which you `fork`ed.
 
 You can verify that the remote was added by again running `git remote -v`. For example:
 
