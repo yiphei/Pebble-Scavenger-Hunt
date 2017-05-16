@@ -113,7 +113,7 @@ It is essential that you and your team have a good understanding of how all of t
 ***=>*** *In summary: your Game Server needs to (1) open a single UDP socket which it will read from, and (2) keep track of the remote client's address (IP/port) for all known agents (both Guide Agents and Field Agents).* 
 
 
-#### Guide Agent: Communicating over Bluetooth
+#### Field Agent: Communicating over Bluetooth
 
 The Pebble has no Wi-Fi interface and cannot connect directly to the Internet. To reach the Internet, it must send messages through some companion device (e.g., your smartphone) over Bluetooth, and then messages can be sent to the Game Server over your companion device's Wi-Fi or Cellular connection to the Internet. To use Bluetooth, you'll need to use Pebble's `AppMessage` API.
 
