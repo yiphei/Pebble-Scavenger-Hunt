@@ -1,7 +1,7 @@
 # KRAG Design
 _Tony DiPadova, Michael Perezous, Paolo Takagi, Yifei Yan_
 
-The KRAG game will be broken up into three components: Field Agent, Guide Agent, and Game Server, as well as a common library containing code used by all three. All three components will connect to each other via a Network Module. They will send messages to each other in the format described in the Requirements Spec in order to communicate and share data, following the game rules set out in the Requirements Spec.
+The KRAG game will be broken up into three components: Field Agent, Guide Agent, and Game Server, as well as a common library containing code used by all three. All three components will connect to each other via a Network Module. They will send messages to each other in the format described in the [Requirements Spec](http://www.cs.dartmouth.edu/~cs50/Labs/Project/REQUIREMENTS.html) in order to communicate and share data, following the game rules set out in the [Requirements Spec](http://www.cs.dartmouth.edu/~cs50/Labs/Project/REQUIREMENTS.html).
 
 ---
 
