@@ -3,6 +3,8 @@ _Tony DiPadova, Michael Perezous, Paolo Takagi, Yifei Yan_
 
 The KRAG game will be broken up into three components: Field Agent, Guide Agent, and Game Server, as well as a common library containing code used by all three.
 
+---
+
 ## Field Agent
 The Field Agent is a Pebble app that communicates with the Game Server and interacts with the player wearing the Pebble. Paolo will be the primary developer of the Field Agent.
  
@@ -86,6 +88,8 @@ The Field Agent will make use of the Message data structure we will implement in
 8. Test ending the game properly, and destroying all corresponding windows.
 9. Integration test with the Guide Agent(s) and Field Agent(s) when all have been tested individually.
 
+---
+
 ## Guide Agent
 The Guide Agent is a Unix program that communicates with the Game Server and interacts with the player who acts as a guide. Michael and Yi Fei will be the primary developers of the Guide Agent.
 
@@ -152,6 +156,8 @@ Test graphical interface build.
 Test graphical interface update using hard-coded input.
 Integration test with the Game Server and Field Agent(s) when all have been tested individually.
 
+---
+
 ## Game Server
 The Game Server is a server that communicates with all players, from all teams, to record the game’s progress and provide information to each of the players. Tony will be the primary developer of the Game Server.
 
@@ -197,6 +203,7 @@ Functions within Game Server:
 * `gameOver` - Sends a game over message to the agents
 * `sendRecord` - Sends a team record to the agents
 * `log` - Logs information
+
 Common Library:
 
 * Message Module - Used for constructing and handling messages
@@ -231,6 +238,8 @@ Test incorrect message handling using hard-coded input.
 Test correct message handling using hard-coded input.
 Test for memory leaks during and after a simulated game using hard coded messages.
 Integration test with the Guide Agent(s) and Field Agent(s) when all have been tested individually.
+
+---
 
 ## Common Library
 
