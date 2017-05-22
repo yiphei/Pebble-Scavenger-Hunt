@@ -11,19 +11,14 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
+#include <ctype.h>
 
 // function declarations
-int game(unsigned int guideId, char *team, char *player, char *host, char *port);
+int game(unsigned int guideId, char *team, char *player, char *host, int port);
 
 
 int main(int argc, char **argv) 
 {
-	// invalid argument count error
-	if (argc != 6) {
-		fprintf(stderr, "usage: guideagent guideId=... team=... player=... host=... port=...\n");
-		exit(1);
-	}
-
 	// temporary strings
 	char *guideIdTemp = NULL;
 	char *teamTemp = NULL;
@@ -139,6 +134,7 @@ int main(int argc, char **argv)
 
 	char *team = malloc(strlen(teamTemp) - 5);
 	team = strcpy(team, teamTemp + 5);
+	// team name exceeds max length
 	if (strlen(team) > 10) {
 		fprintf(stderr, "max team name length is 10 characters\n");
 		exit(4);
@@ -146,7 +142,7 @@ int main(int argc, char **argv)
 
 	char *player = malloc(strlen(playerTemp) - 7);
 	player = strcpy(player, playerTemp + 7);
-	// too long of a player name
+	// player name exceeds max length
 	if (strlen(player) > 10) {
 		fprintf(stderr, "max player name length is 10 characters\n");
 		exit(4);
@@ -156,20 +152,15 @@ int main(int argc, char **argv)
 	host = strcpy(host, hostTemp + 5);
 
 	char *portTemp2 = malloc(strlen(portTemp) - 5);
-	portTemp2 = strcpy(port, portTemp + 5);
-	int port = atoi(portTemp2);
-	// port given was not an integer
-	if (port == 0) {
-		fprintf(stderr, "port must be an integer\n");
-		exit(4);
+	portTemp2 = strcpy(portTemp2, portTemp + 5);
+	// check to see if port is an integer
+	for (int i = 0; i < strlen(portTemp2); i++) {
+		if (!isdigit(portTemp2[i])) {
+			fprintf(stderr, "port is not an integer\n");
+			exit(4);
+		}
 	}
-
-
-	printf("%d\n", guideId);
-	printf("%s\n", team);
-	printf("%s\n", player);
-	printf("%s\n", host);
-	printf("%d\n", port);
+	int port = atoi(portTemp2);
 
 	int exitStatus = game(guideId, team, player, host, port);
 
@@ -178,13 +169,13 @@ int main(int argc, char **argv)
 	free(team);
 	free(player);
 	free(host);
-	free(port);
+	free(portTemp2);
 
 	exit(exitStatus);
 }
 
 
-int game(unsigned int guideId, char *team, char *player, char *host, char *port)
+int game(unsigned int guideId, char *team, char *player, char *host, int port)
 {
 
 
