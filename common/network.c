@@ -11,8 +11,9 @@
 /***** globals *****/
 static struct socketaddr_in gameserver;
 static struct socketaddr_in proxy;
-int BUFSIZE = 8192; // 8k 
-int comm; // the socket
+static int BUFSIZE = 8192; // 8k 
+static int comm; // the socket
+static socklen_t proxylen; // size of proxy
 
 /***** functions *****/
 
@@ -36,7 +37,7 @@ bool startServer(int serverPort, int proxyPort){
 	proxy.sin_port = htons(proxyPort); // bind to proxy specific IP
 
 	// initialize proxy size
-	socklen_t proxylen = sizeof(proxy);
+	proxylen = sizeof(proxy);
 
 	// bind the socket
 	if(bind(comm, (struct sockaddr *)gameserver, sizeof(gameserver))<0){
