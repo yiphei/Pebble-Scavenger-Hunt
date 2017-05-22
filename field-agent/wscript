@@ -68,7 +68,8 @@ def build(ctx):
         debug_files(ctx, True)
         ctx.pbl_program(
             source=ctx.path.ant_glob('src/**/*.c') 
-                + ctx.path.find_node('../').ant_glob('common/**/*.c'),
+                + ctx.path.find_node('../').ant_glob('common/**/*.c')
+                + ctx.path.find_node('../').ant_glob('libcs50/**/*.c'),
             target=app_elf)
 
         if build_worker:
