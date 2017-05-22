@@ -13,14 +13,12 @@
 #include <stdbool.h>
 #include "../libcs50/hashtable.h"
 
-
-
 /**************** global types ****************/
 typedef struct team {
   struct guideAgent * guideAgent;  //guide agent of the team
   set_t * FAset;      //set of field agents
   char * revealedString;  //the current releaved string of the team
-  //bag_t * clues;
+  set_t * clues;
   int claimed;  //number of claimed krags of the team
 } team_t;
 
@@ -61,19 +59,9 @@ int addGuideAgent(char * guideID, char * teamname, char * name, hashtable_t * te
 void updateLocation(char * name, char * teamname, double longitude, double latitude, hashtable_t * teamhash);
 
 /*
-*
+* This function frees memory of the hashtable and everything in it.
 */
 void deleteTeamHash(hashtable_t * teamhash);
-
-/*
-*
-*/
-void deleteTeam(void *item);
-
-/*
-*
-*/
-void deleteFA(void * iteam);
 
 /*
 * This function creates a new field agent.
@@ -89,5 +77,11 @@ guideAgent_t * newGuideAgent(char * guideID, char * name);
 * This function creates a new team
 */
 team_t * newTeam(void);
+
+/*
+* This function prints all the teams and all of its members
+*/
+void printTeams(hashtable_t * teamhash);
+
 
 #endif // __TEAM_H

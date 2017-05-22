@@ -57,6 +57,10 @@ int totalKrags(hashtable_t * kraghash);
 */
 void deleteKrag(void *item);
 
+
+/*
+* This function prints the kraghash with all its components.
+*/
 void printKrags(hashtable_t * kraghash);
 
 /*
