@@ -88,7 +88,7 @@ int main(int argc, char* argv[])
         }
 
         else { 
-                printf("warning: unrecognized argument %s\n", argv[i]);
+            printf("warning: unrecognized argument %s\n", argv[i]); 
         }
     }
 

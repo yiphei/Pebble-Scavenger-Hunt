@@ -72,8 +72,8 @@ bool sendMessage(char* message, connection_t* connection);
 void deleteConnection(connection_t* connection);
 
 /*
-* Stops the server
+* Closes the socket
 *
 *
 */
-void stopServer(void);
+void closeSocket(int comm);
