@@ -224,7 +224,6 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 	}
 
 	char *messagep;
-	char *delim = "|";
 	// open log directory and file to log activity
 	FILE *log;
 	if ((log = fopen("../logs/guideagent.log", "r")) == NULL) {
