@@ -14,20 +14,34 @@
 #include <strings.h>          // bcopy, bzero
 #include <arpa/inet.h>        // socket-related calls
 #include <sys/wait.h>         // wait() and waitpid()
+#include <netdb.h>
 
-
+/***** structs *****/
+typedef struct connection {
+	int socket;
+	struct sockaddr* address;
+} connection_t;
 
 /*
 * Function to start server
-* Returns false on failure
-*
+* Returns connection
+* Returns NULL if failure
 */
-bool startServer(int serverPort, int proxyPort);
+connection_t* startServer(int port);
+
+/*
+* Opens socket to server at host
+* Returns connection type
+* Returns NULL if failure
+*/
+connection_t* openSocket(int port, char* host);
+
 
 /*
 * Listens for a message
 * Returns the received message, or NULL if no message received
 * Messages must be freed by the user
+* Takes connection type and updates address to last received address
 *
 * Usage:
 * 
@@ -40,14 +54,22 @@ bool startServer(int serverPort, int proxyPort);
 *   free(message);
 * }
 */
-char* receiveMessage(void);
+char* receiveMessage(connection_t* connection);
 
 /*
 * Sends a message
 * Returns true on success, false on failure
+* Takes connection type and sends to the address
+*/
+bool sendMessage(char* message, connection_t* connection);
+
+
+/*
+* Deletes a connection structure
+*
 *
 */
-bool sendMessage(char* message);
+void deleteConnection(connection_t* connection);
 
 /*
 * Stops the server
