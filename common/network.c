@@ -8,7 +8,7 @@
 
 #include "network.h"
 
-/***** globals *****/
+/***** file-local variables *****/
 static struct socketaddr_in gameserver;
 static struct socketaddr_in proxy;
 static int BUFSIZE = 8192; // 8k 
@@ -16,8 +16,9 @@ static int comm; // the socket
 static socklen_t targetlen; // size of target
 /***** functions *****/
 
-/****** startServer ******/
-bool startServer(int serverPort, int targetPort){
+/****** openSocket ******/
+bool openSocket(int serverPort, int targetPort){
+
 	// Create the socket
 	comm = socket(AF_INET, SOCK_DGRAM,0);
 	if(comm < 0){
@@ -31,17 +32,19 @@ bool startServer(int serverPort, int targetPort){
 	gameserver.sin_port = htons(serverPort); // bind to server specific IP
 
 	// initialize the socket address for the target	proxy.sin_family = AF_INET;
-	proxy.sin_addr.s_addr = htonl(INADDR_ANY);
-	proxy.sin_port = htons(targetPort); // bind to proxy specific IP
-
-	// initialize target size
-	proxylen = sizeof(target);
-
 	// bind the socket
 	if(bind(comm, (struct sockaddr *)gameserver, sizeof(gameserver))<0){
 		fprintf(stderr, "Unable to bind socket\n");
 		return false;
 	}
+	
+	// initialize the socket address for the proxy
+	proxy.sin_family = AF_INET;
+	proxy.sin_addr.s_addr = htonl(INADDR_ANY);
+	proxy.sin_port = htons(targetPort); // bind to proxy specific IP
+
+	// initialize target size
+	proxylen = sizeof(target);
 
 	return true; // return true for success
 }
@@ -70,8 +73,8 @@ bool sendMessage(char* message)
 	sendto(comm, message, strlen(message), 0, (struct sockaddr *)&target, targetlen);
 }
 
-/***** stopServer *****/
-void stopServer(void)
+/***** closeSocket *****/
+void closeSocket(void)
 {
 	close(comm); // close the socket
 }
