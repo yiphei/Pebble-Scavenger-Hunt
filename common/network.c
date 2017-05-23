@@ -4,26 +4,26 @@
 *
 * Tony DiPadova, May 2017
 *
+* Code used from client-server-udp examples
 */
 
 #include "network.h"
 
-/***** file-local variables *****/
-static struct socketaddr_in remote;
+/***** local global variables *****/
 static int BUFSIZE = 8192; // 8k 
 /***** functions *****/
 
 /****** openSocket ******/
-bool openSocket(int port){
+connection_t* startServer(int port){
 	// Create the socket
 	int comm = socket(AF_INET, SOCK_DGRAM,0);
 	if(comm < 0){
 		fprintf(stderr , "Unable to create datagram socket\n");
-		return false;
+		return NULL;
 	}
 
 	// initialize the socket address for the gameserver
-	struct socketaddr_in myaddr;
+	struct sockaddr_in myaddr;
 	myaddr.sin_family = AF_INET;
 	myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
 	myaddr.sin_port = htons(port); // bind to server specific IP
@@ -31,39 +31,104 @@ bool openSocket(int port){
 	// bind the socket
 	if(bind(comm, (struct sockaddr *)&myaddr, sizeof(myaddr))<0){
 		fprintf(stderr, "Unable to bind socket\n");
-		return false;
+		return NULL;
 	}
 
-	return true; // return true for success
+	// create connection to return
+	connection_t* connection = malloc(sizeof(connection_t));
+	connection->socket = comm;
+	connection->address = (struct sockaddr *)&myaddr;
+	return connection; 
+}
+
+connection_t* openSocket(int port, char* host){
+	// check parameter
+	if(host == NULL){
+		return NULL;
+	}
+	// connect to host
+	struct hostent *hostp = gethostbyname(host);
+	// Initialize fields of the server address
+	struct sockaddr_in server;  // address of the server
+	server.sin_family = AF_INET;
+	bcopy(hostp->h_addr_list[0], &server.sin_addr, hostp->h_length);
+	server.sin_port = htons(port);
+
+	  // Create socket
+  	int comm = socket(AF_INET, SOCK_DGRAM, 0);
+  	if (comm < 0) {
+    	fprintf(stderr,"Unable to open socket\n");
+    	return NULL;
+  	}
+
+  	// create connection to return
+  	connection_t* connection = malloc(sizeof(connection_t));
+  	connection->socket = comm;
+  	connection->address = (struct sockaddr *)&server;
+  	return connection;
 }
 
 /***** receiveMessage *****/
-char* receiveMessage()
+char* receiveMessage(connection_t* connection)
 {	// initialize variables
 	unsigned char buf[BUFSIZE]; // character buffer to receive messages
-	struct sockaddr_in remote; // remote address
 	
+	// check connection
+	if(connection == NULL){
+		return NULL;
+	}
+	// get remote
+	struct sockaddr* remote = connection->address;
+	// make sure address exists
+	if(remote == NULL){
+		return false;
+	}
+
+	// get struct variables
+	socklen_t remoteLen = sizeof(remote);
+	int comm = connection->socket;
 	// receive messages
-	int messageLen = recvfrom(comm, buf, BUFSIZE-1, 0, (struct sockaddr *)&remote, &remotelen);
+	int messageLen = recvfrom(comm, buf, BUFSIZE-1, 0, remote, &remoteLen);
 	
 	// if messages are received, return them
 	if(messageLen > 0){
 		char* messagep = malloc(messageLen); // allocate space for return pointer
 		buf[messageLen] = '\0'; // add a null terminator to shorten the buffer
-		strcpy(messagep, buf); // copy into a character pointer
+		strcpy(messagep, (char *)buf); // copy into a character pointer
 		return messagep; // return the message
 	}
 	return NULL; // return NULL if no message received
 }
 
 /***** sendMessage *****/
-bool sendMessage(char* message, sockaddr remote)
+bool sendMessage(char* message, connection_t* connection)
 {
-	sendto(comm, message, strlen(message), 0, remote, remotelen);
+	// check for null parameters
+	if(connection == NULL || message == NULL){
+		return false;
+	}
+	struct sockaddr* remote = connection->address;
+
+	// make sure address exists
+	if(remote == NULL){
+		return false;
+	}
+
+	socklen_t remoteLen = sizeof(remote);
+	int comm = connection->socket;
+	sendto(comm, message, strlen(message), 0, remote, remoteLen);
+	return true;
+}
+
+/***** deleteConnection *****/
+void deleteConnection(connection_t* connection)
+{
+	free(connection->address);
+	free(connection);
 }
 
 /***** closeSocket *****/
-void closeSocket(void)
+void closeSocket(int comm)
 {
 	close(comm); // close the socket
 }

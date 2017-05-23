@@ -20,10 +20,21 @@ Exit Status:
 * 3: missing necessary argument
 * 4: misinformed argument
 	* ex. non-hexidecimal gameId, team/player name too long, non-integer port
-
+* 5: could not connect to server
+* 6: could not open log file
 
 ### Functions
 
 ##### main
 Parses and validates all parameters and passes the parameters to the guide agent
-if there are no errors
+if there are no errors.
+
+##### game
+Connects to the server using the network module functions, creates the set of 
+field agents to keep track of its team, and starts to receive messages.
+Will parse messages using the message.[ch] files and taking advantage of the
+message struct, handle messages using a function dispatch table comparing 
+opCodes, and periodically send messages using the network module as well
+(specifically GA_STATUS and requests for the GS_STATUS).
+
+#####
