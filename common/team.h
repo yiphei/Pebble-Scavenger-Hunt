@@ -25,8 +25,19 @@ typedef struct team {
   int claimed;  //number of claimed krags of the team
 } team_t;
 
-typedef struct guideAgent guideAgent_t;
-typedef struct fieldAgent fieldAgent_t;
+
+typedef struct guideAgent {  
+	char * guideID;  
+ 	char * name;
+ 	char * gameID;     
+} guideAgent_t;
+
+
+typedef struct fieldAgent {
+	double latitude;  //latitude position of the field agent
+	double longitude;  //longitude position of the field agent
+	char * gameID;
+} fieldAgent_t;
 /**************** functions ****************/
 
 /*
