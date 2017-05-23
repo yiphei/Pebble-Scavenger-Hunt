@@ -17,13 +17,15 @@
 
 typedef struct guideAgent {  
 	char * guideID;  
- 	char * name;     
+ 	char * name;
+ 	char * gameID;     
 } guideAgent_t;
 
 
 typedef struct fieldAgent {
 	double latitude;  //latitude position of the field agent
 	double longitude;  //longitude position of the field agent
+	char * gameID;
 } fieldAgent_t;
 
 char * getRevealedString(char * teamname, hashtable_t * teamhash){
@@ -31,13 +33,12 @@ char * getRevealedString(char * teamname, hashtable_t * teamhash){
 	return team->revealedString;
 }
 
-
 hashtable_t * init(void){
 	hashtable_t * teamhash = hashtable_new(50);  //initialize a new hashtable of teams
 	return teamhash;
 }
 
-void addFieldAgent(char * name, char * teamname, hashtable_t * teamhash){
+void addFieldAgent(char * name, char * teamname, char * gameID, hashtable_t * teamhash){
 
 	//create the team if it does not exist
 	if (hashtable_find(teamhash, teamname) == NULL){
@@ -46,11 +47,11 @@ void addFieldAgent(char * name, char * teamname, hashtable_t * teamhash){
 	}
 
 	team_t * newteam = hashtable_find(teamhash, teamname); 
-	fieldAgent_t * newFA = newFieldAgent();  //initialize a new field agent
+	fieldAgent_t * newFA = newFieldAgent(gameID);  //initialize a new field agent
 	set_insert(newteam->FAset, name, newFA);
 }
 
-int addGuideAgent(char * guideID, char * teamname, char * name, hashtable_t * teamhash){
+int addGuideAgent(char * guideID, char * teamname, char * name, char * gameID, hashtable_t * teamhash){
 
 	//create the team if it does not exists
 	if (hashtable_find(teamhash, teamname) == NULL){
@@ -65,11 +66,43 @@ int addGuideAgent(char * guideID, char * teamname, char * name, hashtable_t * te
 
 	//create a new guide agent and assign it to the team
 	team_t * newteam = hashtable_find(teamhash, teamname);
-	guideAgent_t * newGA = newGuideAgent(guideID, name);
+	guideAgent_t * newGA = newGuideAgent(guideID, name , gameID);
 	newteam->guideAgent = newGA;
 
 	return 0;
 }
+
+void addKrag(char * teamname, char * kragID, krag_t * krag, hashtable_t * teamhash ){
+
+	team_t * team = hashtable_find(teamhash, teamname);
+	set_insert(team->krags, kragID, krag);
+}
+
+
+set_t * getKrags(char * teamname, hashtable_t * teamhash){
+
+	team_t * team = hashtable_find(teamhash, teamname);
+	return team->krags;
+}
+
+set_t * getClues(char * teamname, hashtable_t * teamhash){
+
+	team_t * team = hashtable_find(teamhash, teamname);
+	return team->clues;
+}
+
+char * getClueOne(char * teamname, hashtable_t * teamhash){
+
+	team_t * team = hashtable_find(teamhash, teamname);
+	return team->recentClues[0];
+}
+
+char * getClueTwo(char * teamname, hashtable_t * teamhash){
+
+	team_t * team = hashtable_find(teamhash, teamname);
+	return team->recentClues[1];
+}
+
 
 
 void updateLocation(char * name, char * teamname, double longitude, double latitude, hashtable_t * teamhash){
@@ -86,11 +119,13 @@ void updateLocation(char * name, char * teamname, double longitude, double latit
 //Helper function to free field agents
 static void deleteFA(void * item){
 	if (item){
+
+		free(((fieldAgent_t *) item)->gameID);
 	}
 }
 
-//helper functino to free clues
-static void deleteClues(void * item){
+//helper functino to free krags
+static void deleteKrags(void * item){
 	if (item){
 		free(item);
 	}
@@ -102,9 +137,18 @@ static void deleteTeam(void *item)
   	free(((team_t *)item)->revealedString);
   	free((((team_t *)item)->guideAgent)->guideID);
   	free((((team_t *)item)->guideAgent)->name);
+  	free((((team_t *)item)->guideAgent)->gameID);
   	free(((team_t *)item)->guideAgent);
   	set_delete(((team_t *)item)->FAset, deleteFA);
-  	set_delete(((team_t *)item)->clues, deleteClues);
+  	set_delete(((team_t *)item)->krags, deleteKrags);
+  	set_delete(((team_t *)item)->clues, deleteKrags);
+
+  				//free the array
+	for (int i=0; i<2; i++) {
+		if (((team_t *)item)->recentClues[i] != NULL) {
+			free(((team_t *)item)->recentClues[i]);
+		}
+	}
   	free((team_t *)item);
   }
 }
@@ -117,18 +161,21 @@ void deleteTeamHash(hashtable_t * teamhash){
 }
 
 
-fieldAgent_t * newFieldAgent(void){
+fieldAgent_t * newFieldAgent(char * gameID){
 	fieldAgent_t * fa = malloc(sizeof(fieldAgent_t));
   	if (fa == NULL) {
     	return NULL; // error allocating field agent
   	} 
   	else {
+  	fa->gameID = malloc(strlen(gameID)+1);
+  	strcpy(fa->gameID,gameID);
+
     return fa;
  }
 }
 
 
-guideAgent_t * newGuideAgent(char * guideID, char * name){
+guideAgent_t * newGuideAgent(char * guideID, char * name, char * gameID){
 
 	guideAgent_t * ga = malloc(sizeof(guideAgent_t));
   	if (ga == NULL) {
@@ -137,9 +184,12 @@ guideAgent_t * newGuideAgent(char * guideID, char * name){
 
     // initialize contents of guide agent structure
   	ga->name = malloc(strlen(name)+1);
-  	ga->guideID = malloc(strlen(guideID)+1);  
+  	ga->guideID = malloc(strlen(guideID)+1);
+  	ga->gameID = malloc(strlen(gameID)+1);  
   	strcpy(ga->name,name);
   	strcpy(ga->guideID,guideID);
+  	strcpy(ga->gameID,gameID);
+
     return ga;
  }
 }
@@ -155,7 +205,12 @@ team_t * newTeam(void){
     team->revealedString = NULL;
   	team->FAset = set_new();
   	team->guideAgent = NULL;
+  	team->krags = set_new();
   	team->clues = set_new();
+
+  	for (int i =0; i<2; i++) {
+		team->recentClues[i] = NULL;
+	}
     return team;
  }
 }
@@ -181,6 +236,7 @@ static void teamPrint(FILE *fp, const char *key, void *item)
 
 
 void printTeams(hashtable_t * teamhash){
+
 	hashtable_print(teamhash, stdout, teamPrint);
 }
 

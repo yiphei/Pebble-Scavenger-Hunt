@@ -12,12 +12,15 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include "../libcs50/hashtable.h"
+#include "krag.h"
 
 /**************** global types ****************/
 typedef struct team {
   struct guideAgent * guideAgent;  //guide agent of the team
   set_t * FAset;      //set of field agents
   char * revealedString;  //the current releaved string of the team
+  set_t * krags;
+  char * recentClues[2];
   set_t * clues;
   int claimed;  //number of claimed krags of the team
 } team_t;
@@ -31,7 +34,6 @@ typedef struct fieldAgent fieldAgent_t;
 */
 char * getRevealedString(char * teamname, hashtable_t * teamhash);
 
-
 /*
 * This function initializes a hashtable of teams and returns an empty hashtable. 
 * Caller is rensposible for freeing this pointer.
@@ -42,7 +44,7 @@ hashtable_t * init(void);
 * This function adds a field agent to a team. If the field agent is being added to a non-existing team,
 * than a team will be created first, and then the field agent will be added to the team.
 */
-void addFieldAgent(char * name, char * teamname, hashtable_t * teamhash);
+void addFieldAgent(char * name, char * teamname, char * gameID, hashtable_t * teamhash);
 
 /*
 * This function adds a guide agent to a team. If the guide agent is being added to a non-existing team,
@@ -50,7 +52,19 @@ void addFieldAgent(char * name, char * teamname, hashtable_t * teamhash);
 * situation, the function will return 0. If the user tries to add a guide agent to a team that already
 * has a guide agent, then nothing happens and it returns 1.
 */
-int addGuideAgent(char * guideID, char * teamname, char * name, hashtable_t * teamhash);
+int addGuideAgent(char * guideID, char * teamname, char * name, char * gameID, hashtable_t * teamhash);
+
+
+void addKrag(char * teamname, char * kragID, krag_t * krag, hashtable_t * teamhash );
+
+
+set_t * getKrags(char * teamname, hashtable_t * teamhash);
+
+set_t * getClues(char * teamname, hashtable_t * teamhash);
+
+char * getClueOne(char * teamname, hashtable_t * teamhash);
+
+char * getClueTwo(char * teamname, hashtable_t * teamhash);
 
 /*
 * This function updates the location of a field agent. If the team does not exists or the field agent
@@ -66,12 +80,13 @@ void deleteTeamHash(hashtable_t * teamhash);
 /*
 * This function creates a new field agent.
 */
-fieldAgent_t * newFieldAgent(void);
+fieldAgent_t * newFieldAgent(char * gameID);
 
 /*
 * This function creates a new guide agent
 */
-guideAgent_t * newGuideAgent(char * guideID, char * name);
+guideAgent_t * newGuideAgent(char * guideID, char * name, char * gameID);
+
 
 /*
 * This function creates a new team

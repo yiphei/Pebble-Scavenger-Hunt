@@ -19,16 +19,8 @@
 #define HASH_SIZE 50
 #define ARRAY_SIZE 20
 
-
-// typedef struct krag {  
-//   double latitude;   //latitude of the krag location
-//   double longitude;  //longitude of the krag location
-//   char clue[141];	//a string representing the clue to the krag       
-// } krag_t;
-
 unsigned int MAX_HEX;
 char * array [ARRAY_SIZE];
-
 
 hashtable_t * readKrag(char * filename){
 
@@ -75,13 +67,14 @@ hashtable_t * readKrag(char * filename){
     	tok = tok + strlen("clue=");
     	strcpy(krag->clue,tok);
 
+    	krag->n = x;
+
     	//insert the krag in the hashtable
     	hashtable_insert(kraghash, kragID, krag);
 
     	free(string);
     	x++;
  	}
-
 
  	fclose(fp);
  	return kraghash;
@@ -104,7 +97,7 @@ int getSecretStringLen(char * string){
 }
 
 
-int revealCharacters(char * teamname, char * secret, hashtable_t * teamhash, hashtable_t * kraghash){
+int revealCharacters(char * kragID, char * teamname, char * secret, hashtable_t * teamhash, hashtable_t * kraghash){
 
 	team_t * team = hashtable_find(teamhash, teamname);
 
@@ -132,9 +125,11 @@ int revealCharacters(char * teamname, char * secret, hashtable_t * teamhash, has
 	else{
 		int nkrags = totalKrags(kraghash); //total number of krags in the game
 
+		krag_t * krag = hashtable_find(kraghash, kragID);
+
 		//reveal characters
 		for (int x = 0; x < strlen(secret); x++){
-			if (x % nkrags == (team->claimed)){
+			if (x % nkrags == (krag->n)){
 				(team->revealedString)[x] = secret[x];
 			}
 		}
@@ -196,11 +191,13 @@ void printKrags(hashtable_t * kraghash){
 }
 
 
-void firstClue(hashtable_t * kraghash){
+void firstClue(char * teamname, hashtable_t * kraghash, hashtable_t * teamhash){
 
 	srand(time(NULL)); 
 	int r = rand() % totalKrags(kraghash);
 	char kragID[5];
+
+	set_t * clues = getClues(teamname, teamhash);
 
 	for (int i = 0; i < ARRAY_SIZE; i++){
 		if (i == r){
@@ -213,19 +210,14 @@ void firstClue(hashtable_t * kraghash){
 
 	krag_t * krag = hashtable_find(kraghash, kragID);
 
-	return krag->clue;
-}
-
-void randomClue(char * teamname, hashtable_t * kraghash, hashtable_t * teamhash){
-
-
-	getClue(teamname, kraghash, teamhash);
-	getClue(teamname, kraghash, teamhash);
-
+	set_insert(clues, kragID, krag->clue);
+	team_t * team = hashtable_find(teamhash, teamname);
+	strcpy(team->recentClues[0],krag->clue);
 }
 
 
-void getClueOne(char * teamname, hashtable_t * kraghash, hashtable_t * teamhash){
+
+static void ClueOne(char * teamname, hashtable_t * kraghash, hashtable_t * teamhash){
 
 	srand(time(NULL)); 
 	int r = rand() % totalKrags(kraghash);
@@ -235,7 +227,7 @@ void getClueOne(char * teamname, hashtable_t * kraghash, hashtable_t * teamhash)
 	set_t * clues = getClues(teamname, teamhash);
 
 	for (int i = 0; i < ARRAY_SIZE; i++){
-		if (i == r && set_find(krags, array[i] == NULL)){
+		if (i == r && set_find(krags, array[i]) == NULL){
 			strcpy(kragID, array[i]);
 			break;
 		}
@@ -245,13 +237,41 @@ void getClueOne(char * teamname, hashtable_t * kraghash, hashtable_t * teamhash)
 
 
 	set_insert(clues, kragID, krag->clue);
-
 	team_t * team = hashtable_find(teamhash, teamname);
-
-	team->recentClues
-
-
+	strcpy(team->recentClues[0],krag->clue);
 }
+
+
+static void ClueTwo(char * teamname, hashtable_t * kraghash, hashtable_t * teamhash){
+
+	srand(time(NULL)); 
+	int r = rand() % totalKrags(kraghash);
+	char kragID[5];
+
+	set_t * krags = getKrags(teamname, teamhash);
+	set_t * clues = getClues(teamname, teamhash);
+
+	for (int i = 0; i < ARRAY_SIZE; i++){
+		if (i == r && set_find(krags, array[i]) == NULL){
+			strcpy(kragID, array[i]);
+			break;
+		}
+	}
+
+	krag_t * krag = hashtable_find(kraghash, kragID);
+
+	set_insert(clues, kragID, krag->clue);
+	team_t * team = hashtable_find(teamhash, teamname);
+	strcpy(team->recentClues[1],krag->clue);
+}
+
+void randomClue(char * teamname, hashtable_t * kraghash, hashtable_t * teamhash){
+	ClueOne(teamname, kraghash, teamhash);
+	ClueTwo(teamname, kraghash, teamhash);
+}
+
+
+
 
 
 

@@ -11,18 +11,15 @@
 
 #include <stdio.h>
 #include <stdbool.h>
-#include "team.h"
-
+#include "../libcs50/hashtable.h"
 
 
 /**************** global types ****************/
-//typedef struct krag krag_t;  // opaque to users of the module
-
-
 typedef struct krag {  
   double latitude;   //latitude of the krag location
   double longitude;  //longitude of the krag location
-  char clue[141];	//a string representing the clue to the krag       
+  char clue[141];	//a string representing the clue to the krag
+  int n; //number according to the order in the kragfile       
 } krag_t;
 /**************** functions ****************/
 
@@ -51,8 +48,7 @@ int getSecretStringLen(char * string);
 * a series of '_' and set the number of claimed krags to zero. The function normally retuns 0. It
 * only returns 1 when the team has claimed all krags. 
 */
-int revealCharacters(char * teamname, char * secret, hashtable_t * teamhash, hashtable_t * kraghash);
-
+int revealCharacters(char * kragID, char * teamname, char * secret, hashtable_t * teamhash, hashtable_t * kraghash);
 /*
 * This function computes the total number of krags. It takes the hashtable of krags as paramenter. 
 * If kraghash is NULL, then 0 is returned.
@@ -73,7 +69,10 @@ void printKrags(hashtable_t * kraghash);
 /*
 *
 */
-void getClue(hashtable_t * teamhash, hashtable_t * kraghash, char * teamname);
+void firstClue(char * teamname, hashtable_t * kraghash, hashtable_t * teamhash);
+
+
+void randomClue(char * teamname, hashtable_t * kraghash, hashtable_t * teamhash);
 
 
 #endif // __KRAG_H
