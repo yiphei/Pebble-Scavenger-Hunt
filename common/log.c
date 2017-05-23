@@ -10,6 +10,7 @@
 #include <string.h>
 #include <netdb.h>  // socket-related structures
 #include <time.h>
+#include "network.h"
 
 void logMessage(FILE *file, char *message, char *direction, connection_t *connect)
 {
@@ -27,5 +28,5 @@ void logMessage(FILE *file, char *message, char *direction, connection_t *connec
 	// get port number
 	int port = connect->socket;
 
-	fprintf(file, "%s % s %s@%d: %s \n", timestamp, direction, ip, port, message);
+	fprintf(file, "%s %s %s@%d: %s \n", timestamp, direction, ip, port, message);
 }
