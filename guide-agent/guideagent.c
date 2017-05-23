@@ -26,6 +26,7 @@
 /******** function declarations ********/
 int game(char *guideId, char *team, char *player, char *host, int port);
 bool sendGA_STATUS(char *gameId, char *guideId, char *team, char *player, char *statusReq, connection_t *connection, FILE *file);
+bool sendGA_HINT(char *gameId, char *guideId, char *team, char *player, char *pebbleId, char *hint, connection_t *connection, FILE *file);
 
 /******** opCode handlers **********/
 static void badOpCode(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log);
@@ -269,15 +270,14 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 		for (int fn = 0; opCodes[fn].opCode != NULL; fn++) {
 			if(strcmp(opCode, opCodes[fn].opCode) == 0) {
 				(*opCodes[fn].func)(messagep, message, teamp, connection, log);
+				free(messagep);
+				deleteMessage(message);
 				break;
 			}
 		}
 	}
 
 	char *gameId = me->gameId;
-
-
-
 
 	// loop runs until GAME_OVER message received, then breaks
 	while (true) {
@@ -307,6 +307,10 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 				fprintf(stderr, "Unknown opCode: %s\n", opCode);
 			}
 
+			// free pointers for next time around the loop
+			free(messagep);
+			deleteMessage(message);
+
 		}
 
 		// every 30 seconds send a GA_STATUS
@@ -330,8 +334,12 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 
 	}
 
+	fclose(log);
+
+
 	return 0;
 }
+
 
 /*********** sendGA_STATUS ************/
 bool sendGA_STATUS(char *gameId, char *guideId, char *team, char *player, char *statusReq, connection_t *connection, FILE *file)
@@ -368,6 +376,40 @@ bool sendGA_STATUS(char *gameId, char *guideId, char *team, char *player, char *
 	return true;
 }
 
+bool sendGA_HINT(char *gameId, char *guideId, char *team, char *player, char *pebbleId, char *hint, connection_t *connection, FILE *file)
+{
+	char *messagep = malloc(strlen(gameId) + strlen(guideId) + strlen(team) 
+		+ strlen(player) + strlen(pebbleId) + strlen(hint) + 64);
+
+	if (messagep == NULL) {
+		return false;
+	} 
+
+	// construct message inductively
+	strcat(messagep, "opCode=GA_STATUS|gameId=");
+	strcat(messagep, gameId);
+	strcat(messagep, "|guideId=");
+	strcat(messagep, guideId);
+	strcat(messagep, "|team=");
+	strcat(messagep, team);
+	strcat(messagep, "|player=");
+	strcat(messagep, player);
+	strcat(messagep, "|pebbleId=");
+	strcat(messagep, pebbleId);
+	strcat(messagep, "|hint=");
+	strcat(messagep, hint);
+
+	if (!sendMessage(messagep, connection)) {
+		return false;
+	}
+
+	logMessage(file, messagep, "TO", connection);
+
+	free(messagep);
+
+	return true;
+}
+
 /*********** dispath/opCode functions **********/
 // received an incorrect opCode, print error message and ignore
 static void badOpCode(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
@@ -383,6 +425,7 @@ static void gameStatus(char *messagep, message_t *message, team_t *teamp, connec
 	if (teamp->guideAgent->gameId == "0") {
 		teamp->guideAgent->gameId == message->gameId;
 	}
+
 
 
 	logMessage(log, messagep, "FROM", connection);
