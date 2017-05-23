@@ -13,12 +13,48 @@
 #include <string.h>
 #include <ctype.h>             // isdigit
 #include <netdb.h>             // socket-related structures
+#include <time.h>
 #include <ncurses.h>
-#include "display.c"
+#include "../libcs50/memory.h"
+#include "../common/network.h"
+//#include "display.h"
+#include "../libcs50/set.h"
+#include "../common/message.h"
 
 /******** function declarations ********/
-int game(unsigned int guideId, char *team, char *player, char *host, int port);
-static bool openSocket(char *host, int port);
+int game(char *guideId, char *team, char *player, char *host, int port);
+
+/******** opCode handlers **********/
+static void badOpCode(message_t *message, set_t *fieldAgents);
+static void gameStatus(message_t *message, set_t *fieldAgents);
+static void GSAgent(message_t *message, set_t *fieldAgents);
+static void GSClue(message_t *message, set_t *fieldAgents);
+static void GSSecret(message_t * message, set_t *fieldAgents);
+static void GSResponse(message_t *message, set_t *fieldAgents);
+static void teamRecord(message_t *message, set_t *fieldAgents);
+static void gameOver(message_t *message, set_t *fieldAgents);
+
+/********* functions dispatch table *********/
+static const struct {
+
+	const char *opCode;
+	void (*func)(message_t *message, set_t *fieldAgents);
+
+} opCodes[] = {
+	{"FA_CLAIM", badOpCode},
+	{"FA_LOG", badOpCode},
+	{"GA_STATUS", badOpCode},
+	{"GA_HINT", badOpCode},
+	{"FA_LOCATION", badOpCode},
+	{"GAME_STATUS", gameStatus},
+	{"GS_AGENT", GSAgent},
+	{"GS_CLUE", GSClue},
+	{"GS_SECRET", GSSecret},
+	{"GS_RESPONSE", GSResponse},
+	{"TEAM_RECORD", teamRecord},
+	{"GAME_OVER", gameOver},
+	{NULL, NULL}
+};
 
 /********* implementation *********/
 int main(int argc, char **argv) 
@@ -121,17 +157,17 @@ int main(int argc, char **argv)
 	}
 
 	// parse arguments for their substrings
-	char *guideIdTemp2 = malloc(strlen(guideIdTemp) - 8);
-	guideIdTemp2 = strcpy(guideIdTemp2, guideIdTemp + 8);
+	char *guideId = malloc(strlen(guideIdTemp) - 8);
+	guideId = strcpy(guideId, guideIdTemp + 8);
 
 	// invalid guideId length
-	if (strlen(guideIdTemp2) > 8 || strlen(guideIdTemp2) == 0) {
+	if (strlen(guideId) > 8 || strlen(guideId) == 0) {
 		fprintf(stderr, "guideId should be 1-8 characters\n");
 	}
 
 	// invalid hexidecimal format
-	unsigned int guideId;
-	if (sscanf(guideIdTemp2, "%x", &guideId) != 1) {
+	unsigned int guideIdFormat;
+	if (sscanf(guideId, "%x", &guideIdFormat) != 1) {
 		fprintf(stderr, "guideId is not in hexidecimal format\n");
 		exit(4);
 	}
@@ -165,56 +201,113 @@ int main(int argc, char **argv)
 		}
 	}
 	int port = atoi(portTemp2);
+	free(portTemp2);
 
 	int exitStatus = game(guideId, team, player, host, port);
 
 	// free the original parameters
-	free(guideIdTemp2);
+	free(guideId);
 	free(team);
 	free(player);
 	free(host);
-	free(portTemp2);
 
 	exit(exitStatus);
 }
 
 
-int game(unsigned int guideId, char *team, char *player, char *host, int port)
+int game(char *guideId, char *team, char *player, char *host, int port)
 {
-	if (!openSocket(host, port)) {
+	// try to connect to server, else return exit status > 0 to main
+	connection_t *connection;
+	if ((connection = openSocket(port, host)) == NULL) {
+		return 5;
+	}
+
+	char *messagep;
+	char *delim = "|";
+	// open log directory and file to log activity
+	FILE *log;
+	if ((log = fopen("../logs/guideagent.log", "r")) == NULL) {
+		fprintf(stderr, "error opening log file\n");
+		return 6;
+	}
+
+	set_t *fieldAgents = set_new();
+
+	// loop runs until GAME_OVER message received, then breaks
+	while (true) {
+
+		messagep = receiveMessage(connection);
+
+		if (messagep != NULL) {
+			
+			message_t *message = parseMessage(messagep);
+
+			char *opCode = message->opCode;
+
+			// loop over function table to call the correct opCode handler
+			int fn;
+			for (fn = 0; opCodes[fn].opCode != NULL; fn++) {
+				if(strcmp(opCode, opCodes[fn].opCode) == 0) {
+					(*opCodes[fn].func)(message, fieldAgents);
+					break;
+				}
+			}
+
+			if (opCodes[fn].opCode == NULL) {
+				fprintf(stderr, "Unknown opCode: %s\n", opCode);
+			}
+
+			if (strcmp(opCode, "GAME_OVER") == 0) {
+				break;
+			}
+
+		}
 
 	}
 
 	return 0;
 }
 
-// helper function for game to connect to the Game Server
-static bool openSocket(char *host, int port)
+
+// received an incorrect opCode, print error message and ignore
+static void badOpCode(message_t *message, set_t *fieldAgents)
 {
-	// connect to host by supplied host name
-	struct hostent *hostp = gethostbyname(host);
+	fprintf(stderr, "incorrect opCode received, no actions performed\n");
+}
 
-	if (hostp == NULL) {
-		fprintf(stderr, "unknown host\n");
-		return false;
-	}
+// handle specific, applicable opCodes
+static void gameStatus(message_t *message, set_t *fieldAgents)
+{
 
-	// initialize fields of the Game Server
-	struct sockaddr_in server;
-	server.sin_family = AF_INET;
-	server.sin_port = htons(port); // bind to server specific IP
+}
 
-	int socket = socket(AF_INET, SOCK_DGRAM, 0);
+static void GSAgent(message_t *message, set_t *fieldAgents) 
+{
 
-	if (socket < 0) {
-		fprintf(stderr, "error opening socket\n");
-		return false;
-	}
+}
 
-	if (bind(socket, (struct sockaddr *) &server, sizeof(server)) < 0) {
-		fprintf(stderr, "error binding Guide Agent socket to server\n");
-		return false;
-	}
+static void GSClue(message_t *message, set_t *fieldAgents)
+{ 
 
-	return true;
+}
+
+static void GSSecret(message_t * message, set_t *fieldAgents)
+{
+
+}
+
+static void GSResponse(message_t *message, set_t *fieldAgents) 
+{
+
+}
+
+static void teamRecord(message_t *message, set_t *fieldAgents)
+{
+
+}
+
+static void gameOver(message_t *message, set_t *fieldAgents)
+{
+
 }

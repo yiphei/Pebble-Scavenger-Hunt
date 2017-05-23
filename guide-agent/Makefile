@@ -1,5 +1,23 @@
-all: 
-	@echo "TODO: make guide_agent..."
+# Makefile for Guide Agent
+# GREP, CS50, May 2017
+
+PROG = guideagent
+OBJS = guideagent.o ../common/network.o ../libcs50/set.o ../libcs50/memory.o ../common/message.o
+
+CFLAGS = -Wall -pedantic -std=c11 -ggdb -I../common/ -I../libcs50/
+CC = gcc
+MAKE = Makefile
+
+$(PROG): $(OBJS)
+	$(CC) $(CFLAGS) $(OBJS) -o $(PROG)
+
+guideagent.o: ../common/network.h ../libcs50/set.h
+network.o: ../common/network.h
+set.o: ../libcs50/set.h ../libcs50/memory.h
+message.o: ../common/message.h
 
 clean:
-	@echo "TODO: make clean guide_agent..."
+	rm -f guideagent
+	rm -f *.o
+	rm -f core
+	rm -f vgcore
