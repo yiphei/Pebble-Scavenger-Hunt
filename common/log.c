@@ -18,5 +18,4 @@ void logMessage(FILE *file, char *message, struct connection *connect)
 	sprintf(timestamp, "(%s", ctime(&clk));
 	timestamp[25] = ')';
 
-	
 }
