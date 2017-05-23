@@ -20,9 +20,11 @@
 //#include "display.h"
 #include "../libcs50/set.h"
 #include "../common/message.h"
+#include "../common/log.h"
 
 /******** function declarations ********/
 int game(char *guideId, char *team, char *player, char *host, int port);
+bool sendGA_STATUS(char *gameId, char *guideId, char *team, char *player, int statusReq, connection_t *connection, FILE *file);
 
 /******** opCode handlers **********/
 static void badOpCode(message_t *message, set_t *fieldAgents);
@@ -223,7 +225,6 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 		return 5;
 	}
 
-	char *messagep;
 	// open log directory and file to log activity
 	FILE *log;
 	if ((log = fopen("../logs/guideagent.log", "r")) == NULL) {
@@ -232,6 +233,12 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 	}
 
 	set_t *fieldAgents = set_new();
+	char *messagep;
+	message_t *message;
+
+	time_t start = time(NULL);
+	time_t now = time(NULL);
+	time_t elapsedSeconds = now - start;
 
 	// loop runs until GAME_OVER message received, then breaks
 	while (true) {
@@ -240,7 +247,7 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 
 		if (messagep != NULL) {
 			
-			message_t *message = parseMessage(messagep);
+			message = parseMessage(messagep);
 
 			char *opCode = message->opCode;
 
@@ -253,12 +260,31 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 				}
 			}
 
+			if (strcmp(opCode, "GAME_OVER") == 0) {
+				break;
+			}
+
 			if (opCodes[fn].opCode == NULL) {
 				fprintf(stderr, "Unknown opCode: %s\n", opCode);
 			}
 
-			if (strcmp(opCode, "GAME_OVER") == 0) {
-				break;
+		}
+
+		// every 30 seconds send a GA_STATUS
+		now = time(NULL);
+		elapsedSeconds = now - start;
+		if ((now - start) % 30 == 0) {
+
+			int statusReq = 0;
+
+			// every minute ask for a game status update
+			if ((now - start) % 60 == 0) {
+				statusReq = 1;
+			}
+
+			// try to send message to Game Server
+			if(!sendGA_STATUS(NULL, guideId, team, player, statusReq, connection, log)){
+				fprintf(stderr, "could not send GA_STATUS to Game Server\n");
 			}
 
 		}
@@ -266,6 +292,45 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 	}
 
 	return 0;
+}
+
+bool sendGA_STATUS(char *gameId, char *guideId, char *team, char *player, int statusReq, connection_t *connection, FILE *file)
+{
+	// allocate full space needed for the  message (60 being known characters)
+	char *message = malloc(strlen(gameId) + strlen(guideId) + strlen(team)
+		+strlen(player) + 60);
+
+	if (message == NULL) {
+		return false;
+	}
+
+	// convert int to string for string concatenation
+	char *statusp = malloc(2);
+	sprintf(statusReq, "%d", statusReq);
+
+	// construct message inductively
+	strcat(message, "opCode=GA_STATUS|gameId=");
+	strcat(message, gameId);
+	strcat(message, "|guideId=");
+	strcat(message, guideId);
+	strcat(message, "|team=");
+	strcat(message, team);
+	strcat(message, "|player=");
+	strcat(message, player);
+	strcat(message, "|statusReq=");
+	strcat(message, statusp);
+
+
+	if (!sendMessage(message, connection)) {
+		return false;
+	}
+
+	logMessage(file, message, "TO", connection);
+
+	free(statusp);
+	free(message);
+
+	return true;
 }
 
 
