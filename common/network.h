@@ -46,11 +46,23 @@ connection_t* openSocket(int port, char* host);
 * Usage:
 * 
 * while(true){
-*	char* message = receiveMessage();
+*	connection_t connection = malloc(sizeof(connection_t));
+*	connection->socket = 0; // should be saved socket not 0
+*
+*	// better to save last address than do this
+*	struct sockaddr* myaddr; // could be replaced by saved address
+*	myaddr->sin_family = AF_INET;
+*	myaddr->sin_addr.s_addr = htonl(INADDR_ANY); 
+*	myaddr->sin_port = htons(port); 
+*	connection->address = myaddr;
+*
+*	char* message = receiveMessage(connection);
 *	if(message == NULL){
 *		continue;
 *	}
 *   printf("%s\n",message);
+*	struct sockaddr* lastAddr = connection->address; // save last address
+*	deleteConnection(connection); // not necessary, could reuse connection
 *   free(message);
 * }
 */
@@ -72,8 +84,8 @@ bool sendMessage(char* message, connection_t* connection);
 void deleteConnection(connection_t* connection);
 
 /*
-* Stops the server
+* Closes the socket
 *
 *
 */
-void stopServer(void);
+void closeSocket(int comm);
