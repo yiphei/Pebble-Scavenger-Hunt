@@ -16,7 +16,14 @@
 
 
 /**************** global types ****************/
-typedef struct krag krag_t;  // opaque to users of the module
+//typedef struct krag krag_t;  // opaque to users of the module
+
+
+typedef struct krag {  
+  double latitude;   //latitude of the krag location
+  double longitude;  //longitude of the krag location
+  char clue[141];	//a string representing the clue to the krag       
+} krag_t;
 /**************** functions ****************/
 
 /*
@@ -53,9 +60,9 @@ int revealCharacters(char * teamname, char * secret, hashtable_t * teamhash, has
 int totalKrags(hashtable_t * kraghash);
 
 /*
-* This funtion deletes the krag struct. It shuold be called with hashtable_delete(kraghash, deleteKrag)
+* This funtion deletes the krag struct
 */
-void deleteKrag(void *item);
+void deleteKragHash(hashtable_t * kraghash);
 
 
 /*
@@ -66,7 +73,7 @@ void printKrags(hashtable_t * kraghash);
 /*
 *
 */
-char * getClue(hashtable_t * ht, char * kragID);
+void getClue(hashtable_t * teamhash, hashtable_t * kraghash, char * teamname);
 
 
 #endif // __KRAG_H

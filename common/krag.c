@@ -9,17 +9,26 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <time.h>
 #include "krag.h"
 #include "../libcs50/hashtable.h"
 #include "../libcs50/set.h"
 #include "../libcs50/file.h"
 #include "team.h"
 
-typedef struct krag {  
-  double latitude;   //latitude of the krag location
-  double longitude;  //longitude of the krag location
-  char clue[141];	//a string representing the clue to the krag       
-} krag_t;
+#define HASH_SIZE 50
+#define ARRAY_SIZE 20
+
+
+// typedef struct krag {  
+//   double latitude;   //latitude of the krag location
+//   double longitude;  //longitude of the krag location
+//   char clue[141];	//a string representing the clue to the krag       
+// } krag_t;
+
+unsigned int MAX_HEX;
+char * array [ARRAY_SIZE];
+
 
 hashtable_t * readKrag(char * filename){
 
@@ -27,6 +36,14 @@ hashtable_t * readKrag(char * filename){
  	fp = fopen(filename, "r");
 
  	hashtable_t * kraghash = hashtable_new(50);
+
+ 	//unsigned int curr_hex; //current hex code
+ 	int x = 0;
+
+
+ 	for (int i =0; i<ARRAY_SIZE; i++) {
+		array[i] = NULL;
+	}
 
  	//while is not end of file
  	while (!feof(fp)){
@@ -50,6 +67,8 @@ hashtable_t * readKrag(char * filename){
     	tok = strtok (NULL, "|");
     	tok = tok + strlen("kragId=");
 		strcpy(kragID, tok);
+		array[x] = malloc(5);
+		strcpy(array[x],tok);
 
 		//pull of the clue from the string and assign it to the krag struct
     	tok = strtok(NULL, "|");
@@ -60,10 +79,11 @@ hashtable_t * readKrag(char * filename){
     	hashtable_insert(kraghash, kragID, krag);
 
     	free(string);
+    	x++;
  	}
 
- 	fclose(fp);
 
+ 	fclose(fp);
  	return kraghash;
 }
 
@@ -145,11 +165,21 @@ int totalKrags(hashtable_t * kraghash){
 	return 0;
 }
 
-
-void deleteKrag(void *item){
+static void deleteKrag(void *item){
   if (item) {
     free(item);
   }
+}
+
+void deleteKragHash(hashtable_t * kraghash){
+
+	hashtable_delete(kraghash, deleteKrag);
+			//free the array
+		for (int i=0; i<ARRAY_SIZE; i++) {
+			if (array[i] != NULL) {
+				free(array[i]);
+			}
+		}
 }
 
 //helper function to print the krags
@@ -166,14 +196,64 @@ void printKrags(hashtable_t * kraghash){
 }
 
 
-// //work in progess
-// char * getClue(hashtable_t * teamhash, hashtable_t * kraghash, char * teamname){
+void firstClue(hashtable_t * kraghash){
 
-// 	srand((unsigned) time(&t));
-// 	int rad = rand() % totalKrags(kraghash);
+	srand(time(NULL)); 
+	int r = rand() % totalKrags(kraghash);
+	char kragID[5];
 
-// 	hashtable_iterate(kraghash, )
-// }
+	for (int i = 0; i < ARRAY_SIZE; i++){
+		if (i == r){
+			strcpy(kragID, array[i]);
+			break;
+
+		}
+	}
+	printf("kragID: %s", kragID);
+
+	krag_t * krag = hashtable_find(kraghash, kragID);
+
+	return krag->clue;
+}
+
+void randomClue(char * teamname, hashtable_t * kraghash, hashtable_t * teamhash){
+
+
+	getClue(teamname, kraghash, teamhash);
+	getClue(teamname, kraghash, teamhash);
+
+}
+
+
+void getClueOne(char * teamname, hashtable_t * kraghash, hashtable_t * teamhash){
+
+	srand(time(NULL)); 
+	int r = rand() % totalKrags(kraghash);
+	char kragID[5];
+
+	set_t * krags = getKrags(teamname, teamhash);
+	set_t * clues = getClues(teamname, teamhash);
+
+	for (int i = 0; i < ARRAY_SIZE; i++){
+		if (i == r && set_find(krags, array[i] == NULL)){
+			strcpy(kragID, array[i]);
+			break;
+		}
+	}
+
+	krag_t * krag = hashtable_find(kraghash, kragID);
+
+
+	set_insert(clues, kragID, krag->clue);
+
+	team_t * team = hashtable_find(teamhash, teamname);
+
+	team->recentClues
+
+
+}
+
+
 
 
 
