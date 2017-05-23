@@ -92,6 +92,7 @@ functions when handling multiple teams at a time).
 
 
 #### display.c
-
-
-
+This component contains all functions and logic related to the graphical user
+interface for the Guide Agent. It allows for abstracted use of the GUI by
+`guideagent.c` to separate the display from the actual logic of the game for
+the Guide Agent.
