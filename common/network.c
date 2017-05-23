@@ -9,53 +9,42 @@
 #include "network.h"
 
 /***** file-local variables *****/
-static struct socketaddr_in gameserver;
-static struct socketaddr_in proxy;
+static struct socketaddr_in remote;
 static int BUFSIZE = 8192; // 8k 
-static int comm; // the socket
-static socklen_t targetlen; // size of target
 /***** functions *****/
 
 /****** openSocket ******/
-bool openSocket(int serverPort, int targetPort){
-
+bool openSocket(int port){
 	// Create the socket
-	comm = socket(AF_INET, SOCK_DGRAM,0);
+	int comm = socket(AF_INET, SOCK_DGRAM,0);
 	if(comm < 0){
 		fprintf(stderr , "Unable to create datagram socket\n");
 		return false;
 	}
 
 	// initialize the socket address for the gameserver
-	gameserver.sin_family = AF_INET;
-	gameserver.sin_addr.s_addr = htonl(INADDR_ANY);
-	gameserver.sin_port = htons(serverPort); // bind to server specific IP
+	struct socketaddr_in myaddr;
+	myaddr.sin_family = AF_INET;
+	myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+	myaddr.sin_port = htons(port); // bind to server specific IP
 
-	// initialize the socket address for the target	proxy.sin_family = AF_INET;
 	// bind the socket
-	if(bind(comm, (struct sockaddr *)gameserver, sizeof(gameserver))<0){
+	if(bind(comm, (struct sockaddr *)&myaddr, sizeof(myaddr))<0){
 		fprintf(stderr, "Unable to bind socket\n");
 		return false;
 	}
-	
-	// initialize the socket address for the proxy
-	proxy.sin_family = AF_INET;
-	proxy.sin_addr.s_addr = htonl(INADDR_ANY);
-	proxy.sin_port = htons(targetPort); // bind to proxy specific IP
-
-	// initialize target size
-	proxylen = sizeof(target);
 
 	return true; // return true for success
 }
 
 /***** receiveMessage *****/
-char* receiveMessage(void)
-{
+char* receiveMessage()
+{	// initialize variables
 	unsigned char buf[BUFSIZE]; // character buffer to receive messages
+	struct sockaddr_in remote; // remote address
 	
 	// receive messages
-	int messageLen = recvfrom(comm, buf, BUFSIZE, 0, (struct sockaddr *)&target, &targetlen);
+	int messageLen = recvfrom(comm, buf, BUFSIZE-1, 0, (struct sockaddr *)&remote, &remotelen);
 	
 	// if messages are received, return them
 	if(messageLen > 0){
@@ -68,9 +57,9 @@ char* receiveMessage(void)
 }
 
 /***** sendMessage *****/
-bool sendMessage(char* message)
+bool sendMessage(char* message, sockaddr remote)
 {
-	sendto(comm, message, strlen(message), 0, (struct sockaddr *)&target, targetlen);
+	sendto(comm, message, strlen(message), 0, remote, remotelen);
 }
 
 /***** closeSocket *****/
