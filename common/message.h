@@ -32,3 +32,8 @@ typedef struct message
 each message field for its type and assign the rest of the message field 
 to a specific variable inside of the message struct to be returned */
 message_t * parseMessage(char *message);
+
+/* goes through every possible allocated space of a specific message,
+specifically all message types, and frees those that are not NULL, 
+then frees the message struct itself */
+void deleteMessage(message_t *message);

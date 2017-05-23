@@ -22,3 +22,8 @@ int game(char *guideId, char *team, char *player, char *host, int port);
 components of the message, and sends the message via network.h's 
 sendMessage function and the connection_t pointer passed by game. */
 bool sendGA_STATUS(char *gameId, char *guideId, char *team, char *player, char *statusReq, connection_t *connection, FILE *file);
+
+/* sendGA_HINT inductively creates the message, given the correct components
+of the message, and sends the message via network.h's sendMessage
+function and tghe connection_t pointer passed by the game */
+bool sendGA_HINT(char *gameId, char *guideId, char *team, char *player, char *pebbleId, char *hint, connection_t *connection, FILE *file);
