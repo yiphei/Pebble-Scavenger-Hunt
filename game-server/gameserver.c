@@ -13,10 +13,10 @@
 #include <stdbool.h>
 #include <string.h>
 #include <ctype.h>
+#include "network.h"
 
 /******* functions *******/
 int server(int gameId, char* kff, char* sf, int port);
-
 
 /*
 * main function that parses arguments
@@ -164,6 +164,12 @@ int main(int argc, char* argv[])
 */
 int server(int gameId, char* kff, char* sf, int port)
 {
-	return 0;
+	// initialize the server
+	if(!startServer()){
+		fprintf(stderr, "Unable to start the server\n");
+		return 5;
+	}
+
+	return 0; // return 0 for success
 }
 

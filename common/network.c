@@ -8,17 +8,17 @@
 
 #include "network.h"
 
-/***** globals *****/
+/***** file-local variables *****/
 static struct socketaddr_in gameserver;
 static struct socketaddr_in proxy;
 static int BUFSIZE = 8192; // 8k 
 static int comm; // the socket
-static socklen_t proxylen; // size of proxy
-
+static socklen_t targetlen; // size of target
 /***** functions *****/
 
-/****** startServer ******/
-bool startServer(int serverPort, int proxyPort){
+/****** openSocket ******/
+bool openSocket(int serverPort, int targetPort){
+
 	// Create the socket
 	comm = socket(AF_INET, SOCK_DGRAM,0);
 	if(comm < 0){
@@ -31,19 +31,20 @@ bool startServer(int serverPort, int proxyPort){
 	gameserver.sin_addr.s_addr = htonl(INADDR_ANY);
 	gameserver.sin_port = htons(serverPort); // bind to server specific IP
 
-	// initialize the socket address for the proxy
-	proxy.sin_family = AF_INET;
-	proxy.sin_addr.s_addr = htonl(INADDR_ANY);
-	proxy.sin_port = htons(proxyPort); // bind to proxy specific IP
-
-	// initialize proxy size
-	proxylen = sizeof(proxy);
-
+	// initialize the socket address for the target	proxy.sin_family = AF_INET;
 	// bind the socket
 	if(bind(comm, (struct sockaddr *)gameserver, sizeof(gameserver))<0){
 		fprintf(stderr, "Unable to bind socket\n");
 		return false;
 	}
+	
+	// initialize the socket address for the proxy
+	proxy.sin_family = AF_INET;
+	proxy.sin_addr.s_addr = htonl(INADDR_ANY);
+	proxy.sin_port = htons(targetPort); // bind to proxy specific IP
+
+	// initialize target size
+	proxylen = sizeof(target);
 
 	return true; // return true for success
 }
@@ -54,7 +55,7 @@ char* receiveMessage(void)
 	unsigned char buf[BUFSIZE]; // character buffer to receive messages
 	
 	// receive messages
-	int messageLen = recvfrom(comm, buf, BUFSIZE, 0, (struct sockaddr *)&proxy, &proxylen);
+	int messageLen = recvfrom(comm, buf, BUFSIZE, 0, (struct sockaddr *)&target, &targetlen);
 	
 	// if messages are received, return them
 	if(messageLen > 0){
@@ -69,11 +70,11 @@ char* receiveMessage(void)
 /***** sendMessage *****/
 bool sendMessage(char* message)
 {
-	sendto(comm, message, strlen(message), 0, (struct sockaddr *)&proxy, proxylen);
+	sendto(comm, message, strlen(message), 0, (struct sockaddr *)&target, targetlen);
 }
 
-/***** stopServer *****/
-void stopServer(void)
+/***** closeSocket *****/
+void closeSocket(void)
 {
 	close(comm); // close the socket
 }

@@ -11,12 +11,16 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
-#include <ctype.h>
+#include <ctype.h>             // isdigit
+#include <netdb.h>             // socket-related structures
+#include <ncurses.h>
+#include "display.c"
 
-// function declarations
+/******** function declarations ********/
 int game(unsigned int guideId, char *team, char *player, char *host, int port);
+static bool openSocket(char *host, int port);
 
-
+/********* implementation *********/
 int main(int argc, char **argv) 
 {
 	// temporary strings
@@ -177,7 +181,40 @@ int main(int argc, char **argv)
 
 int game(unsigned int guideId, char *team, char *player, char *host, int port)
 {
+	if (!openSocket(host, port)) {
 
+	}
 
 	return 0;
+}
+
+// helper function for game to connect to the Game Server
+static bool openSocket(char *host, int port)
+{
+	// connect to host by supplied host name
+	struct hostent *hostp = gethostbyname(host);
+
+	if (hostp == NULL) {
+		fprintf(stderr, "unknown host\n");
+		return false;
+	}
+
+	// initialize fields of the Game Server
+	struct sockaddr_in server;
+	server.sin_family = AF_INET;
+	server.sin_port = htons(port); // bind to server specific IP
+
+	int socket = socket(AF_INET, SOCK_DGRAM, 0);
+
+	if (socket < 0) {
+		fprintf(stderr, "error opening socket\n");
+		return false;
+	}
+
+	if (bind(socket, (struct sockaddr *) &server, sizeof(server)) < 0) {
+		fprintf(stderr, "error binding Guide Agent socket to server\n");
+		return false;
+	}
+
+	return true;
 }
