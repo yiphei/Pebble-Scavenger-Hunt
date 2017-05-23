@@ -13,7 +13,7 @@
 /******** function declaration ********/
 static void parseHelper(char *message, message_t *parsedMessage);
 
-/******** function definitino *********/
+/******** function definition *********/
 
 // parses message into a message struct using helper function to factor
 message_t * parseMessage(char *message)

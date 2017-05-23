@@ -22,6 +22,7 @@ Exit Status:
 	* ex. non-hexidecimal gameId, team/player name too long, non-integer port
 * 5: could not connect to server
 * 6: could not open log file
+* 7: memory allocation error
 
 ### Functions
 
@@ -37,4 +38,7 @@ message struct, handle messages using a function dispatch table comparing
 opCodes, and periodically send messages using the network module as well
 (specifically GA_STATUS and requests for the GS_STATUS).
 
-#####
+##### sendGA_STATUS
+Given the components of a GA_STATUS message, this function will send a 
+GA_STATUS to the Game Server and log the message using the common
+logMessage function from log.h. This is called every 30 second the Guide Agent has been running in the game and immediately after the Guide Agent joins the game.

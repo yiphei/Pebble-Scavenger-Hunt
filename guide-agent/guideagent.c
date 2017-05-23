@@ -15,32 +15,33 @@
 #include <netdb.h>             // socket-related structures
 #include <time.h>
 #include <ncurses.h>
-#include "../libcs50/memory.h"
 #include "../common/network.h"
+#include "../libcs50/memory.h"
 //#include "display.h"
 #include "../libcs50/set.h"
 #include "../common/message.h"
 #include "../common/log.h"
+#include "../common/team.h"
 
 /******** function declarations ********/
 int game(char *guideId, char *team, char *player, char *host, int port);
-bool sendGA_STATUS(char *gameId, char *guideId, char *team, char *player, int statusReq, connection_t *connection, FILE *file);
+bool sendGA_STATUS(char *gameId, char *guideId, char *team, char *player, char *statusReq, connection_t *connection, FILE *file);
 
 /******** opCode handlers **********/
-static void badOpCode(message_t *message, set_t *fieldAgents);
-static void gameStatus(message_t *message, set_t *fieldAgents);
-static void GSAgent(message_t *message, set_t *fieldAgents);
-static void GSClue(message_t *message, set_t *fieldAgents);
-static void GSSecret(message_t * message, set_t *fieldAgents);
-static void GSResponse(message_t *message, set_t *fieldAgents);
-static void teamRecord(message_t *message, set_t *fieldAgents);
-static void gameOver(message_t *message, set_t *fieldAgents);
+static void badOpCode(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log);
+static void gameStatus(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log);
+static void GSAgent(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log);
+static void GSClue(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log);
+static void GSSecret(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log);
+static void GSResponse(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log);
+static void teamRecord(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log);
+static void gameOver(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log);
 
 /********* functions dispatch table *********/
 static const struct {
 
 	const char *opCode;
-	void (*func)(message_t *message, set_t *fieldAgents);
+	void (*func)(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log);
 
 } opCodes[] = {
 	{"FA_CLAIM", badOpCode},
@@ -58,10 +59,12 @@ static const struct {
 	{NULL, NULL}
 };
 
-/********* implementation *********/
+/********* function definitions *********/
+
+/********* main ***********/
 int main(int argc, char **argv) 
 {
-	// temporary strings
+	// temporary strings that include the = statements in the arguments
 	char *guideIdTemp = NULL;
 	char *teamTemp = NULL;
 	char *playerTemp = NULL;
@@ -158,7 +161,7 @@ int main(int argc, char **argv)
 		exit(3);
 	}
 
-	// parse arguments for their substrings
+	// parse arguments for their substrings (past the = statements)
 	char *guideId = malloc(strlen(guideIdTemp) - 8);
 	guideId = strcpy(guideId, guideIdTemp + 8);
 
@@ -216,7 +219,7 @@ int main(int argc, char **argv)
 	exit(exitStatus);
 }
 
-
+/*********** game ***********/
 int game(char *guideId, char *team, char *player, char *host, int port)
 {
 	// try to connect to server, else return exit status > 0 to main
@@ -232,13 +235,49 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 		return 6;
 	}
 
-	set_t *fieldAgents = set_new();
 	char *messagep;
 	message_t *message;
+	char *opCode;
 
 	time_t start = time(NULL);
 	time_t now = time(NULL);
 	time_t elapsedSeconds = now - start;
+
+	// send Game Server first GA_STATUS
+	sendGA_STATUS("0", guideId, team, player, "1", connection, log);
+
+	// make a new team
+	team_t *teamp = newTeam();
+
+	if (teamp == NULL) {
+		fprintf(stderr, "error allocating memory\n");
+		return 7;
+	}
+
+	// add this agent to the team and initializes its values
+	guideAgent_t *me = newGuideAgent(guideId, player);
+	teamp->guideAgent = me;
+
+	/* wait until server sends GAME_STATUS back to start game loop.
+	Once received, initialize the team struct and break this loop */
+	while (true) {
+		messagep = receiveMessage(connection);
+		message = parseMessage(messagep);
+		opCode = message->opCode;
+
+		// initialize this Guide Agent's team
+		for (int fn = 0; opCodes[fn].opCode != NULL; fn++) {
+			if(strcmp(opCode, opCodes[fn].opCode) == 0) {
+				(*opCodes[fn].func)(messagep, message, teamp, connection, log);
+				break;
+			}
+		}
+	}
+
+	char *gameId = me->gameId;
+
+
+
 
 	// loop runs until GAME_OVER message received, then breaks
 	while (true) {
@@ -249,13 +288,13 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 			
 			message = parseMessage(messagep);
 
-			char *opCode = message->opCode;
+			opCode = message->opCode;
 
 			// loop over function table to call the correct opCode handler
 			int fn;
 			for (fn = 0; opCodes[fn].opCode != NULL; fn++) {
 				if(strcmp(opCode, opCodes[fn].opCode) == 0) {
-					(*opCodes[fn].func)(message, fieldAgents);
+					(*opCodes[fn].func)(messagep, message, teamp, connection, log);
 					break;
 				}
 			}
@@ -273,17 +312,17 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 		// every 30 seconds send a GA_STATUS
 		now = time(NULL);
 		elapsedSeconds = now - start;
-		if ((now - start) % 30 == 0) {
+		if ((elapsedSeconds) % 30 == 0) {
 
-			int statusReq = 0;
+			char * statusReq = "0";
 
 			// every minute ask for a game status update
-			if ((now - start) % 60 == 0) {
-				statusReq = 1;
+			if ((elapsedSeconds) % 60 == 0) {
+				statusReq = "1";
 			}
 
 			// try to send message to Game Server
-			if(!sendGA_STATUS(NULL, guideId, team, player, statusReq, connection, log)){
+			if(!sendGA_STATUS(gameId, guideId, team, player, statusReq, connection, log)){
 				fprintf(stderr, "could not send GA_STATUS to Game Server\n");
 			}
 
@@ -294,84 +333,93 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 	return 0;
 }
 
-bool sendGA_STATUS(char *gameId, char *guideId, char *team, char *player, int statusReq, connection_t *connection, FILE *file)
+/*********** sendGA_STATUS ************/
+bool sendGA_STATUS(char *gameId, char *guideId, char *team, char *player, char *statusReq, connection_t *connection, FILE *file)
 {
 	// allocate full space needed for the  message (60 being known characters)
-	char *message = malloc(strlen(gameId) + strlen(guideId) + strlen(team)
+	char *messagep = malloc(strlen(gameId) + strlen(guideId) + strlen(team)
 		+strlen(player) + 60);
 
-	if (message == NULL) {
+	if (messagep == NULL) {
 		return false;
 	}
-
-	// convert int to string for string concatenation
-	char *statusp = malloc(2);
-	sprintf(statusReq, "%d", statusReq);
 
 	// construct message inductively
-	strcat(message, "opCode=GA_STATUS|gameId=");
-	strcat(message, gameId);
-	strcat(message, "|guideId=");
-	strcat(message, guideId);
-	strcat(message, "|team=");
-	strcat(message, team);
-	strcat(message, "|player=");
-	strcat(message, player);
-	strcat(message, "|statusReq=");
-	strcat(message, statusp);
+	strcat(messagep, "opCode=GA_STATUS|gameId=");
+	strcat(messagep, gameId);
+	strcat(messagep, "|guideId=");
+	strcat(messagep, guideId);
+	strcat(messagep, "|team=");
+	strcat(messagep, team);
+	strcat(messagep, "|player=");
+	strcat(messagep, player);
+	strcat(messagep, "|statusReq=");
+	strcat(messagep, statusReq);
 
 
-	if (!sendMessage(message, connection)) {
+	if (!sendMessage(messagep, connection)) {
 		return false;
 	}
 
-	logMessage(file, message, "TO", connection);
+	logMessage(file, messagep, "TO", connection);
 
-	free(statusp);
-	free(message);
+	free(messagep);
 
 	return true;
 }
 
-
+/*********** dispath/opCode functions **********/
 // received an incorrect opCode, print error message and ignore
-static void badOpCode(message_t *message, set_t *fieldAgents)
+static void badOpCode(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
 {
 	fprintf(stderr, "incorrect opCode received, no actions performed\n");
+	logMessage(log, messagep, "FROM", connection);
 }
 
 // handle specific, applicable opCodes
-static void gameStatus(message_t *message, set_t *fieldAgents)
+static void gameStatus(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
 {
+	// first game status received, set gameId for later use
+	if (teamp->guideAgent->gameId == "0") {
+		teamp->guideAgent->gameId == message->gameId;
+	}
 
+
+	logMessage(log, messagep, "FROM", connection);
 }
 
-static void GSAgent(message_t *message, set_t *fieldAgents) 
+static void GSAgent(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
 {
 
+	logMessage(log, messagep, "FROM", connection);
 }
 
-static void GSClue(message_t *message, set_t *fieldAgents)
+static void GSClue(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
 { 
 
+	logMessage(log, messagep, "FROM", connection);
 }
 
-static void GSSecret(message_t * message, set_t *fieldAgents)
+static void GSSecret(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
 {
 
+	logMessage(log, messagep, "FROM", connection);
 }
 
-static void GSResponse(message_t *message, set_t *fieldAgents) 
+static void GSResponse(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
 {
 
+	logMessage(log, messagep, "FROM", connection);
 }
 
-static void teamRecord(message_t *message, set_t *fieldAgents)
+static void teamRecord(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
 {
 
+	logMessage(log, messagep, "FROM", connection);
 }
 
-static void gameOver(message_t *message, set_t *fieldAgents)
+static void gameOver(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
 {
 
+	logMessage(log, messagep, "FROM", connection);
 }
