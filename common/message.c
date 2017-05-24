@@ -48,6 +48,15 @@ static int parseHelper(char *message, message_t *parsedMessage)
 	char *field;
 	char *delim = "|";
 
+	// arbitrary value assignments to check for duplicate fields later
+	parsedMessage->lastContact = -600;
+	parsedMessage->latitude = -600;
+	parsedMessage->longitude = -600;
+	parsedMessage->numPlayers = -600;
+	parsedMessage->numClaimed = -600;
+	parsedMessage->numKrags = -600;
+	parsedMessage->statusReq = -600;
+
 	field = strtok(message, delim);
 
 	// assign instances of the struct to the different types
@@ -163,12 +172,12 @@ static int parseHelper(char *message, message_t *parsedMessage)
 		}
 
 		else if (strncmp(field, "lastContact=", 12) == 0) {
-			if (parsedMessage->lastContact != NULL) {
+			if (parsedMessage->lastContact != -600) {
 				fprintf(stderr, "duplicate lastContact field given, message ignored\n");
 				return 1;
 			}
 
-			lastContactTemp = malloc(strlen(field) - 12);
+			char *lastContactTemp = malloc(strlen(field) - 12);
 			strcpy(lastContactTemp, field + 12);
 
 			int lastContact;
@@ -184,12 +193,12 @@ static int parseHelper(char *message, message_t *parsedMessage)
 		}
 
 		else if (strncmp(field, "latitiude=", 9) == 0) {
-			if (parsedMessage->latitude != NULL) {
+			if (parsedMessage->latitude != -600) {
 				fprintf(stderr, "duplicate latitude field given, message ignored\n");
 				return 1;
 			}
 
-			latitudeTemp = malloc(strlen(field) - 9);
+			char *latitudeTemp = malloc(strlen(field) - 9);
 			strcpy(latitudeTemp, field + 9);
 
 			double latitude;
@@ -205,13 +214,13 @@ static int parseHelper(char *message, message_t *parsedMessage)
 		}
 
 		else if (strncmp(field, "longitude=", 10) == 0) {
-			if (parsedMessage->longitude != NULL) {
+			if (parsedMessage->longitude != -600) {
 				fprintf(stderr, "duplicate longitude field given, message ignored\n");
 				return 1;
 			}
 
-			longitudeTemp = malloc(strlen(field) - 10);
-			strcpy(latitudeTemp, field + 10);
+			char *longitudeTemp = malloc(strlen(field) - 10);
+			strcpy(longitudeTemp, field + 10);
 
 			double longitude;
 
@@ -226,12 +235,12 @@ static int parseHelper(char *message, message_t *parsedMessage)
 		}
 
 		else if (strncmp(field, "numPlayers=", 11) == 0) {
-			if (parsedMessage->numPlayers != NULL) {
+			if (parsedMessage->numPlayers != -600) {
 				fprintf(stderr, "duplicate numPlayers field given, message ignored\n");
 				return 1;
 			}
 
-			numPlayersTemp = malloc(strlen(field) - 11);
+			char *numPlayersTemp = malloc(strlen(field) - 11);
 			strcpy(numPlayersTemp, field + 11);
 
 			int numPlayers;
@@ -245,12 +254,12 @@ static int parseHelper(char *message, message_t *parsedMessage)
 		}
 
 		else if (strncmp(field, "numClaimed=", 11) == 0) {
-			if (parsedMessage->numClaimed != NULL) {
+			if (parsedMessage->numClaimed != -600) {
 				fprintf(stderr, "duplicate numClaimed field given, message ignored\n");
 				return 1;
 			}
 
-			numClaimedTemp = malloc(strlen(field) - 11);
+			char *numClaimedTemp = malloc(strlen(field) - 11);
 			strcpy(numClaimedTemp, field + 11);
 
 			int numClaimed;
@@ -266,12 +275,12 @@ static int parseHelper(char *message, message_t *parsedMessage)
 		}
 
 		else if (strncmp(field, "numKrags=", 9) == 0) {
-			if (parsedMessage->numKrags != NULL) {
+			if (parsedMessage->numKrags != -600) {
 				fprintf(stderr, "duplicate numKrags field given, message ignored\n");
 				return 1;
 			}
 
-			numKragsTemp = malloc(strlen(field) - 9);
+			char *numKragsTemp = malloc(strlen(field) - 9);
 			strcpy(numKragsTemp, field + 9);
 
 			int numKrags;
@@ -288,12 +297,12 @@ static int parseHelper(char *message, message_t *parsedMessage)
 		}
 
 		else if (strncmp(field, "statusReqs=", 10) == 0) {
-			if (parsedMessage->statusReq != NULL) {
+			if (parsedMessage->statusReq != -600) {
 				fprintf(stderr, "duplicate statusReq field given, message ignored\n");
 				return 1;
 			}
 
-			statusReqTemp = malloc(strlen(field) - 10);
+			char *statusReqTemp = malloc(strlen(field) - 10);
 			strcpy(statusReqTemp, field + 10);
 
 			int statusReq;
