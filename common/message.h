@@ -15,8 +15,8 @@ typedef struct message
 	char *guideId;
 	char *pebbleId;
 	int lastContact;
-	long latitude;
-	long longitude;
+	double latitude;
+	double longitude;
 	int numPlayers;
 	int numClaimed;
 	int numKrags;
