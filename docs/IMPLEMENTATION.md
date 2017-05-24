@@ -345,8 +345,9 @@ static bool sendResponse(char* gameId, char* respCode, char* text, connection_t*
 				1. Sends `SH_ERROR_INVALID_OPCODE` to the caller to indicate bad op code
 		5. Free the message and message string breaking from the `opCodes` loop
 		6. Delete the receiving address connection
-	6. Delete the `krags` hashtable and the `teams` hashtable
-	7. Close the log file and return success code of 0
+	6. Call `sendGameOver` to tell all players the game has ended
+	7. Delete the `krags` hashtable and the `teams` hashtable
+	8. Close the log file and return success code of 0
 
 
 
