@@ -546,3 +546,67 @@ Closes a socket.
 ```c
 void closeSocket(int comm);
 ```
+
+## Common - Message
+
+### Data Structures
+
+##### Message
+
+```
+typedef struct message 
+{
+        char *opCode;
+        char *respCode;
+        char *kragId;
+        char *gameId;
+        char *guideId;
+        char *pebbleId;
+        int lastContact;
+        double latitude;
+        double longitude;
+        int numPlayers;
+        int numClaimed;
+        int numKrags;
+        int statusReq;
+        char *player;
+        char *team;
+        char *hint;
+        char *clue;
+        char *secret;
+        int errorCode;
+} message_t;
+```
+
+### Functions
+
+##### parseMessage
+
+This function parses a given string into a message struct with the help of a
+helper function, _parseHelper_, and stores the fields of a message into
+the fields of the struct.
+
+```
+message_t * parseMessage(char *message);
+```
+
+##### parseHelper
+
+This function is called by _parseMessage_ to actually do the parsing; it 
+reads the name of the field and assigns the following value to the 
+corresponding field of the message struct passed as a parameter. If there is
+a duplicate field or an invalid opCode, the errorCode field of the message will
+inform the Game Server of the type of error when the message struct is returned.
+
+```
+static int parseHelper(char *message, message_t *parsedMessage)
+```
+
+##### deleteMessage
+
+This function is called to free all of the fields of the message struct and
+then the message itself.
+
+```
+void deleteMessage(message_t *message);
+```
