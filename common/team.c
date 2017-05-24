@@ -91,6 +91,12 @@ fieldAgent_t * getFieldAgent(char * name, char * teamname, hashtable_t * teamhas
 	return set_find(team->FAset, name);
 }
 
+set_t * getAllFieldAgents(char * teamname, hashtable_t * teamhash){
+
+	team_t * team = hashtable_find(teamhash, teamname);
+	return team->FAset;
+}
+
 char * getGameIDFieldA(char * name, char * teamname, hashtable_t * teamhash){
 
 	team_t * team = hashtable_find(teamhash, teamname);

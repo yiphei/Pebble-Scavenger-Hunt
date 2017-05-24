@@ -97,6 +97,11 @@ guideAgent_t * getGuideAgent(char * teamname, hashtable_t * teamhash);
 fieldAgent_t * getFieldAgent(char * name, char * teamname, hashtable_t * teamhash);
 
 /*
+* This function resturns the set of all field agents in a team
+*/
+set_t * getAllFieldAgents(char * teamname, hashtable_t * teamhash);
+
+/*
 * This function returns the gameID of a guide agent of a team
 */
 char * getGameIDGuidedA( char * teamname, hashtable_t * teamhash);
