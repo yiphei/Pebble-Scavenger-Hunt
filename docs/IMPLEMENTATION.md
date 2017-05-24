@@ -638,9 +638,13 @@ void logMessage(FILE *file, char *message, char *direction, connection_t *connec
 ```
 
 ---
+
 #Field Agent
+
 ##Paolo Takagi-Atilano
+
 ###Data Structures:
+
 * Both the hardcoded list of player names and team names will be in the form of an array of strings (`char *[]`).  While they are both default of size 4, they are independent of each other (i.e. it is possible to change the list of player names to be of size 5 and have the list of team names be of size 3).
 * The list of hints will be stored in a `set` data structure.  Each individual hint will be represented by a string, with a timestamp as the key (in string format).
 
