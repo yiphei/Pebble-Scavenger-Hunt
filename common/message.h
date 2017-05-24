@@ -27,6 +27,7 @@ typedef struct message
 	char *clue;
 	char *secret;
 	int errorCode;
+	
 } message_t;
 
 /* parses messages with the help of a helper function, that will check 

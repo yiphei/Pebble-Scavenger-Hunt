@@ -25,7 +25,7 @@ message_t * parseMessage(char *message)
 
 	errorCode = parseHelper(message, parsedMessage);
 
-	message->errorCode = errorCode;
+	parsedMessage->errorCode = errorCode;
 
 	return parsedMessage;
 }
