@@ -24,16 +24,16 @@ typedef struct team {
   struct guideAgent * guideAgent;  //guide agent of the team
   set_t * FAset;      //set of field agents
   char * revealedString;  //the current releaved string of the team
-  set_t * krags;
-  char * recentClues[2];
-  set_t * clues;
+  set_t * krags;   //set of all krags the team has found
+  char * recentClues[2];    //array of the two most recent clues
+  set_t * clues;   //set of all the clues a team has
   int claimed;  //number of claimed krags of the team
 } team_t;
 
 
 typedef struct guideAgent { 
 	char * guideID;  
- 	char * name;
+ 	char * name;    //name of the guide agent
  	char * gameID; 
  	connection_t * conn; //connection struct from network module   
 } guideAgent_t;
@@ -97,7 +97,7 @@ guideAgent_t * getGuideAgent(char * teamname, hashtable_t * teamhash);
 fieldAgent_t * getFieldAgent(char * name, char * teamname, hashtable_t * teamhash);
 
 /*
-* This function resturns the set of all field agents in a team
+* This function returns the set of all field agents in a team
 */
 set_t * getAllFieldAgents(char * teamname, hashtable_t * teamhash);
 
