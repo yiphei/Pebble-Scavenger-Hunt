@@ -639,16 +639,15 @@ void logMessage(FILE *file, char *message, char *direction, connection_t *connec
 
 ---
 
-#Field Agent
+## Field Agent
 
-##Paolo Takagi-Atilano
-
-###Data Structures:
+### Data Structures:
 
 * Both the hardcoded list of player names and team names will be in the form of an array of strings (`char *[]`).  While they are both default of size 4, they are independent of each other (i.e. it is possible to change the list of player names to be of size 5 and have the list of team names be of size 3).
 * The list of hints will be stored in a `set` data structure.  Each individual hint will be represented by a string, with a timestamp as the key (in string format).
 
-###Functions:
+### Functions:
+
 **Main, Init, Deinit:**
 
 * `int main(void)`: runs `init()`, then `app_event_loop()`, and finally `deinit()`
@@ -766,7 +765,7 @@ I decided to make a module for dialog boxes, because they all essentially do the
 
 On the other hand, I decided to keep menus individual from each other, and not a single module (or two, one for typical menus, and one for menus with radio buttons).  This is because all of these menus had different purposes, and different behaviors when interacted with, so it is difficult to generalize all of their behavior into a single module.  Some menus will manipulate strings, and others will pop other Windows onto the window stack.  Furthermore, their layouts are not necessarily the same either.  For example, one may decide that they want to add more possible player names for the `select_player_layer` Menulayer, but also decrease the number possible teams to join for the `select_team_layer`.  With my solution, this is easily doable.  Yet, there are some universal aspects of every menu.  For example, they all use the `JOIN_GAME_CELL_HEIGHT` macro to determine their cell height.
 
-###Pseudocode:
+### Pseudocode:
 1. Run `init()`
 2. Run `app_event_loop()`
 3. Respond and handle input as it comes (from either user ot Game Server inputs).  All of those functions are outlined above.
