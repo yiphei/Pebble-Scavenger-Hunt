@@ -40,6 +40,7 @@ typedef struct fieldAgent {
 	char * gameID;
 	char pebbleID[9]; 
 	connection_t * conn;  //conection struct form network module
+	int lastContact;  //number of seconds since guide agent last heard from field agent
 } fieldAgent_t;
 /**************** functions ****************/
 
@@ -53,13 +54,15 @@ char * getRevealedString(char * teamname, hashtable_t * teamhash);
 * THis function should be called at the beginning of the game to initialize the hastable. 
 * Caller is rensposible for freeing this pointer.
 */
-hashtable_t * init(void);
+hashtable_t * initHash(void);
 
 /*
 * This function adds a field agent to a team. If the field agent is being added to a non-existing team,
-* than a team will be created first, and then the field agent will be added to the team.
+* than a team will be created first, and then the field agent will be added to the team. In a normal 
+* situation, the function will return 0. If the user tries to add a field agent to a team that already
+* has a field agent with the same name, then nothing happens and it returns 1.
 */
-void addFieldAgent(char * name, char * pebbleID, char * teamname, char * gameID, connection_t * conn, hashtable_t * teamhash);
+int addFieldAgent(char * name, char * pebbleID, char * teamname, char * gameID, connection_t * conn, hashtable_t * teamhash);
 
 /*
 * This function adds a guide agent to a team. If the guide agent is being added to a non-existing team,
@@ -77,6 +80,16 @@ int addGuideAgent(char * guideID, char * teamname, char * name, char * gameID, c
 * nothing is added and func returns 1.
 */
 int addKrag(char * teamname, char * kragID, hashtable_t * kraghash, hashtable_t * teamhash );
+
+/*
+* This function returns the guide agent of the team
+*/
+guideAgent_t * getGuideAgent(char * teamname, hashtable_t * teamhash);
+
+/*
+* This function returns the field agent of the team
+*/
+fieldAgent_t * getFieldAgent(char * name, char * teamname, hashtable_t * teamhash);
 
 /*
 * This function returns the gameID of a guide agent of a team
@@ -118,6 +131,16 @@ char * getClueTwo(char * teamname, hashtable_t * teamhash);
 * does not exists, then nothing is done.
 */
 void updateLocation(char * name, char * teamname, double longitude, double latitude, hashtable_t * teamhash);
+
+/*
+* This function increments time since guide agent last heard from a field agent
+*/
+void incrementTime(char * name, char * teamname, hashtable_t * teamhash);
+
+/*
+* This fucntions returns the time since guide agent last heard from a field agent
+*/
+int getTime(char * name, char * teamname, hashtable_t * teamhash);
 
 /*
 * This function frees memory of the hashtable and everything in it.

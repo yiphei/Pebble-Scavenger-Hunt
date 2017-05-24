@@ -14,7 +14,6 @@
 #include "../libcs50/hashtable.h"
 #include "../libcs50/set.h"
 #include "../libcs50/file.h"
-#include "team.h"
 
 #define HASH_SIZE 50
 #define ARRAY_SIZE 20

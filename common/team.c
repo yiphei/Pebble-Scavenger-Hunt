@@ -21,12 +21,12 @@ char * getRevealedString(char * teamname, hashtable_t * teamhash){
 	return team->revealedString;
 }
 
-hashtable_t * init(void){
+hashtable_t * initHash(void){
 	hashtable_t * teamhash = hashtable_new(50);  //initialize a new hashtable of teams
 	return teamhash;
 }
 
-void addFieldAgent(char * name, char * pebbleID, char * teamname, char * gameID, connection_t * conn, hashtable_t * teamhash){
+int addFieldAgent(char * name, char * pebbleID, char * teamname, char * gameID, connection_t * conn, hashtable_t * teamhash){
 
 	//create the team if it does not exist
 	if (hashtable_find(teamhash, teamname) == NULL){
@@ -35,8 +35,14 @@ void addFieldAgent(char * name, char * pebbleID, char * teamname, char * gameID,
 	}
 
 	team_t * newteam = hashtable_find(teamhash, teamname); 
+
+	//if the function already has a field agent with the same name
+	if (set_find(newteam->FAset, name) != NULL){
+		return 1;
+	}
 	fieldAgent_t * newFA = newFieldAgent(gameID, pebbleID, conn);  //initialize a new field agent
 	set_insert(newteam->FAset, name, newFA);
+	return 0;
 }
 
 int addGuideAgent(char * guideID, char * teamname, char * name, char * gameID, connection_t * conn, hashtable_t * teamhash){
@@ -140,6 +146,22 @@ void updateLocation(char * name, char * teamname, double longitude, double latit
 	}
 }
 
+
+void incrementTime(char * name, char * teamname, hashtable_t * teamhash){
+
+	team_t * team = hashtable_find(teamhash, teamname);
+	fieldAgent_t * fa = set_find(team->FAset, name);
+	fa->lastContact = fa->lastContact + 1;
+}
+
+
+int getTime(char * name, char * teamname, hashtable_t * teamhash){
+
+	team_t * team = hashtable_find(teamhash, teamname);
+	fieldAgent_t * fa = set_find(team->FAset, name);
+	return fa->lastContact;
+}
+
 //Helper function to free field agents
 static void deleteFA(void * item){
 	if (item){
@@ -197,6 +219,7 @@ fieldAgent_t * newFieldAgent(char * gameID, char * pebbleID, connection_t * conn
   	strcpy(fa->gameID,gameID);
   	strcpy(fa->pebbleID,pebbleID);
   	fa->conn = conn;
+  	fa->lastContact = 0;
     return fa;
  }
 }

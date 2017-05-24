@@ -12,6 +12,8 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include "../libcs50/hashtable.h"
+#include "team.h"
+
 
 
 /**************** global types ****************/
