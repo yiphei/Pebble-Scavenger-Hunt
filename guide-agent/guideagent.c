@@ -33,11 +33,13 @@ static void teamRecordHandler(char *messagep, message_t *message, team_t *teamp,
 static void gameOverHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log);
 
 /********* local message validation functions *********/
-static bool gameStatusValidate();
-static bool GSAgentValidate();
-static bool GSClueValidate();
-static bool GSSecretValidate();
-static bool GSResponseValidate();
+static bool gameStatusValidate(message_t *message);
+static bool GSAgentValidate(message_t *message);
+static bool GSClueValidate(message_t *message);
+static bool GSSecretValidate(message_t *message);
+static bool GSResponseValidate(message_t *message);
+
+/********* file-local variables *********/
 
 /********* functions dispatch table *********/
 static const struct {
@@ -425,7 +427,7 @@ static void badOpCodeHandler(char *messagep, message_t *message, team_t *teamp, 
 // handle specific, applicable opCodes
 static void gameStatusHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
 {
-	if (gameStatusValidate()) {
+	if (gameStatusValidate(message_t *message)) {
 
 		// first game status received, set gameId for later use
 		if (strcmp(teamp->guideAgent->gameID, "0") == 0) {
@@ -434,7 +436,7 @@ static void gameStatusHandler(char *messagep, message_t *message, team_t *teamp,
 
 		teamp->claimed = message->numClaimed;
 
-		// TODO: update total number of krags for the team
+		int totalKrags = message->numKrags;
 
 		// TODO: update the interface
 
@@ -445,11 +447,30 @@ static void gameStatusHandler(char *messagep, message_t *message, team_t *teamp,
 
 static void GSAgentHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
 {
-	if (GSAgentValidate()) {
+	if (GSAgentValidate(message_t *message)) {
 
-		// TODO: check if Field Agent is in the set
-		// if so, update that field agent struct's location
-		// if not, add him and update location
+		char *player = message->player;
+		double latitude = message->latitude;
+		double longitude = message->longitude;
+
+		set_t *FAset = teamp->FAset;
+
+		fieldAgent_t *FA = set_find(FAset, player);
+
+		// if the field agent is already in the game, just update position
+		if (FA != NULL) {
+			FA->latitude = latitude;
+			FA->longitude = longitude;
+		}
+
+		// else, add him to the set and set his positioning
+		else {
+			FA = newFieldAgent(message->gameId, message->pebbleId, NULL);
+			FA->latitude = latitude;
+			FA->longitude = longitude;
+
+			set_insert(FAset, player, FA);
+		}
 
 		// TODO: update interface based on new locations
 
@@ -460,13 +481,22 @@ static void GSAgentHandler(char *messagep, message_t *message, team_t *teamp, co
 
 static void GSClueHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
 { 
-	if (GSClueValidate()) {
+	if (GSClueValidate(message_t *message)) {
 
-		// TODO: change recent clues to the newly received clues
+		// arbitrary key for the clue because it doesn't affect Guide Agent
+		int keyNum = rand();
 
-		// TODO: add newly received clues to the clue set
+		// allocate 6 because rand only gives int of 5 digits long maximum
+		char *key = malloc(6);
+		sprintf(key, "%d", keyNum);
 
-		// TODO: update GUI with new clues
+		// add the clue to the set
+		set_t *clues = teamp->clues;
+
+		set_insert(clues, key, message->clue);
+
+		// update GUI with new clue
+		updateClues_I(clues);
 
 		logMessage(log, messagep, "FROM", connection);
 
@@ -475,11 +505,13 @@ static void GSClueHandler(char *messagep, message_t *message, team_t *teamp, con
 
 static void GSSecretHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
 {
-	if (GSSecretValidate()) {
+	if (GSSecretValidate(message_t *message)) {
 
-		// TODO: update the team's secret string
+		// copy message's secret to be the team's secret
+		strcpy(teamp->revealedString, message->secret);
 
-		// TODO: update GUI with new string
+		// update GUI with newly revealed secret
+		updateString_I(teamp->revealedString);
 
 		logMessage(log, messagep, "FROM", connection);
 
@@ -488,7 +520,8 @@ static void GSSecretHandler(char *messagep, message_t *message, team_t *teamp, c
 
 static void GSResponseHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
 {
-	if (GSResponseValidate()) {
+	// validate GS respondse, if valid log it and do nothing else
+	if (GSResponseValidate(message_t *message)) {
 		logMessage(log, messagep, "FROM", connection);
 	}
 }
@@ -496,7 +529,8 @@ static void GSResponseHandler(char *messagep, message_t *message, team_t *teamp,
 static void teamRecordHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
 {
 
-	// TODO: update final statistics of the team (only store don't display)
+	// store claimed krag number, preparing to show it at GAME_OVER
+	teamp->claimed = message->numClaimed;
 
 	logMessage(log, messagep, "FROM", connection);
 }
@@ -511,31 +545,50 @@ static void gameOverHandler(char *messagep, message_t *message, team_t *teamp, c
 }
 
 /********** message validation functions ************/
-static bool gameStatusValidate()
+static bool gameStatusValidate(message_t *message) 
+{
+	// guideId or gameId fields were not valid
+	if (message->guideId == NULL || message->gameId == NULL) {
+		fprintf(stderr, "invalid GAME_STATUS message\n");
+		return false;
+	} 
+
+	// numClaimed field was not initialized when parsing
+	if (message->numClaimed == 0 && teamp->claimed != 0) {
+		fprintf(stderr, "invalid GAME_STATUS message\n");
+		return false;
+	}
+
+	// numKrags field was not initialized when parsing
+	if (message->numKrags == 0) {
+		fprintf(stderr, "invalid GAME_STATUS message\n");
+		return false;
+	}
+
+
+
+	return true;
+}
+
+static bool GSAgentValidate(message_t *message)
 {
 
 	return true;
 }
 
-static bool GSAgentValidate()
+static bool GSClueValidate(message_t *message)
 {
 
 	return true;
 }
 
-static bool GSClueValidate()
+static bool GSSecretValidate(message_t *message)
 {
 
 	return true;
 }
 
-static bool GSSecretValidate()
-{
-
-	return true;
-}
-
-static bool GSResponseValidate()
+static bool GSResponseValidate(message_t *message)
 {
 
 	return true;
