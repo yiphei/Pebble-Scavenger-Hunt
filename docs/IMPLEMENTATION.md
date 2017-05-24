@@ -101,17 +101,20 @@ static const struct {
 ```
 
 `set`
+
 The guideagent.c component will leverage a _set_ to store the field agents on
 its team, which themselves will be stored in a _fieldAgent_ struct that is 
 defined in `team.h`.
 
 `connection`
+
 To be able to coontinuously send and receive messages from the Game Server, the
 Guide Agent will also leverage a _connection_ struct defined in `network.h`.
 This data structure just stores the socket address and the port number so that
 both are accessible from the return value of _openSocket_.
 
 `message`
+
 When a message is received, a _message_ struct is also leveraged. This is
 returned by _parseMessage_ in the `message.h` module, storing all components
 of a specific message into the structure with their respective types. This
@@ -120,6 +123,7 @@ and use specific components of a message in handling that message without
 having to parse each message type in a different way.
 
 `team`
+
 A _team_ struct will also be used to store the guide agent's own information,
 along with that of his own team's field agents. This implementation allows
 for the abstraction of the modification of this data as well, by having 
@@ -129,6 +133,7 @@ is used to store this team (that way, the Game Server can also use these
 functions when handling multiple teams at a time).
 
 `time`
+
 Mainly for the log file entries, the Guide Agent will also use a _time_ struct
 from the `time.h` library in order to create the timestamps for the log file
 entries.
