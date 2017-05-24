@@ -71,6 +71,35 @@ allocation of memory of the string to be sent.
 
 ##### Data Structures
 
+`Op Code Handler Function Table`
+
+This function table is used to easily loop over based on a given opCode in a
+message and make a call to the correct function using its function pointer,
+thus handling the message type in the correct way and updating the game status
+accordingly.
+```
+static const struct {
+
+	const char *opCode;
+	void (*func)(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log);
+
+} opCodes[] = {
+	{"FA_CLAIM", badOpCodeHandler},
+	{"FA_LOG", badOpCodeHandler},
+	{"GA_STATUS", badOpCodeHandler},
+	{"GA_HINT", badOpCodeHandler},
+	{"FA_LOCATION", badOpCodeHandler},
+	{"GAME_STATUS", gameStatusHandler},
+	{"GS_AGENT", GSAgentHandler},
+	{"GS_CLUE", GSClueHandler},
+	{"GS_SECRET", GSSecretHandler},
+	{"GS_RESPONSE", GSResponseHandler},
+	{"TEAM_RECORD", teamRecordHandler},
+	{"GAME_OVER", gameOverHandler},
+	{NULL, NULL}
+};
+```
+
 `set`
 The guideagent.c component will leverage a _set_ to store the field agents on
 its team, which themselves will be stored in a _fieldAgent_ struct that is 
