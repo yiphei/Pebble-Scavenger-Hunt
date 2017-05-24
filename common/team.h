@@ -1,6 +1,11 @@
 /* 
  * team.h - header file for 'team' module
  * 
+ * The team module contains all the logic for creating teams, adding guide agents and field
+ * agents, and related functions. The module build a hashtable of teams where the key
+ * is the teamname and the item is a team struct. In the team struct itself, guide agent,
+ * and a set of field agents among other things are stored. To initialize the hashtable,
+ * call initHash().
  *
  *
  * GREP

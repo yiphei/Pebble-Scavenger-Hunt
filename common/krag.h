@@ -1,6 +1,10 @@
 /* 
  * krag.h - header file for 'krag' module
  * 
+ * The krag module contains all the logic for saving krags to a hashtable,
+ * getting the secret string, revealing characters, and providing clues to krags.
+ * Given a filename, the module will read the file and store the krags in a hashtable
+ * where the key is the kragID and the item is a krag struct. 
  *
  *
  * GREP
