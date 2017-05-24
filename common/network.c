@@ -2,7 +2,7 @@
 * Network module for krag game
 * Opens, closes, and otherwise handles sockets
 *
-* Tony DiPadova, May 2017
+* GREP, May 2017
 *
 * Code used from client-server-udp examples
 */
@@ -118,6 +118,20 @@ bool sendMessage(char* message, connection_t* connection)
 	int comm = connection->socket;
 	sendto(comm, message, strlen(message), 0, remote, remoteLen);
 	return true;
+}
+
+/***** newConnection *****/
+connection_t* newConnection(int socket, struct sockaddr* address)
+{
+	// allocate space
+	connection_t* conn = malloc(sizeof(connection_t));
+	if(conn == NULL){
+		fprintf(stderr, "Unable to create connection struct\n");
+		return NULL;
+	}
+	conn->socket = socket;
+	conn->address = address;
+	return conn;
 }
 
 /***** deleteConnection *****/

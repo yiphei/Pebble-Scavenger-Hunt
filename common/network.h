@@ -2,7 +2,7 @@
 * Network module for krag game
 * Opens, closes, and otherwise handles sockets
 * startServer must be called before listening, sending, or closing
-* Tony DiPadova, May 2017
+* GREP, May 2017
 *
 */
 
@@ -46,15 +46,10 @@ connection_t* openSocket(int port, char* host);
 * Usage:
 * 
 * while(true){
-*	connection_t connection = malloc(sizeof(connection_t));
-*	connection->socket = 0; // should be saved socket not 0
-*
 *	// better to save last address than do this
 *	struct sockaddr* myaddr; // could be replaced by saved address
 *	myaddr->sin_family = AF_INET;
-*	myaddr->sin_addr.s_addr = htonl(INADDR_ANY); 
-*	myaddr->sin_port = htons(port); 
-*	connection->address = myaddr;
+*	connection_t connection = newConnection(0, myaddr);
 *
 *	char* message = receiveMessage(connection);
 *	if(message == NULL){
@@ -75,6 +70,12 @@ char* receiveMessage(connection_t* connection);
 */
 bool sendMessage(char* message, connection_t* connection);
 
+/*
+* Creates a new connection
+* User is responsible for freeing it
+*
+*/
+connection_t* newConnection(int socket, struct sockaddr* address);
 
 /*
 * Deletes a connection structure
