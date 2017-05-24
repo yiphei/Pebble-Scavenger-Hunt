@@ -8,11 +8,11 @@
 
 #ifndef __TEAM_H
 #define __TEAM_H
-
 #include <stdio.h>
 #include <stdbool.h>
 #include "../libcs50/hashtable.h"
 #include "krag.h"
+#include "network.h"
 
 /**************** global types ****************/
 typedef struct team {
@@ -26,10 +26,11 @@ typedef struct team {
 } team_t;
 
 
-typedef struct guideAgent {  
+typedef struct guideAgent { 
 	char * guideID;  
  	char * name;
- 	char * gameID;     
+ 	char * gameID; 
+ 	connection_t * conn; //connection struct from network module   
 } guideAgent_t;
 
 
@@ -37,6 +38,8 @@ typedef struct fieldAgent {
 	double latitude;  //latitude position of the field agent
 	double longitude;  //longitude position of the field agent
 	char * gameID;
+	char pebbleID[9]; 
+	connection_t * conn;  //conection struct form network module
 } fieldAgent_t;
 /**************** functions ****************/
 
@@ -46,7 +49,8 @@ typedef struct fieldAgent {
 char * getRevealedString(char * teamname, hashtable_t * teamhash);
 
 /*
-* This function initializes a hashtable of teams and returns an empty hashtable. 
+* This function initializes a hashtable of teams and returns an empty hashtable.
+* THis function should be called at the beginning of the game to initialize the hastable. 
 * Caller is rensposible for freeing this pointer.
 */
 hashtable_t * init(void);
@@ -55,7 +59,7 @@ hashtable_t * init(void);
 * This function adds a field agent to a team. If the field agent is being added to a non-existing team,
 * than a team will be created first, and then the field agent will be added to the team.
 */
-void addFieldAgent(char * name, char * teamname, char * gameID, hashtable_t * teamhash);
+void addFieldAgent(char * name, char * pebbleID, char * teamname, char * gameID, connection_t * conn, hashtable_t * teamhash);
 
 /*
 * This function adds a guide agent to a team. If the guide agent is being added to a non-existing team,
@@ -63,18 +67,50 @@ void addFieldAgent(char * name, char * teamname, char * gameID, hashtable_t * te
 * situation, the function will return 0. If the user tries to add a guide agent to a team that already
 * has a guide agent, then nothing happens and it returns 1.
 */
-int addGuideAgent(char * guideID, char * teamname, char * name, char * gameID, hashtable_t * teamhash);
+int addGuideAgent(char * guideID, char * teamname, char * name, char * gameID, connection_t * conn, hashtable_t * teamhash);
 
+/*
+* This function adds a krag to the set of krags found by a team. This function
+* should be called when a team find a krag. If the krag added is a new krag, then
+* the krag will be added to the sts of krags found by a team and return 0.
+* If the krags added has already been found by the team, then
+* nothing is added and func returns 1.
+*/
+int addKrag(char * teamname, char * kragID, hashtable_t * kraghash, hashtable_t * teamhash );
 
-void addKrag(char * teamname, char * kragID, krag_t * krag, hashtable_t * teamhash );
+/*
+* This function returns the gameID of a guide agent of a team
+*/
+char * getGameIDGuidedA( char * teamname, hashtable_t * teamhash);
 
+/*
+* This function returns the gameID of a field agent of a team
+*/
+char * getGameIDFieldA(char * name, char * teamname, hashtable_t * teamhash);
 
+/*
+* This function returns the number of krags claimed by the team.
+*/
+int getKragsClaimed ( char * teamname, hashtable_t * teamhash);
+
+/*
+* This function returns the set of all the krags found by a team.
+*/
 set_t * getKrags(char * teamname, hashtable_t * teamhash);
 
+/*
+* This function returns the set of all clues that a team has
+*/
 set_t * getClues(char * teamname, hashtable_t * teamhash);
 
+/*
+* This function returns the most recent clue that a team has
+*/
 char * getClueOne(char * teamname, hashtable_t * teamhash);
 
+/*
+* This function returns the second-most recent clue that a team has
+*/
 char * getClueTwo(char * teamname, hashtable_t * teamhash);
 
 /*
@@ -91,12 +127,12 @@ void deleteTeamHash(hashtable_t * teamhash);
 /*
 * This function creates a new field agent.
 */
-fieldAgent_t * newFieldAgent(char * gameID);
+fieldAgent_t * newFieldAgent(char * gameID, char * pebbleID, connection_t * conn);
 
 /*
 * This function creates a new guide agent
 */
-guideAgent_t * newGuideAgent(char * guideID, char * name, char * gameID);
+guideAgent_t * newGuideAgent(char * guideID, char * name, char * gameID, connection_t * conn);
 
 
 /*
