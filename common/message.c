@@ -40,7 +40,8 @@ returns an int signifying to the Game Server if there are certain errors in
 the message syntax. 
 0: success
 1: duplicate field
-2: invalid opCode
+2: invalid fieldName
+3: invalid message (types do not match)
  */
 static int parseHelper(char *message, message_t *parsedMessage)
 {
@@ -161,8 +162,154 @@ static int parseHelper(char *message, message_t *parsedMessage)
 			strcpy(parsedMessage->secret, field + 7);
 		}
 
+		else if (strncmp(field, "lastContact=", 12) == 0) {
+			if (parsedMessage->lastContact != NULL) {
+				fprintf(stderr, "duplicate lastContact field given, message ignored\n");
+				return 1;
+			}
+
+			lastContactTemp = malloc(strlen(field) - 12);
+			strcpy(lastContactTemp, field + 12);
+
+			int lastContact;
+
+			if (sscanf(lastContactTemp, "%d", &lastContact) != 1) {
+				fprintf(stderr, "invalid message, lastContact must be an int\n");
+				return 3;
+			}
+
+			parsedMessage->lastContact = lastContact;
+
+			free(lastContactTemp);
+		}
+
+		else if (strncmp(field, "latitiude=", 9) == 0) {
+			if (parsedMessage->latitude != NULL) {
+				fprintf(stderr, "duplicate latitude field given, message ignored\n");
+				return 1;
+			}
+
+			latitudeTemp = malloc(strlen(field) - 9);
+			strcpy(latitudeTemp, field + 9);
+
+			double latitude;
+
+			if (sscanf(latitudeTemp, "%lf", &latitude) != 1) {
+				fprintf(stderr, "invalid message, latitude must be a double\n");
+				return 3;
+			}
+
+			parsedMessage->latitude = latitude;
+
+			free(latitudeTemp);
+		}
+
+		else if (strncmp(field, "longitude=", 10) == 0) {
+			if (parsedMessage->longitude != NULL) {
+				fprintf(stderr, "duplicate longitude field given, message ignored\n");
+				return 1;
+			}
+
+			longitudeTemp = malloc(strlen(field) - 10);
+			strcpy(latitudeTemp, field + 10);
+
+			double longitude;
+
+			if (sscanf(longitudeTemp, "%lf", &longitude) != 1) {
+				fprintf(stderr, "invalid message, longitude must be a double\n");
+				return 3;
+			}
+
+			parsedMessage->longitude = longitude;
+
+			free(longitudeTemp);
+		}
+
+		else if (strncmp(field, "numPlayers=", 11) == 0) {
+			if (parsedMessage->numPlayers != NULL) {
+				fprintf(stderr, "duplicate numPlayers field given, message ignored\n");
+				return 1;
+			}
+
+			numPlayersTemp = malloc(strlen(field) - 11);
+			strcpy(numPlayersTemp, field + 11);
+
+			int numPlayers;
+			if (sscanf(numPlayersTemp, "%d", &numPlayers) != 1) {
+				fprintf(stderr, "invalid message, numPlayers must be an int\n");
+				return 3;
+			}
+			parsedMessage->numPlayers = numPlayers;
+
+			free(numPlayersTemp);
+		}
+
+		else if (strncmp(field, "numClaimed=", 11) == 0) {
+			if (parsedMessage->numClaimed != NULL) {
+				fprintf(stderr, "duplicate numClaimed field given, message ignored\n");
+				return 1;
+			}
+
+			numClaimedTemp = malloc(strlen(field) - 11);
+			strcpy(numClaimedTemp, field + 11);
+
+			int numClaimed;
+
+			if (sscanf(numClaimedTemp, "%d", &numClaimed) != 1) {
+				fprintf(stderr, "invalid message, numClaimed must be an int\n");
+				return 3;
+			}
+
+			parsedMessage->numClaimed = numClaimed;
+
+			free(numClaimedTemp);
+		}
+
+		else if (strncmp(field, "numKrags=", 9) == 0) {
+			if (parsedMessage->numKrags != NULL) {
+				fprintf(stderr, "duplicate numKrags field given, message ignored\n");
+				return 1;
+			}
+
+			numKragsTemp = malloc(strlen(field) - 9);
+			strcpy(numKragsTemp, field + 9);
+
+			int numKrags;
+
+			if(sscanf(numKragsTemp, "%d", &numKrags) != 1) {
+				fprintf(stderr, "invalid message, numKrags must be an int\n");
+				return 3;
+
+			}
+
+			parsedMessage->numKrags = numKrags;
+
+			free(numKragsTemp);
+		}
+
+		else if (strncmp(field, "statusReqs=", 10) == 0) {
+			if (parsedMessage->statusReq != NULL) {
+				fprintf(stderr, "duplicate statusReq field given, message ignored\n");
+				return 1;
+			}
+
+			statusReqTemp = malloc(strlen(field) - 10);
+			strcpy(statusReqTemp, field + 10);
+
+			int statusReq;
+
+			if (sscanf(statusReqTemp, "%d", &statusReq) != 1) {
+				fprintf(stderr, "invalid message, statusReq must be an int\n");
+				return 3;
+			}
+
+			parsedMessage->statusReq = statusReq;
+
+			free(statusReqTemp);
+		}
+
 		else {
-			fprintf(stderr, "invalid opCode\n");
+			fprintf(stderr, "invalid fieldName\n");
 			return 2;
 		}
 
