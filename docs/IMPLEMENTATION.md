@@ -1,7 +1,8 @@
 # Implementation
 _Tony DiPadova, Michael Perezous, Paolo Takagi, Yifei Yan_ 
 
-## Guide Agent
+##Guide Agent
+
 The implementation of the Guide Agent is based on the previously made
 design spec (DESIGN.md).
 
@@ -69,22 +70,27 @@ Like _sendGA\_STATUS_, it returns a bool to ensure successful delivery and
 allocation of memory of the string to be sent.
 
 ##### Data Structures
+
+`set`
 The guideagent.c component will leverage a _set_ to store the field agents on
 its team, which themselves will be stored in a _fieldAgent_ struct that is 
 defined in `team.h`.
 
+`connection`
 To be able to coontinuously send and receive messages from the Game Server, the
 Guide Agent will also leverage a _connection_ struct defined in `network.h`.
 This data structure just stores the socket address and the port number so that
 both are accessible from the return value of _openSocket_.
 
+`message`
 When a message is received, a _message_ struct is also leveraged. This is
-returned by _parseMessage_ in the `network.h` module, storing all components
+returned by _parseMessage_ in the `message.h` module, storing all components
 of a specific message into the structure with their respective types. This
 can be used to easily extract opCodes and dispatch functions, then easily parse
 and use specific components of a message in handling that message without
 having to parse each message type in a different way.
 
+`team`
 A _team_ struct will also be used to store the guide agent's own information,
 along with that of his own team's field agents. This implementation allows
 for the abstraction of the modification of this data as well, by having 
@@ -93,13 +99,91 @@ hardcoding it. Due to common implementation across modules, a _hashtable_
 is used to store this team (that way, the Game Server can also use these
 functions when handling multiple teams at a time).
 
+`time`
+Mainly for the log file entries, the Guide Agent will also use a _time_ struct
+from the `time.h` library in order to create the timestamps for the log file
+entries.
+
+##### Pseudocode
+
+1. Parse and validate the given command line arguments, passing
+	the game information onto _game_.
+2. Open the socket to connect to the server and stores the socket
+	and connection address information in a _connection_ struct.
+3. Open the log file and saves the pointer to the file for future use.
+4. Store the start time to use for future log entries.
+5. A _team_ struct is created and the Guide Agent and its known information
+	is stored as the _team_'s guideAgent.
+6. The Guide Agent sends its first GA\_STATUS to the Game Server with a "0"
+	gameId to announce its presence in the game via )_sendGA\_STATUS_.
+7. Wait and listen for the server to respond with a GAME\_STATUS
+	to initialize the game stats and update the gameId, using _receiveMessage_.
+8. While the game is not over:
+	1. Listen for a message.
+	2. If a message is received from the Game Server,
+		1. Use _parseMessage_ to parse the message into a _message_ struct
+			and store all of its respective fields in the struct.
+		2. Loop over the function dispatch table to find the right function
+			based on the message's opCode.
+		3. If the opCode does not exist in the function dispatch table, print
+			an "unknown opCode" message and ignore the message.
+		4. If the opCode is "GAME\_OVER", break the while loop.
+	3. Calculate the time since the beginning of the game.
+	4. If that time is divisible by 30 (more or less every 30 seconds),
+		send a GA\_STATUS message to the Game Server.
+		1. If the time is divisible by 60 (more or less every minute), send the
+			GA\_STATUS with a statusReq of 1, asking for a GAME\_STATUS update
+			in return.
+9. Free memory allocated by _game_ and return to _main_.
+10. Free memory allocated in _main_ and exit with exit status returned by
+	_game_.
+
+##### Modularity
+
+_Cohesion_
+
+I consider this component of the Guide Agent to be sequentially cohesive.
+For the most part, the functions have been factored out to perform one function
+each, which was the goal, but due to the design of the Guide Agent it was 
+necessary to have the _game_ function perform more than just one function and 
+perform them in order.
+
+`main`
+main's only function is to parse and validate the command line arguments input
+by the user.
+
+`game`
+game has a few functions that are linked together for better functionality.
+It connects to the server, opens a log file, and then proceeds to use this
+connection and file to receive messages from the server and call other 
+functions to handle them (in turn logging the activity with the opened log
+file). Its last function is, in the same while loop that listens for messages
+(what I call the "game loop" because it runs until GAME\_OVER is received), 
+the Guide Agent sends a GA\_STATUS message to the Game Server every 30 seconds.
+Every 60 seconds, it sends a statusReq along with GA\_STATUS that requests 
+a GAME\_STATUS update from the Game Server.
+
+`sendGA\_STATUS` and `sendGA\_HINT`
+These two functions perform one function that is fairly obvious from their 
+function names; they both send a specific type of message to the Game Server.
+In fact, both functions are structured very similarly, but they inductively
+build the messages to have different structure, so I separated them into two
+functions to make that functionality clear.
+
+_Coupling_
+
+This module is coupled through data structure coupling. There are no global
+variables sharing data within the entire module, so the only data passed back
+and forth is through the parameters of the functions. However, it is not 
+implemented with simple-data coupling because the design of the module calls
+for fairly complex data structures to be passed containing a lot of necessary
+data to continue functioning.
 
 #### display.c
 This component contains all functions and logic related to the graphical user
 interface for the Guide Agent. It allows for abstracted use of the GUI by
 `guideagent.c` to separate the display from the actual logic of the game for
-the Guide Agent. Its main library used is `ncurses`, allowing for easier
-implementation of a GUI type interface in C.
+the Guide Agent.
 
 ## Game Server
 
