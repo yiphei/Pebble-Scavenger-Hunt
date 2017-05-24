@@ -230,7 +230,7 @@ int main(int argc, char* argv[])
 The `gameserver` function runs the game. It loads the krag files, opens and binds a socket to receive messages, and listens for messages calling the appropriate handler functions
 
 ```c
-int gameserver(int gameId, char* kff, char* sf, int port);
+int gameserver(char* gameId, char* kff, char* sf, int port);
 ```
 
 **FAClaimHandler**
