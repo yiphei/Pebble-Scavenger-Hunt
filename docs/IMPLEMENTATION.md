@@ -1,7 +1,7 @@
 # Implementation
 _Tony DiPadova, Michael Perezous, Paolo Takagi, Yifei Yan_ 
 
-##Guide Agent
+## Guide Agent
 
 The implementation of the Guide Agent is based on the previously made
 design spec (DESIGN.md).
