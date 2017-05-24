@@ -7,6 +7,15 @@
  * GREP, CS50, May 2017
  */
 
+#ifndef __GUIDEAGENT_H
+#define __GUIDEAGENT_H
+#include "../common/team.h"
+#include "../libcs50/memory.h"
+#include "display.h"
+#include "../libcs50/set.h"
+#include "../common/message.h"
+#include "../common/log.h"
+
 /* game uses the network.h common module to create a connection to the Game Server,
 opens a log file to be written to over the course of the game, then starts the
 game loop. In the game loop, it uses the function dispatch/opCode table to 
@@ -27,3 +36,5 @@ bool sendGA_STATUS(char *gameId, char *guideId, char *team, char *player, char *
 of the message, and sends the message via network.h's sendMessage
 function and tghe connection_t pointer passed by the game */
 bool sendGA_HINT(char *gameId, char *guideId, char *team, char *player, char *pebbleId, char *hint, connection_t *connection, FILE *file);
+
+#endif // __GUIDEAGENT_H

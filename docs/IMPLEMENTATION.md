@@ -230,7 +230,7 @@ int main(int argc, char* argv[])
 The `gameserver` function runs the game. It loads the krag files, opens and binds a socket to receive messages, and listens for messages calling the appropriate handler functions
 
 ```c
-int gameserver(int gameId, char* kff, char* sf, int port);
+int gameserver(char* gameId, char* kff, char* sf, int port);
 ```
 
 **FAClaimHandler**
@@ -238,7 +238,7 @@ int gameserver(int gameId, char* kff, char* sf, int port);
 Handles the `FA_CLAIM` messages by validating message, validating the krag ID and location, updating the krag and team structs, sending an `SH_CLAIMED` or `SH_CLAIMED_ALREADY` to the caller, updating the team's secret string, then ending the game if the string is complete and sending two more clues if the string is not complete.
 
 ```c
-static void FAClaimHandler(char *messagep, message_t *message, hashtable_t* teams, hashtable_t* krags, connection_t *connection, FILE *log);
+static void FAClaimHandler(char* gameId, char *messagep, message_t *message, hashtable_t* teams, hashtable_t* krags, connection_t *connection, FILE *log);
 ```
 
 **FALogHandler**
@@ -246,7 +246,7 @@ static void FAClaimHandler(char *messagep, message_t *message, hashtable_t* team
 Logs messages to the field agent log.
 
 ```c
-static void FALogHandler(char *messagep, message_t *message, hashtable_t* teams, hashtable_t* krags, connection_t *connection, FILE *log);
+static void FALogHandler(char* gameId, char *messagep, message_t *message, hashtable_t* teams, hashtable_t* krags, connection_t *connection, FILE *log);
 ```
 
 **GAStatusHandler** 
@@ -254,7 +254,7 @@ static void FALogHandler(char *messagep, message_t *message, hashtable_t* teams,
 Adds the team if it is new to the game, adds the Guide Agent if it is new to the game, updates the Guide Agent struct if not new, responds with `GAME_STATUS` if the agent is new or if status is requested, sends a `GS_AGENT` to the Guide Agent for every Field Agent on the team.
 
 ```c
-static void GAStatusHandler(char *messagep, message_t *message, hashtable_t* teams, hashtable_t* krags, connection_t *connection, FILE *log);
+static void GAStatusHandler(char* gameId, char *messagep, message_t *message, hashtable_t* teams, hashtable_t* krags, connection_t *connection, FILE *log);
 ```
 
 **GAHintHandler**
@@ -262,7 +262,7 @@ static void GAStatusHandler(char *messagep, message_t *message, hashtable_t* tea
 Forwards the Guide Agent's hint to the Field Agent(s).
 
 ```c
-static void GAHintHandler(char *messagep, message_t *message, hashtable_t* teams, hashtable_t* krags, connection_t *connection, FILE *log);
+static void GAHintHandler(char* gameId, char *messagep, message_t *message, hashtable_t* teams, hashtable_t* krags, connection_t *connection, FILE *log);
 ```
 
 **FALocationHandler**
@@ -270,7 +270,7 @@ static void GAHintHandler(char *messagep, message_t *message, hashtable_t* teams
 Adds the team if it is new to the game, adds the Field Agent if it is new to the game, updates the Field Agent with new location if not new, responds with `GAME_STATUS` if the agent is new or if status is requested.
 
 ```c
-static void FALocationHandler(char *messagep, message_t *message, hashtable_t* teams, hashtable_t* krags, connection_t *connection, FILE *log);
+static void FALocationHandler(char* gameId, char *messagep, message_t *message, hashtable_t* teams, hashtable_t* krags, connection_t *connection, FILE *log);
 ```
 
 **badOpCodeHandler**
@@ -278,7 +278,15 @@ static void FALocationHandler(char *messagep, message_t *message, hashtable_t* t
 Handles incorrect op codes by sending `SH_ERROR_INVALID_OPCODE` to inform them the op code is invalid for the server.
 
 ```c
-static void badOpCodeHandler(char *messagep, message_t *message, hashtable_t* teams, hashtable_t* krags, connection_t *connection, FILE *log);
+static void badOpCodeHandler(char* gameId, char *messagep, message_t *message, hashtable_t* teams, hashtable_t* krags, connection_t *connection, FILE *log);
+```
+
+**validateMessageParse**
+
+Checks if the message finished parsing with an error and sends an error message accordingly.
+
+```c
+static bool validateMessageParse(char* gameId, message_t* message, connection_t*, FILE* log);
 ```
 
 **validateKrag**
@@ -286,7 +294,7 @@ static void badOpCodeHandler(char *messagep, message_t *message, hashtable_t* te
 Validates a that a krag has the correct Id for an unfound krag and player location is correct for that krag. Return 0 if valid, 1 if found already, 2 if invalid location.
 
 ```c
-static int validateKrag(char* kragId, double latitude, double longitude, char* team, teamhashtable_t* teams, hashtable_t* krags);
+static int validateKrag(char* gameId, char* kragId, double latitude, double longitude, char* team, teamhashtable_t* teams, hashtable_t* krags);
 ```
 
 **validateFAClaim**
@@ -294,7 +302,7 @@ static int validateKrag(char* kragId, double latitude, double longitude, char* t
 Validates the message structure and members of an `FA_CLAIM` message. Returns true on success.
 
 ```c
-static bool validateFAClaim(messsage_t* message, hashtable_t* teams, hashtable_t* krags);
+static bool validateFAClaim(char* gameId, messsage_t* message, hashtable_t* teams, hashtable_t* krags);
 ```
 
 **validateFALog**
@@ -303,7 +311,7 @@ Validates the message structure and members of an `FA_LOG` message. Returns true
 
 
 ```c
-static bool validateFALog(messsage_t* message, hashtable_t* teams, hashtable_t* krags); 
+static bool validateFALog(char* gameId, messsage_t* message, hashtable_t* teams, hashtable_t* krags); 
 ```
 
 **validateGAStatus**
@@ -311,7 +319,7 @@ static bool validateFALog(messsage_t* message, hashtable_t* teams, hashtable_t* 
 Validates the message structure and members of a `GA_STATUS` message. Returns true on success.
 
 ```c
-static bool validateGAStatus(messsage_t* message, hashtable_t* teams, hashtable_t* krags);
+static bool validateGAStatus(char* gameId, messsage_t* message, hashtable_t* teams, hashtable_t* krags);
 ```
 
 **validateGAHint**
@@ -319,7 +327,7 @@ static bool validateGAStatus(messsage_t* message, hashtable_t* teams, hashtable_
 Validates the message structure and members of an `GA_HINT` message. Returns true on success.
 
 ```c
-static bool validateGAHint(messsage_t* message, hashtable_t* teams, hashtable_t* krags);
+static bool validateGAHint(char* gameId, messsage_t* message, hashtable_t* teams, hashtable_t* krags);
 ```
 
 **validateFALocation**
@@ -327,7 +335,7 @@ static bool validateGAHint(messsage_t* message, hashtable_t* teams, hashtable_t*
 Validates the message structure and members of an `FA_CLAIM` message. Returns true on success.
 
 ```c
-static bool validateFALocation(messsage_t* message, hashtable_t* teams, hashtable_t* krags);
+static bool validateFALocation(char* gameId, messsage_t* message, hashtable_t* teams, hashtable_t* krags);
 ```
 
 **sendGameStatus**
@@ -375,7 +383,7 @@ static bool sendSecret(char* gameId, char* guideId, char* secret, connection_t* 
 Sends a `GAME_OVER` command to all players. Returns true on success.
 
 ```c
-static bool sendGameOver(hashtable_t* teams, FILE* log);
+static bool sendGameOver(char* gameId, hashtable_t* teams, FILE* log);
 ```
 
 **sendResponse**
