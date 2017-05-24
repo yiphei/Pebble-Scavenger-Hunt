@@ -433,7 +433,10 @@ static bool sendResponse(char* gameId, char* respCode, char* text, connection_t*
 	7. Delete the `krags` hashtable and the `teams` hashtable
 	8. Close the log file and return success code of 0
 
+### Coupling and Cohesion
+The Game Server is cohesive because most routines perform one function, or set of operations, on a specific set of data. For example, the validate functions perform validation on a single specific message. 
 
+Another example is the function table that calls each handler. Each handler performs a very specific function to handle a specific message and is called via a structure that clearly passes data between functions via data-structure coupling. Many parameters are passed in these functions because the lower validation and send message functions require this data. In this way coupling allows functions with strong cohesion.
 
 ## Common - Network
 
