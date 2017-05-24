@@ -610,3 +610,29 @@ then the message itself.
 ```
 void deleteMessage(message_t *message);
 ```
+
+## Common - Log
+
+### Data Structures
+
+##### connection
+
+The log module utilizes the connection struct implemented in the `network.h`
+module in order to get the IP address and port number info of the sender
+or recipient (depending on the direction of the message).
+
+### Functions
+
+##### logMessage
+
+This function logs a given message to the correct modules log file. It takes
+that log file pointer, the message string, a direction (to or from), and
+a connection struct as parameters. It uses the direction, a hard-coded "TO"
+or "FROM" to tell if the message is inbound or outbound, then plugs this in
+as part of the string to log. The components of the connection struct are also
+used in this way, as the log format requires the IP address and the port number
+as part of the message log entry.
+
+```
+void logMessage(FILE *file, char *message, char *direction, connection_t *connect);
+```
