@@ -2,25 +2,37 @@
 # GREP, CS50, May 2017
 
 PROG = guideagent
-OBJS = guideagent.o ../common/network.o ../libcs50/set.o ../libcs50/memory.o ../common/message.o ../common/log.o ../common/team.o ../libcs50/set.o ../libcs50/hashtable.o ../libcs50/jhash.o
-LIBS = -lm
+DISPLAY = displaytest
+OBJS = guideagent.o ../common/network.o ../common/message.o ../common/log.o ../common/team.o display.o ../common/krag.o
+OBJS2 = ../common/network.o ../common/message.o ../common/log.o ../common/team.o display.o displaytest.o ../common/krag.o
+LIBS = -lm -lncurses
+LLIBS = ../libcs50/libcs50.a-Linux
+
 
 CFLAGS = -Wall -pedantic -std=c11 -ggdb -I../common/ -I../libcs50/
 CC = gcc
-MAKE = Makefile
+MAKE = make
 
-$(PROG): $(OBJS)
-	$(CC) $(CFLAGS) $(LIBS) $(OBJS) -o $(PROG)
+all: $(PROG) $(DISPLAY)
 
-guideagent.o: ../common/network.h ../libcs50/set.h
+$(PROG): $(OBJS) $(LLIBS)
+	$(CC) $(CFLAGS) $^ $(LLIBS) $(LIBS) -o $@
+
+$(DISPLAY): $(OBJS2) $(LLIBS)
+	$(CC) $(CFLAGS) $^ $(LLIBS) $(LIBS) -o $@
+
+display.o: display.h ../common/team.h ../libcs50/set.h
+displaytest.o: display.h ../common/team.h ../libcs50/set.h ../libcs50/hashtable.h
+guideagent.o: ../common/network.h ../libcs50/set.h ../common/log.h ../common/message.h ../libcs50/memory.h ../common/team.h display.h
 network.o: ../common/network.h
-set.o: ../libcs50/set.h ../libcs50/memory.h
-message.o: ../common/message.h
+message.o: ../common/message.h 
 log.o: ../common/log.h ../common/network.h
-team.o: ../common/team.h ../libcs50/hashtable.h ../libcs50/set.h ../common/krag.h ../libcs50/file.h
-set.o: ../libcs50/set.h
-hashtable.o: ../libcs50/hashtable.h ../libcs50/set.h ../libcs50/jhash.h
-jhash.o: ../libcs50/jhash.h
+team.o: ../common/team.h ../common/network.h ../libcs50/hashtable.h ../libcs50/set.h ../common/krag.h ../libcs50/file.h
+krag.o: ../common/krag.h ../common/team.h
+
+
+display: $(DISPLAY)
+	./$(DISPLAY)
 
 clean:
 	rm -f guideagent

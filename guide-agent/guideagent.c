@@ -15,13 +15,7 @@
 #include <netdb.h>             // socket-related structures
 #include <time.h>
 #include <ncurses.h>
-#include "../common/team.h"
-#include "../common/network.h"
-#include "../libcs50/memory.h"
-//#include "display.h"
-#include "../libcs50/set.h"
-#include "../common/message.h"
-#include "../common/log.h"
+#include "guideagent.h"
 
 /******** function declarations ********/
 int game(char *guideId, char *team, char *player, char *host, int port);
@@ -256,7 +250,7 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 	}
 
 	// add this agent to the team and initializes its values
-	guideAgent_t *me = newGuideAgent(guideId, player, "0");
+	guideAgent_t *me = newGuideAgent(guideId, player, "0", NULL);   //fix this
 	teamp->guideAgent = me;
 
 	/* wait until server sends GAME_STATUS back to start game loop.
