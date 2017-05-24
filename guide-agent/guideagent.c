@@ -22,7 +22,7 @@ int game(char *guideId, char *team, char *player, char *host, int port);
 bool sendGA_STATUS(char *gameId, char *guideId, char *team, char *player, char *statusReq, connection_t *connection, FILE *file);
 bool sendGA_HINT(char *gameId, char *guideId, char *team, char *player, char *pebbleId, char *hint, connection_t *connection, FILE *file);
 
-/******** opCode handlers **********/
+/******** local opCode handlers **********/
 static void badOpCodeHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log);
 static void gameStatusHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log);
 static void GSAgentHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log);
@@ -31,6 +31,13 @@ static void GSSecretHandler(char *messagep, message_t *message, team_t *teamp, c
 static void GSResponseHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log);
 static void teamRecordHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log);
 static void gameOverHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log);
+
+/********* local message validation functions *********/
+static bool gameStatusValidate();
+static bool GSAgentValidate();
+static bool GSClueValidate();
+static bool GSSecretValidate();
+static bool GSResponseValidate();
 
 /********* functions dispatch table *********/
 static const struct {
@@ -250,7 +257,7 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 	}
 
 	// add this agent to the team and initializes its values
-	guideAgent_t *me = newGuideAgent(guideId, player, "0", NULL);   //fix this
+	guideAgent_t *me = newGuideAgent(guideId, player, "0", connection);
 	teamp->guideAgent = me;
 
 	/* wait until server sends GAME_STATUS back to start game loop.
@@ -272,6 +279,8 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 	}
 
 	char *gameId = me->gameID;
+
+	// TODO: create and initialize interface
 
 	// loop runs until GAME_OVER message received, then breaks
 	while (true) {
@@ -416,69 +425,76 @@ static void badOpCodeHandler(char *messagep, message_t *message, team_t *teamp, 
 // handle specific, applicable opCodes
 static void gameStatusHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
 {
-	// TODO: validate message structure
+	if (gameStatusValidate()) {
 
-	// first game status received, set gameId for later use
-	if (strcmp(teamp->guideAgent->gameID, "0") == 0) {
-		teamp->guideAgent->gameID = message->gameId;
+		// first game status received, set gameId for later use
+		if (strcmp(teamp->guideAgent->gameID, "0") == 0) {
+			teamp->guideAgent->gameID = message->gameId;
+		}
+
+		teamp->claimed = message->numClaimed;
+
+		// TODO: update total number of krags for the team
+
+		// TODO: update the interface
+
+		logMessage(log, messagep, "FROM", connection);
+
 	}
-
-	teamp->claimed = message->numClaimed;
-
-	// TODO: update total number of krags for the team
-
-	// TODO: update the interface
-
-	logMessage(log, messagep, "FROM", connection);
 }
 
 static void GSAgentHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
 {
-	// TODO: validate message structure
+	if (GSAgentValidate()) {
 
-	// TODO: check if Field Agent is in the set
-	// if so, update that field agent struct's location
-	// if not, add him and update location
+		// TODO: check if Field Agent is in the set
+		// if so, update that field agent struct's location
+		// if not, add him and update location
 
-	// TODO: update interface based on new locations
+		// TODO: update interface based on new locations
 
-	logMessage(log, messagep, "FROM", connection);
+		logMessage(log, messagep, "FROM", connection);
+
+	}
 }
 
 static void GSClueHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
 { 
-	// TODO: validate message structure
+	if (GSClueValidate()) {
 
-	// TODO: change recent clues to the newly received clues
+		// TODO: change recent clues to the newly received clues
 
-	// TODO: add newly received clues to the clue set
+		// TODO: add newly received clues to the clue set
 
-	// TODO: update GUI with new clues
+		// TODO: update GUI with new clues
 
-	logMessage(log, messagep, "FROM", connection);
+		logMessage(log, messagep, "FROM", connection);
+
+	}
 }
 
 static void GSSecretHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
 {
-	// TODO: validate message structure
+	if (GSSecretValidate()) {
 
-	// TODO: update the team's secret string
+		// TODO: update the team's secret string
 
-	// TODO: update GUI with new string
+		// TODO: update GUI with new string
 
-	logMessage(log, messagep, "FROM", connection);
+		logMessage(log, messagep, "FROM", connection);
+
+	}
 }
 
 static void GSResponseHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
 {
-	// TODO: validate message structure
-
-	logMessage(log, messagep, "FROM", connection);
+	if (GSResponseValidate()) {
+		logMessage(log, messagep, "FROM", connection);
+	}
 }
 
 static void teamRecordHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
 {
-	// TODO: validate message structure
 
 	// TODO: update final statistics of the team (only store don't display)
 
@@ -487,10 +503,40 @@ static void teamRecordHandler(char *messagep, message_t *message, team_t *teamp,
 
 static void gameOverHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
 {
-	// TODO: validate message structure
 
 	// TODO: update GUI to tell user game is over with final game stats and
 	// show the fully revealed secret
 
 	logMessage(log, messagep, "FROM", connection);
+}
+
+/********** message validation functions ************/
+static bool gameStatusValidate()
+{
+
+	return true;
+}
+
+static bool GSAgentValidate()
+{
+
+	return true;
+}
+
+static bool GSClueValidate()
+{
+
+	return true;
+}
+
+static bool GSSecretValidate()
+{
+
+	return true;
+}
+
+static bool GSResponseValidate()
+{
+
+	return true;
 }
