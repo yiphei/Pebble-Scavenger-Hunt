@@ -15,19 +15,6 @@
 #include "../libcs50/file.h"
 #include "team.h"
 
-typedef struct guideAgent {  
-	char * guideID;  
- 	char * name;
- 	char * gameID;     
-} guideAgent_t;
-
-
-typedef struct fieldAgent {
-	double latitude;  //latitude position of the field agent
-	double longitude;  //longitude position of the field agent
-	char * gameID;
-} fieldAgent_t;
-
 char * getRevealedString(char * teamname, hashtable_t * teamhash){
 	team_t * team = hashtable_find(teamhash, teamname); 
 	return team->revealedString;
