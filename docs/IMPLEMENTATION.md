@@ -281,6 +281,14 @@ Handles incorrect op codes by sending `SH_ERROR_INVALID_OPCODE` to inform them t
 static void badOpCodeHandler(char *messagep, message_t *message, hashtable_t* teams, hashtable_t* krags, connection_t *connection, FILE *log);
 ```
 
+**validateMessageParse**
+
+Checks if the message finished parsing with an error and sends an error message accordingly.
+
+```c
+static bool validateMessageParse(message_t* message, connection_t*, FILE* log);
+```
+
 **validateKrag**
 
 Validates a that a krag has the correct Id for an unfound krag and player location is correct for that krag. Return 0 if valid, 1 if found already, 2 if invalid location.
