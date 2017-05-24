@@ -1,4 +1,7 @@
-##Guide Agent
+# Implementation
+_Tony DiPadova, Michael Perezous, 
+
+## Guide Agent
 The implementation of the Guide Agent is based on the previously made
 design spec (DESIGN.md).
 
@@ -97,3 +100,319 @@ interface for the Guide Agent. It allows for abstracted use of the GUI by
 `guideagent.c` to separate the display from the actual logic of the game for
 the Guide Agent. Its main library used is `ncurses`, allowing for easier
 implementation of a GUI type interface in C.
+
+## Game Server
+
+### Data Structures
+**Op Code Handler Function Table**
+
+The Op Code handler function table is used to easily handle messages that the game server receives. When an op code is received, a for loop check the function table for the op code and calls the appropriate function to handle that message type.
+
+```c
+static const struct {
+
+	const char *opCode;
+	void (*func)(char *messagep, message_t *message, hashtable_t* teams, hashtable_t* krags, connection_t *connection, FILE *log);
+
+} opCodes[] = {
+	{"FA_CLAIM", FAClaimHandler},
+	{"FA_LOG", FALogHandler},
+	{"GA_STATUS", GAStatusHandler},
+	{"GA_HINT", GAHintHandler},
+	{"FA_LOCATION", FALocationHandler},
+	{"GAME_STATUS", badOpCodeHandler},
+	{"GS_AGENT", badOpCodeHandler},
+	{"GS_CLUE", badOpCodeHandler},
+	{"GS_SECRET", badOpCodeHandler},
+	{"GS_RESPONSE", badOpCodeHandler},
+	{"TEAM_RECORD", badOpCodeHandler},
+	{"GAME_OVER", badOpCodeHandler},
+	{NULL, NULL}
+};
+```
+
+### Functions
+
+**main**
+
+The `main` function parses the command line arguments and then calls the `gameserver` function.
+
+```c
+int main(int argc, char* argv[])
+```
+
+**gameserver**
+
+The `gameserver` function runs the game. It loads the krag files, opens and binds a socket to receive messages, and listens for messages calling the appropriate handler functions
+
+```c
+int gameserver(int gameId, char* kff, char* sf, int port);
+```
+
+**FAClaimHandler**
+
+Handles the `FA_CLAIM` messages by validating message, validating the krag ID and location, updating the krag and team structs, sending an `SH_CLAIMED` or `SH_CLAIMED_ALREADY` to the caller, updating the team's secret string, then ending the game if the string is complete and sending two more clues if the string is not complete.
+
+```c
+static void FAClaimHandler(char *messagep, message_t *message, hashtable_t* teams, hashtable_t* krags, connection_t *connection, FILE *log);
+```
+
+**FALogHandler**
+
+Logs messages to the field agent log.
+
+```c
+static void FALogHandler(char *messagep, message_t *message, hashtable_t* teams, hashtable_t* krags, connection_t *connection, FILE *log);
+```
+
+**GAStatusHandler** 
+
+Adds the team if it is new to the game, adds the Guide Agent if it is new to the game, updates the Guide Agent struct if not new, responds with `GAME_STATUS` if the agent is new or if status is requested, sends a `GS_AGENT` to the Guide Agent for every Field Agent on the team.
+
+```c
+static void GAStatusHandler(char *messagep, message_t *message, hashtable_t* teams, hashtable_t* krags, connection_t *connection, FILE *log);
+```
+
+**GAHintHandler**
+
+Forwards the Guide Agent's hint to the Field Agent(s).
+
+```c
+static void GAHintHandler(char *messagep, message_t *message, hashtable_t* teams, hashtable_t* krags, connection_t *connection, FILE *log);
+```
+
+**FALocationHandler**
+
+Adds the team if it is new to the game, adds the Field Agent if it is new to the game, updates the Field Agent with new location if not new, responds with `GAME_STATUS` if the agent is new or if status is requested.
+
+```c
+static void FALocationHandler(char *messagep, message_t *message, hashtable_t* teams, hashtable_t* krags, connection_t *connection, FILE *log);
+```
+
+**badOpCodeHandler**
+
+Handles incorrect op codes by sending `SH_ERROR_INVALID_OPCODE` to inform them the op code is invalid for the server.
+
+```c
+static void badOpCodeHandler(char *messagep, message_t *message, hashtable_t* teams, hashtable_t* krags, connection_t *connection, FILE *log);
+```
+
+**validateKrag**
+
+Validates a that a krag has the correct Id for an unfound krag and player location is correct for that krag. Return 0 if valid, 1 if found already, 2 if invalid location.
+
+```c
+static int validateKrag(char* kragId, double latitude, double longitude, char* team, teamhashtable_t* teams, hashtable_t* krags);
+```
+
+**validateFAClaim**
+
+Validates the message structure and members of an `FA_CLAIM` message. Returns true on success.
+
+```c
+static bool validateFAClaim(messsage_t* message, hashtable_t* teams, hashtable_t* krags);
+```
+
+**validateFALog**
+
+Validates the message structure and members of an `FA_LOG` message. Returns true on success.
+
+
+```c
+static bool validateFALog(messsage_t* message, hashtable_t* teams, hashtable_t* krags); 
+```
+
+**validateGAStatus**
+
+Validates the message structure and members of a `GA_STATUS` message. Returns true on success.
+
+```c
+static bool validateGAStatus(messsage_t* message, hashtable_t* teams, hashtable_t* krags);
+```
+
+**validateGAHint**
+
+Validates the message structure and members of an `GA_HINT` message. Returns true on success.
+
+```c
+static bool validateGAHint(messsage_t* message, hashtable_t* teams, hashtable_t* krags);
+```
+
+**validateFALocation**
+
+Validates the message structure and members of an `FA_CLAIM` message. Returns true on success.
+
+```c
+static bool validateFALocation(messsage_t* message, hashtable_t* teams, hashtable_t* krags);
+```
+
+**sendGameStatus**
+
+Builds a message string for a `GAME_STATUS` and sends it using the network module. Returns true on success.
+
+```c
+static bool sendGameStatus(char* gameId, char* guideId, int numClaimed, int numKrags, connection_t* connection, FILE* log);
+```
+
+**forwardHint**
+
+Forwards a `GA_HINT`message by sending it using the network module. Returns true on success.
+
+```c
+static bool forwardHint(char* hintMessage, connection_t* connection, FILE* log);
+```
+
+**sendAllGSAgents**
+
+Builds a message string for a `GSAgent` for each Field Agent and sends them to the Guide Agent using the network module. Returns true on success.
+
+```c
+static bool sendAllGSAgents(char* gameId, char* team, hashtable_t* teams, connection_t* connection, FILE* log);
+```
+
+**sendClue**
+
+Builds a message string for a `GS_CLUE` and sends it to the appropriate Field Agent(s) using the network module. Returns true on success.
+
+```c
+static bool sendClue(char* gameId, char* guideId, char* clue, double latitude, double longitude, connection_t* connection, FILE* log);
+```
+
+**sendSecret**
+
+Sends the updated reveal string `GS_SECRET` message to the Guide Agent. Returns true on success.
+
+```c
+static bool sendSecret(char* gameId, char* guideId, char* secret, connection_t* connection, FILE* log);
+```
+
+**sendGameOver**
+
+Sends a `GAME_OVER` command to all players. Returns true on success.
+
+```c
+static bool sendGameOver(hashtable_t* teams, FILE* log);
+```
+
+**sendResponse**
+
+Sends a `GS_RESPONSE` message to a specified player. Returns true on success.
+
+```c
+static bool sendResponse(char* gameId, char* respCode, char* text, connection_t* connection, FILE* log);
+```
+
+### Pseudo Code
+
+1. Parse command line args
+	1. Iterate through all args and search for the keys `gameId=`, `kff=`, `sf=`, and `port=`
+	2. Check for duplicates
+	3. Validate the args
+2. Call `gameserver` and store its exit value
+	1. Initialize variables such as a hashtable `krags` and a hashtable `teams` as well as the server connection and a `gameInProgress` boolean
+	2. Open the log file
+	3. Call `startServer` using the `port` and store the connection it returns
+	4. Call `readKrag` to load the `krags` hashtable with the `kff` file
+	5. While `gameInProgress` is true
+		1. Initialize a receiving address connection
+		2. Receive a message with `receiveMessage`
+		3. Parse the message wtih `parseMessage`
+		4. Iterate through the op code function table `opCodes` and call the appropriate handler function
+			* FA_CLAIM -> FAClaimHandler
+				1. Call `validateFAClaim` to validate message structure
+				2. Call `validateKrag` to validate the krag ID, team, and location
+				3. Update the krag and team structs
+				4. Send `SH_CLAIMED` or `SH_CLAIMED_ALREADY` depending on step 2
+				5. Updates and sends the team's secret string, sets `gameInProgress` to false if the string is completely revealed.
+				6. Sends two clues to the GA if the string is not yet complete
+			* FA_LOG -> FALogHandler
+				1. Calls `validateFALog` to valdiate message structure
+				2. Logs the message using `logMessage`
+			* GA_STATUS -> GAStatusHandler
+				1. Calls `validateGAStatus` to validate message structure
+				2. Calls `addGuideAgent` which adds a team if it doesn't exist, adds a Guide Agent to the team if it doesn't exist, and does nothing if both exist.
+				3. Calls `sendGameStatus` if the agent was new or if the GA_STATUS message requested an update
+				4. Calls `sendAllGSAgents` to send Field Agent info to the Guide Agent
+			* GA_HINT -> GAHintHandler
+				1. Calls `validateGAHint` to validate message structure
+				2. Forwards the hint to the appropriate Field Agent(s) using `forwardHint`
+			* FA_LOCATION -> FALocationHandler
+				1. Calls `validateFALocation` to validate message structure
+				2. Calls `addNewFieldAgent` which adds a new team if it doesn't exist, adds the Field Agent if it doesn't exist, and does nothing if both exist
+				3. Update the Field Agent struct with the new location
+				4. Calls `sendGameStatus` to send the game status if the agent was new or if a status was requested
+			* GAME_STATUS -> badOpCodeHandler
+				1. Sends `SH_ERROR_INVALID_OPCODE` to the caller to indicate bad op code
+		5. Free the message and message string breaking from the `opCodes` loop
+		6. Delete the receiving address connection
+	6. Delete the `krags` hashtable and the `teams` hashtable
+	7. Close the log file and return success code of 0
+
+
+
+## Common - Network
+
+### Data Structures
+**Connection** 
+
+```c
+typedef struct connection {
+	int socket;
+	struct sockaddr* address;
+} connection_t;
+```
+
+### Functions
+**startServer**
+
+Opens the server's socket and binds it to the correct IP and port. Returns a connection struct which holds the `int socket` and the `sockaddr* address`.
+
+```c
+connection_t* startServer(int port);
+```
+**openSocket**
+
+Opens a socket for a port and host and returns a connection struct with the socket and address.
+
+```c
+connection_t* openSocket(int port, char* host);
+```
+
+**receiveMessage**
+
+Receives a message from a socket. Takes a connection struct that has the socket and a `sockaddr*` to store who sent the message.
+
+```c
+char* receiveMessage(connection_t* connection);
+```
+
+**sendMessage**
+
+Sends a message string through a socket to an address, both of which are passed via a connection struct.
+
+```c
+bool sendMessage(char* message, connection_t* connection);
+```
+**newConnection**
+
+Creates a connection struct.
+
+```c
+connection_t* newConnection(int socket, sockaddr* address);
+```
+
+**deleteConnection**
+
+Deletes a connection struct.
+
+```c
+void deleteConnection(connection_t* connection);
+```
+
+**closeSocket**
+
+Closes a socket.
+
+```c
+void closeSocket(int comm);
+```
