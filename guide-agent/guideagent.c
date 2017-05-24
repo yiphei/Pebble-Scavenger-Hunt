@@ -15,13 +15,13 @@
 #include <netdb.h>             // socket-related structures
 #include <time.h>
 #include <ncurses.h>
+#include "../common/team.h"
 #include "../common/network.h"
 #include "../libcs50/memory.h"
 //#include "display.h"
 #include "../libcs50/set.h"
 #include "../common/message.h"
 #include "../common/log.h"
-#include "../common/team.h"
 
 /******** function declarations ********/
 int game(char *guideId, char *team, char *player, char *host, int port);
@@ -29,14 +29,14 @@ bool sendGA_STATUS(char *gameId, char *guideId, char *team, char *player, char *
 bool sendGA_HINT(char *gameId, char *guideId, char *team, char *player, char *pebbleId, char *hint, connection_t *connection, FILE *file);
 
 /******** opCode handlers **********/
-static void badOpCode(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log);
-static void gameStatus(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log);
-static void GSAgent(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log);
-static void GSClue(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log);
-static void GSSecret(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log);
-static void GSResponse(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log);
-static void teamRecord(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log);
-static void gameOver(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log);
+static void badOpCodeHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log);
+static void gameStatusHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log);
+static void GSAgentHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log);
+static void GSClueHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log);
+static void GSSecretHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log);
+static void GSResponseHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log);
+static void teamRecordHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log);
+static void gameOverHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log);
 
 /********* functions dispatch table *********/
 static const struct {
@@ -45,18 +45,18 @@ static const struct {
 	void (*func)(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log);
 
 } opCodes[] = {
-	{"FA_CLAIM", badOpCode},
-	{"FA_LOG", badOpCode},
-	{"GA_STATUS", badOpCode},
-	{"GA_HINT", badOpCode},
-	{"FA_LOCATION", badOpCode},
-	{"GAME_STATUS", gameStatus},
-	{"GS_AGENT", GSAgent},
-	{"GS_CLUE", GSClue},
-	{"GS_SECRET", GSSecret},
-	{"GS_RESPONSE", GSResponse},
-	{"TEAM_RECORD", teamRecord},
-	{"GAME_OVER", gameOver},
+	{"FA_CLAIM", badOpCodeHandler},
+	{"FA_LOG", badOpCodeHandler},
+	{"GA_STATUS", badOpCodeHandler},
+	{"GA_HINT", badOpCodeHandler},
+	{"FA_LOCATION", badOpCodeHandler},
+	{"GAME_STATUS", gameStatusHandler},
+	{"GS_AGENT", GSAgentHandler},
+	{"GS_CLUE", GSClueHandler},
+	{"GS_SECRET", GSSecretHandler},
+	{"GS_RESPONSE", GSResponseHandler},
+	{"TEAM_RECORD", teamRecordHandler},
+	{"GAME_OVER", gameOverHandler},
 	{NULL, NULL}
 };
 
@@ -256,7 +256,7 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 	}
 
 	// add this agent to the team and initializes its values
-	guideAgent_t *me = newGuideAgent(guideId, player);
+	guideAgent_t *me = newGuideAgent(guideId, player, "0");
 	teamp->guideAgent = me;
 
 	/* wait until server sends GAME_STATUS back to start game loop.
@@ -277,7 +277,7 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 		}
 	}
 
-	char *gameId = me->gameId;
+	char *gameId = me->gameID;
 
 	// loop runs until GAME_OVER message received, then breaks
 	while (true) {
@@ -334,8 +334,8 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 
 	}
 
-	fclose(log);
 
+	fclose(log);
 
 	return 0;
 }
@@ -376,6 +376,7 @@ bool sendGA_STATUS(char *gameId, char *guideId, char *team, char *player, char *
 	return true;
 }
 
+/********** sendGA_Hint **********/
 bool sendGA_HINT(char *gameId, char *guideId, char *team, char *player, char *pebbleId, char *hint, connection_t *connection, FILE *file)
 {
 	char *messagep = malloc(strlen(gameId) + strlen(guideId) + strlen(team) 
@@ -412,57 +413,90 @@ bool sendGA_HINT(char *gameId, char *guideId, char *team, char *player, char *pe
 
 /*********** dispath/opCode functions **********/
 // received an incorrect opCode, print error message and ignore
-static void badOpCode(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
+static void badOpCodeHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
 {
 	fprintf(stderr, "incorrect opCode received, no actions performed\n");
 	logMessage(log, messagep, "FROM", connection);
 }
 
 // handle specific, applicable opCodes
-static void gameStatus(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
+static void gameStatusHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
 {
+	// TODO: validate message structure
+
 	// first game status received, set gameId for later use
-	if (teamp->guideAgent->gameId == "0") {
-		teamp->guideAgent->gameId == message->gameId;
+	if (strcmp(teamp->guideAgent->gameID, "0") == 0) {
+		teamp->guideAgent->gameID = message->gameId;
 	}
 
+	teamp->claimed = message->numClaimed;
 
+	// TODO: update total number of krags for the team
+
+	// TODO: update the interface
 
 	logMessage(log, messagep, "FROM", connection);
 }
 
-static void GSAgent(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
+static void GSAgentHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
 {
+	// TODO: validate message structure
+
+	// TODO: check if Field Agent is in the set
+	// if so, update that field agent struct's location
+	// if not, add him and update location
+
+	// TODO: update interface based on new locations
 
 	logMessage(log, messagep, "FROM", connection);
 }
 
-static void GSClue(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
+static void GSClueHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
 { 
+	// TODO: validate message structure
+
+	// TODO: change recent clues to the newly received clues
+
+	// TODO: add newly received clues to the clue set
+
+	// TODO: update GUI with new clues
 
 	logMessage(log, messagep, "FROM", connection);
 }
 
-static void GSSecret(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
+static void GSSecretHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
 {
+	// TODO: validate message structure
+
+	// TODO: update the team's secret string
+
+	// TODO: update GUI with new string
 
 	logMessage(log, messagep, "FROM", connection);
 }
 
-static void GSResponse(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
+static void GSResponseHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
 {
+	// TODO: validate message structure
 
 	logMessage(log, messagep, "FROM", connection);
 }
 
-static void teamRecord(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
+static void teamRecordHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
 {
+	// TODO: validate message structure
+
+	// TODO: update final statistics of the team (only store don't display)
 
 	logMessage(log, messagep, "FROM", connection);
 }
 
-static void gameOver(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
+static void gameOverHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
 {
+	// TODO: validate message structure
+
+	// TODO: update GUI to tell user game is over with final game stats and
+	// show the fully revealed secret
 
 	logMessage(log, messagep, "FROM", connection);
 }
