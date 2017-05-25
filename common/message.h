@@ -26,6 +26,7 @@ typedef struct message
 	char *hint;
 	char *clue;
 	char *secret;
+	char *text;
 	int errorCode;
 	
 } message_t;
