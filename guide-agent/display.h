@@ -29,15 +29,23 @@ void updateMap_I(set_t * fieldagents);
 
 void addPlayers_I(set_t * fieldagents);
 
-void loadMap(char **board, FILE *fp);
+void loadMap_I(void);
+
 
 void updateString_I(char * revealedString);
 
-void updateClue_I(char * clues[]);
+void updateClues_I(set_t * clues);
 
-void updateStats_I(char * gamestats[]);
+
+void updateTotalKrags_I(int totalKrags);
+
+
+void updateKragsClaimed_I(int claimed);
+
 
 char * input_I(void);
+
+void gameOver_I(hashtable_t * teamhash);
 
 
 
