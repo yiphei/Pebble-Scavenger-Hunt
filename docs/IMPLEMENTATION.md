@@ -213,11 +213,95 @@ implemented with simple-data coupling because the design of the module calls
 for fairly complex data structures to be passed containing a lot of necessary
 data to continue functioning.
 
-#### display.c
-This component contains all functions and logic related to the graphical user
-interface for the Guide Agent. It allows for abstracted use of the GUI by
-`guideagent.c` to separate the display from the actual logic of the game for
-the Guide Agent.
+#### Display.c
+
+The display module handles the GUI part of the guide agent. It displays five windows in total. The map window will have field agents name on the top left, their current locations in the map, and a ASCII based map of the campus. The stats window will display the total number of krags in the game and the total nuber of krags claimed. The current string windown displays the current revealed string of the team. The clues window displays all the known clues to the team. The input window reads from stdin. When game ends, then it will display a game over 
+
+
+##### Data Structures
+
+The display module does not make use of a lot data structures. The only data structures used are set, hashtable, and team data structures. The sets are used in displaying clues in the clues window, and field agent and their locations in the map window. Because field agents themselves are a data strucutre, we need the `fieldAgent_t` struct in `team.h`. Last, the hashtable are used to display the game over screen. The hashtable, with keys being teamname and items being team struct, will be iterated to display every team's statistics.
+
+##### Functions
+
+
+**initialize_curses**
+
+This function initializes the basic ncurses elemts like screen and color. User should call this function first before any other display function.
+
+	void initialize_curses();
+
+**createWin_I**
+
+This function creates and returns a window given a height, width, and start x and y coordinates
+
+	WINDOW *createWin_I(int height, int width, int starty, int startx);
+
+**initializeWindows_I**
+
+This function initialites the five windows of the game and print their window names on the top left of each window. These windows are: game, game status, string, clues, and input.
+
+	void initializeWindows_I(void);
+
+**updateMap_I**
+
+This function updates the map with new info. For example, it calls `addPlayers_I` to display field agents and their location. It calls `loadMap` to display the campus map.
+
+	void updateMap_I(set_t * fieldagents, FILE * fp);
+
+**addPlayers_I**
+
+This function adds the field agents name on the top left corner of the mpa window, and their renspective location (marked with *) on the map. Each player and their location mark have an individual color. 
+
+	void addPlayers_I(set_t * fieldagents);
+
+**loadMap**
+
+This funtion loads an ASCII based map from a file and renders it in the game window.
+
+	void loadMap(FILE *fp);
+
+**updateString_I**
+
+This function displays the current revealed string of the team to the string window
+
+	void updateString_I(char * revealedString);
+
+**updateClues_I**
+
+This function outputs all the clues to the the clue window. If clues exceed the borders of the clue window, then those clues wont be displayed
+
+	void updateClues_I(set_t * clues);
+
+**updateTotalKrags_I**
+
+This function displays the total krag number in the game. It is displayed in the stats window
+
+	void updateTotalKrags_I(int totalKrags);
+
+**updateKragsClaimed_I**
+
+This function displays the number of krags claimed by the team. It is displayed in the stats window
+
+	void updateKragsClaimed_I(int claimed);
+
+**input_I**
+
+This function reads from stdin until user inputs CONTROL D. When CONTROL D is inputted, then the function stops reading frmo stdin and returns the string to the caller.
+
+	char * input_I(void);
+	
+**gameOver_I**
+
+This function displays the game over stats to the screen. For every team, it will diplay a teamname, number of players, and number of krags claimed. This function should be called at the end of the game.
+	
+	void gameOver_I(hashtable * teams);
+	
+#####Modularity
+
+In the display module, there is strong cohesion because all routines perform functions related to one specific general function, which is graphical user interface. Many of the routines have sequential cohesion. For examples, some routines retrieve info about a `WINDOW` and uses that info to perform some operations. Sometimes, there are some routines that have communicational cohesion. There is relatively weak coupling between the routines because all of them function autonomously. Most of the routines are just simple-data coupling.
+
+
 
 ## Field Agent
 
@@ -1014,3 +1098,278 @@ as part of the message log entry.
 ```
 void logMessage(FILE *file, char *message, char *direction, connection_t *connect);
 ```
+
+## Common - TEAM
+
+  The team module contains all the logic for creating teams, adding guide agents and field agents, and related functions. The module build a hashtable of teams where the key is the teamname and the item is a team struct. In the team struct itself, guide agent, and a set of field agents among other things are stored. To initialize the hashtable, call `initHash()`. Then, the hashtable is build by using `teamname` as the key and `team_t` structs as the iteams. In each team, there is a set of field agents, a set of krags, and a set of clues. In the field agents set, the key is the field agent `name` and the item is the `fieldAgent_t` struct. In the krags set, the key is the `kragID` and the item is the `krag_t` struct. In the clues set, the key is the `kragID` and the item is a string( which is the clue).  
+
+### Data Structures
+**Team** 
+
+The team struct will hold all the essential elements that a team has. Each time will have a guide agent, a set of field agents, the current revealed string, the set of all the krags found so far, the two most recent clues, the set of all clues, and the number of claimed krags by the team. 
+
+```c
+typedef struct team {
+  struct guideAgent * guideAgent;  //guide agent of the team
+  set_t * FAset;      //set of field agents
+  char * revealedString;  //the current releaved string of the team
+  set_t * krags;     //set of all the krags the team has found
+  char * recentClues[2];   //array of the two most recent clues
+  set_t * clues;    //set of all the clues a team has
+  int claimed;  //number of claimed krags of the team
+} team_t;
+```
+
+**guideAgent**
+
+The guide agent struct will hold all the essential elements that a guide agent has. Each team has only one guide agent. 
+
+```c
+typedef struct guideAgent { 
+	char * guideID;  
+ 	char * name;      //name of the guide agent
+ 	char * gameID; 
+ 	connection_t * conn; //connection struct from network module   
+} guideAgent_t;
+```
+
+**fieldAgent**
+
+The field agent struct will hold all the essential elements that a field agent has. Each tame can have multiple field agents
+
+```c
+typedef struct fieldAgent {
+	double latitude;  //latitude position of the field agent
+	double longitude;  //longitude position of the field agent
+	char * gameID;
+	char pebbleID[9]; 
+	connection_t * conn;  //conection struct form network module
+	int lastContact;  //number of seconds since guide agent last heard from field agent
+} fieldAgent_t;
+```
+
+### Functions
+**getRevealedString**
+
+This fucntion returns the revealed string of a team
+
+```c
+char * getRevealedString(char * teamname, hashtable_t * teamhash);
+```
+**initHash**
+
+This function adds a field agent to a team. If the field agent is being added to a non-existing team, than a team will be created first, and then the field agent will be added to the team. In a normal situation, the function will return 0. If the user tries to add a field agent to a team that already has a field agent with the same name, then nothing happens and it returns 1.
+
+	int addFieldAgent(char * name, char * pebbleID, char * teamname, char * gameID, connection_t * conn, hashtable_t * teamhash);
+
+**addFieldAgent**
+
+This function adds a field agent to a team. If the field agent is being added to a non-existing team, than a team will be created first, and then the field agent will be added to the team. In a normal situation, the function will return 0. If the user tries to add a field agent to a team that already has a field agent with the same name, then nothing happens and it returns 1.
+
+	int addFieldAgent(char * name, char * pebbleID, char * teamname, char * gameID, connection_t * conn, hashtable_t * teamhash);
+
+**addGuideAgent**
+
+This function adds a guide agent to a team. If the guide agent is being added to a non-existing team, than a team will be created first, and then the guide agent will be added to the team. In a normal situation, the function will return 0. If the user tries to add a guide agent to a team that already
+has a guide agent, then nothing happens and it returns 1.
+
+	int addGuideAgent(char * guideID, char * teamname, char * name, char * gameID, connection_t * conn, hashtable_t * teamhash);
+	
+**addKrag**
+
+This function adds a krag to the set of krags found by a team. This function should be called when a team find a krag. If the krag added is a new krag, then the krag will be added to the sts of krags found by a team and return 0. If the krags added has already been found by the team, then nothing is added and func returns 1.
+
+	int addKrag(char * teamname, char * kragID, hashtable_t * kraghash, hashtable_t * teamhash );
+	
+**getGuideAgent**
+
+This function returns the guide agent of the team
+
+	guideAgent_t * getGuideAgent(char * teamname, hashtable_t * teamhash);
+
+**getFieldAgent**
+
+This function returns the field agent of the team
+
+	fieldAgent_t * getFieldAgent(char * name, char * teamname, hashtable_t * teamhash);
+	
+**getAllFieldAgents**	
+	
+This function returns the set of all field agents in a team
+
+	set_t * getAllFieldAgents(char * teamname, hashtable_t * teamhash);
+	
+**getGameIDGuidedA**
+
+This function returns the gameID of a guide agent of a team
+
+	char * getGameIDGuidedA( char * teamname, hashtable_t * teamhash);
+	
+	
+**getGameIDFieldA**  
+
+This function returns the gameID of a field agent of a team
+
+	char * getGameIDFieldA(char * name, char * teamname, hashtable_t * teamhash);
+	
+	
+**getKragsClaimed**
+
+This function returns the number of krags claimed by the team.
+
+	int getKragsClaimed ( char * teamname, hashtable_t * teamhash);
+	
+**getKrags**
+	
+This function returns the set of all the krags found by a team.
+	
+	set_t * getKrags(char * teamname, hashtable_t * teamhash);
+	
+**getClues**	
+
+This function returns the set of all clues that a team has
+	
+	set_t * getClues(char * teamname, hashtable_t * teamhash);
+	
+**getClueOne**
+	
+This function returns the most recent clue that a team has
+
+	char * getClueOne(char * teamname, hashtable_t * teamhash);
+	
+**getClueTwo**
+
+This function returns the second-most recent clue that a team has
+
+	char * getClueTwo(char * teamname, hashtable_t * teamhash);
+	
+**updateLocation**	
+	
+This function updates the location of a field agent. If the team does not exists or the field agent does not exists, then nothing is done.
+	
+	void updateLocation(char * name, char * teamname, double longitude, double latitude, hashtable_t * teamhash);
+	
+**incrementTime**
+	
+This function increments time since guide agent last heard from a field agent
+
+	void incrementTime(char * name, char * teamname, hashtable_t * teamhash);
+	
+**getTime**	
+	
+This fucntions returns the time since guide agent last heard from a field agent
+
+	int getTime(char * name, char * teamname, hashtable_t * teamhash);
+	
+**deleteTeamHash**	
+
+This function frees memory of the hashtable and everything in it.
+	
+	void deleteTeamHash(hashtable_t * teamhash);
+		
+**newFieldAgent**
+
+This function creates a new field agent.
+
+	fieldAgent_t * newFieldAgent(char * gameID, char * pebbleID, connection_t * conn);
+	
+**newGuideAgent**	
+	
+This function creates a new guide agent
+
+	guideAgent_t * newGuideAgent(char * guideID, char * name, char * gameID, connection_t * conn);
+	
+**newTeam**	
+	
+This function creates a new team
+	
+	team_t * newTeam(void);
+	
+**printTeams**	
+	
+This function prints all the teams and all of its members. It is helpful for testing
+
+	void printTeams(hashtable_t * teamhash);
+	
+	
+###Modularity
+
+In the team module, there is strong cohesion because all routines perform functions related to one specific data strcuture, the team struct. Most of the routines have sequential cohesion, where they first retrieve some info or data structure from a team and perform some operations with it. Occasionally, there are some routines that have communicational cohesion. There is relatively strong coupling between the routines because all of them deal with the same types of data structure. For examples, one routines needs another routines to perform. The coupling is also strong because the team module uses some of the functions in the krag module.
+
+## Common - KRAG
+
+The krag module contains all the logic for saving krags to a hashtable, getting the secret string, revealing characters, and providing clues to krags. Given a filename, the module will read the file and store the krags in a hashtable where the key is the kragID and the item is a krag struct.
+
+### Data Structures
+
+**Krag**
+
+The krag struct holds all the essential information of a krag. It includes langitude, longitude, the clue, and the number according to the order in the kragfile.
+
+```c
+typedef struct krag {  
+  double latitude;   //latitude of the krag location
+  double longitude;  //longitude of the krag location
+  char clue[141];	//a string representing the clue to the krag
+  int n;  //number according to the order in the kragfile       
+} krag_t;
+```
+
+### Functions
+
+**readKrag**
+
+This functions reads a kragfile and creates a hashtable where the kragID is the key and the item is a krag struct. Caller is rensposible for freeing the pointer
+
+	hashtable_t * readKrag(char * filename);
+	
+**getSecretString**	
+	
+This functions reads a secretfile and returns the secret string. Caller is rensposible for freeing the pointer
+
+	char * getSecretString(char * filename);
+	
+**getSecretStringLen**	
+
+This functions returns the lenght of the secret string
+
+	int getSecretStringLen(char * string);
+	
+**revealCharacters**
+	
+This function reveal more characters to a team's current string. It takes the kragID for the krag found, teamname whose string is to be releaved, the secret string, the hashtable of the teams, and the hashtable of the krags. If a team calls the function for the first time, then this will set the current string of the team to be a series of '_' and set the number of claimed krags to zero. The function normally retuns 0. It only returns 1 when the team has claimed all krags. 
+
+	int revealCharacters(char * kragID, char * teamname, char * secret, hashtable_t * teamhash, hashtable_t * kraghash);
+
+**totalKrags**
+
+This function computes the total number of krags. It takes the hashtable of krags as paramenter. If kraghash is NULL, then 0 is returned.
+
+	int totalKrags(hashtable_t * kraghash);
+	
+**deleteKragHash**
+	
+This funtion deletes the krag struct
+
+	void deleteKragHash(hashtable_t * kraghash);
+	
+**printKrags**
+	
+This function prints the kraghash with all its components.
+
+	void printKrags(hashtable_t * kraghash);
+	
+**firstClue**
+	
+This function store a random first clue in a given team. This function should be called at the start of the game where a team is given one clue for a random krag.
+
+	void firstClue(char * teamname, hashtable_t * kraghash, hashtable_t * teamhash);
+	
+**randomClue**
+
+THis function stores two clues for two random krags that the team has not found yet. THis funciton should be called when a team find a krag.
+	 
+	void randomClue(char * teamname, hashtable_t * kraghash, hashtable_t * teamhash);
+	
+###Modularity
+In the krag module, there is strong cohesion because all routines perform functions related to one specific data strcuture, the krag struct. Most of the routines have sequential cohesion, where they first retrieve some info or data structure from a krag and perform some operations with it, like revealing the characters of a krag. Sometimes, there are some routines that have communicational cohesion. There is relatively strong coupling between the routines because all of them deal with the same types of data structure. For examples, one routines needs another routines to perform. The coupling is also strong because the team module uses some of the functions in the team module.
