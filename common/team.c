@@ -42,6 +42,7 @@ int addFieldAgent(char * name, char * pebbleID, char * teamname, char * gameID, 
 	}
 	fieldAgent_t * newFA = newFieldAgent(gameID, pebbleID, conn);  //initialize a new field agent
 	set_insert(newteam->FAset, name, newFA);
+	newteam->numPlayers = newteam->numPlayers + 1;
 	return 0;
 }
 
@@ -62,6 +63,8 @@ int addGuideAgent(char * guideID, char * teamname, char * name, char * gameID, c
 	team_t * newteam = hashtable_find(teamhash, teamname);
 	guideAgent_t * newGA = newGuideAgent(guideID, name , gameID, conn);
 	newteam->guideAgent = newGA;
+
+	newteam->numPlayers = newteam->numPlayers + 1;
 
 	return 0;
 }
@@ -263,6 +266,7 @@ team_t * newTeam(void){
   	team->guideAgent = NULL;
   	team->krags = set_new();
   	team->clues = set_new();
+  	team->numPlayers = 0;
 
   	for (int i =0; i<2; i++) {
 		team->recentClues[i] = NULL;
