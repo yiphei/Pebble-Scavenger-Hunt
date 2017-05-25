@@ -17,6 +17,7 @@
 #include <ncurses.h>
 #include "display.h"
 #include "guideagent.h"
+#include "../common/word.h"
 
 /******** function declarations ********/
 int game(char *guideId, char *team, char *player, char *host, int port);
@@ -24,14 +25,14 @@ bool sendGA_STATUS(char *gameId, char *guideId, char *team, char *player, char *
 bool sendGA_HINT(char *gameId, char *guideId, char *team, char *player, char *pebbleId, char *hint, connection_t *connection, FILE *file);
 
 /******** local opCode handlers **********/
-static void badOpCodeHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log);
-static void gameStatusHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log);
-static void GSAgentHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log);
-static void GSClueHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log);
-static void GSSecretHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log);
-static void GSResponseHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log);
-static void teamRecordHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log);
-static void gameOverHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log);
+static void badOpCodeHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log, hashtable_t *teams);
+static void gameStatusHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log, hashtable_t *teams);
+static void GSAgentHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log, hashtable_t *teams);
+static void GSClueHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log, hashtable_t *teams);
+static void GSSecretHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log, hashtable_t *teams);
+static void GSResponseHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log, hashtable_t *teams);
+static void teamRecordHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log, hashtable_t *teams);
+static void gameOverHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log, hashtable_t *teams);
 
 /********* local message validation functions *********/
 static bool gameStatusValidate(message_t *message, team_t *teamp);
@@ -46,7 +47,7 @@ static bool GSResponseValidate(message_t *message);
 static const struct {
 
 	const char *opCode;
-	void (*func)(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log);
+	void (*func)(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log, hashtable_t *teams);
 
 } opCodes[] = {
 	{"FA_CLAIM", badOpCodeHandler},
@@ -266,6 +267,7 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 	/* wait until server sends GAME_STATUS back to start game loop.
 	Once received, initialize the team struct and break this loop */
 	while (true) {
+
 		messagep = receiveMessage(connection);
 		message = parseMessage(messagep);
 		opCode = message->opCode;
@@ -273,7 +275,7 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 		// initialize this Guide Agent's team
 		for (int fn = 0; opCodes[fn].opCode != NULL; fn++) {
 			if(strcmp(opCode, opCodes[fn].opCode) == 0) {
-				(*opCodes[fn].func)(messagep, message, teamp, connection, log);
+				(*opCodes[fn].func)(messagep, message, teamp, connection, log, teams);
 				free(messagep);
 				deleteMessage(message);
 				break;
@@ -285,6 +287,9 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 	}
 
 	char *gameId = me->gameID;
+
+	// init the team hashtable that will be used at GAME_OVER before game loop
+	hashtable_t *teams = initHash();
 
 	// TODO: create and initialize interface
 
@@ -303,7 +308,7 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 			int fn;
 			for (fn = 0; opCodes[fn].opCode != NULL; fn++) {
 				if(strcmp(opCode, opCodes[fn].opCode) == 0) {
-					(*opCodes[fn].func)(messagep, message, teamp, connection, log);
+					(*opCodes[fn].func)(messagep, message, teamp, connection, log, teams);
 					break;
 				}
 			}
@@ -321,6 +326,33 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 			deleteMessage(message);
 
 		}
+
+		// read for user input and send hint if there is input
+		char *input = input();
+
+
+
+
+
+
+
+
+		// TODO: fix this! needs a pebbleId
+		if (input != NULL) {
+			fieldAgent_t *current = FAset
+
+			sendGA_HINT(gameId, guideId, player, NULL)
+		}
+
+
+
+
+
+
+
+
+
+
 
 		// every 30 seconds send a GA_STATUS
 		now = time(NULL);
@@ -348,7 +380,7 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 
 	fclose(log);
 	deleteConnection(connection);
-	deleteTeam(teamp);
+	deleteTeamHash(teams);
 
 	return 0;
 }
@@ -428,14 +460,14 @@ bool sendGA_HINT(char *gameId, char *guideId, char *team, char *player, char *pe
 // based on specific dispatch call, handle a message type accordingly
 
 // received an incorrect opCode, print error message and ignore
-static void badOpCodeHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
+static void badOpCodeHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log, hashtable_t *teams)
 {
 	fprintf(stderr, "incorrect opCode received, no actions performed\n");
 	logMessage(log, messagep, "FROM", connection);
 }
 
 // handle specific, applicable opCodes
-static void gameStatusHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
+static void gameStatusHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log, hashtable_t *teams)
 {
 	if (gameStatusValidate(message, teamp)) {
 
@@ -456,7 +488,7 @@ static void gameStatusHandler(char *messagep, message_t *message, team_t *teamp,
 	}
 }
 
-static void GSAgentHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
+static void GSAgentHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log, hashtable_t *teams)
 {
 	if (GSAgentValidate(message)) {
 
@@ -490,7 +522,7 @@ static void GSAgentHandler(char *messagep, message_t *message, team_t *teamp, co
 	}
 }
 
-static void GSClueHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
+static void GSClueHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log, hashtable_t *teams)
 { 
 	if (GSClueValidate(message)) {
 
@@ -514,7 +546,7 @@ static void GSClueHandler(char *messagep, message_t *message, team_t *teamp, con
 	}
 }
 
-static void GSSecretHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
+static void GSSecretHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log, hashtable_t *teams)
 {
 	if (GSSecretValidate(message)) {
 
@@ -529,7 +561,7 @@ static void GSSecretHandler(char *messagep, message_t *message, team_t *teamp, c
 	}
 }
 
-static void GSResponseHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
+static void GSResponseHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log, hashtable_t *teams)
 {
 	// validate GS respondse, if valid log it and do nothing else
 	if (GSResponseValidate(message)) {
@@ -537,16 +569,21 @@ static void GSResponseHandler(char *messagep, message_t *message, team_t *teamp,
 	}
 }
 
-static void teamRecordHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
+static void teamRecordHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log, hashtable_t *teams)
 {
 
-	// store claimed krag number, preparing to show it at GAME_OVER
-	teamp->claimed = message->numClaimed;
+	// store each team's record, preparing to show their stats at GAME_OVER
+	team_t *new = newTeam();
+
+	new->claimed = message->numClaimed;
+	new->numPlayers = message->numPlayers;
+
+	hashtable_insert(teams, message->team, new);
 
 	logMessage(log, messagep, "FROM", connection);
 }
 
-static void gameOverHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
+static void gameOverHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log, hashtable_t *teams)
 {
 
 	// TODO: update GUI to tell user game is over with final game stats and

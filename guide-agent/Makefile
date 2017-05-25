@@ -3,7 +3,7 @@
 
 PROG = guideagent
 DISPLAY = displaytest
-OBJS = guideagent.o ../common/network.o ../common/message.o ../common/log.o ../common/team.o display.o ../common/krag.o
+OBJS = guideagent.o ../common/network.o ../common/message.o ../common/log.o ../common/team.o display.o ../common/krag.o ../common/word.o
 OBJS2 = ../common/network.o ../common/message.o ../common/log.o ../common/team.o display.o displaytest.o ../common/krag.o
 LIBS = -lm -lncurses
 LLIBS = ../libcs50/libcs50.a-Linux
@@ -29,6 +29,7 @@ message.o: ../common/message.h
 log.o: ../common/log.h ../common/network.h
 team.o: ../common/team.h ../common/network.h ../libcs50/hashtable.h ../libcs50/set.h ../common/krag.h ../libcs50/file.h
 krag.o: ../common/krag.h ../common/team.h
+word.o: ../common/word.h
 
 
 display: $(DISPLAY)

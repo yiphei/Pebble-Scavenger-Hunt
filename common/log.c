@@ -5,13 +5,6 @@
  * GREP, CS50, May 2017
  */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <netdb.h>  // socket-related structures
-#include <time.h>
-#include "network.h"
-
 void logMessage(FILE *file, char *message, char *direction, connection_t *connect)
 {
 	// get timestamp

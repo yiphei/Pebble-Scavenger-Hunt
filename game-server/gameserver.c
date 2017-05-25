@@ -4,6 +4,7 @@
 *
 * Usage - ./gameserver gameId=... kff=... sf=... port=...
 *
+* mygcc gameserver.c ../common/network.h ../common/team.h ../common/message.h ../common/krag.h ../common/log.h ../libcs50/hashtable.h -o gameserver
 *
 * Tony DiPadova, May 2017
 */
@@ -13,12 +14,48 @@
 #include <stdbool.h>
 #include <string.h>
 #include <ctype.h>
-#include "network.h"
-#include "hashtable.h"
-#include "team.h"
-#include "message.h"
-#include "log.h"
-#include "krag.h"
+#include <math.h>
+#include "../libcs50/hashtable.h"
+#include "../common/team.h"
+#include "../common/message.h"
+#include "../common/log.h"
+#include "../common/krag.h"
+
+
+
+/******** globals *******/
+bool gameInProgress;
+
+/******* functions *******/
+int gameserver(char* gameId, char* kff, char* sf, int port);
+
+// handler functions
+static void FAClaimHandler(char* gameId, char *messagep, message_t *message, hashtable_t* teams, hashtable_t* krags, connection_t *connection, FILE *log);
+static void FALogHandler(char* gameId, char *messagep, message_t *message, hashtable_t* teams, hashtable_t* krags, connection_t *connection, FILE *log);
+static void GAStatusHandler(char* gameId, char *messagep, message_t *message, hashtable_t* teams, hashtable_t* krags, connection_t *connection, FILE *log);
+static void GAHintHandler(char* gameId, char *messagep, message_t *message, hashtable_t* teams, hashtable_t* krags, connection_t *connection, FILE *log);
+static void FALocationHandler(char* gameId, char *messagep, message_t *message, hashtable_t* teams, hashtable_t* krags, connection_t *connection, FILE *log);
+static void badOpCodeHandler(char* gameId, char *messagep, message_t *message, hashtable_t* teams, hashtable_t* krags, connection_t *connection, FILE *log);
+
+// validate functions
+static bool validateMessageParse(char* gameId, message_t* message, connection_t*, FILE* log);
+static int validateKrag(char* gameId, char* kragId, double latitude, double longitude, char* team, hashtable_t* teams, hashtable_t* krags);
+static bool validateFAClaim(char* gameId, message_t* message, hashtable_t* teams, hashtable_t* krags);
+static bool validateFALog(char* gameId, message_t* message, hashtable_t* teams, hashtable_t* krags);
+static bool validateGAStatus(char* gameId, message_t* message, hashtable_t* teams, hashtable_t* krags);
+static bool validateGAHint(char* gameId, message_t* message, hashtable_t* teams, hashtable_t* krags);
+static bool validateFALocation(char* gameId, message_t* message, hashtable_t* teams, hashtable_t* krags);
+
+// message sending functions
+static bool sendGameStatus(char* gameId, char* guideId, int numClaimed, int numKrags, connection_t* connection, FILE* log);
+static bool forwardHint(char* hintMessage, connection_t* connection, FILE* log);
+static bool sendAllGSAgents(char* gameId, char* team, hashtable_t* teams, connection_t* connection, FILE* log);
+static bool sendClue(char* gameId, char* guideId, char* clue, double latitude, double longitude, connection_t* connection, FILE* log);
+static bool sendSecret(char* gameId, char* guideId, char* secret, connection_t* connection, FILE* log);
+static bool sendGameOver(char* gameId, hashtable_t* teams, FILE* log);
+static bool sendTeamRecord(char* gameId, hashtable_t* teams, FILE* log);
+static bool sendResponse(char* gameId, char* respCode, char* text, connection_t* connection, FILE* log);
+
 
 /***** structs *****/
 /********* functions dispatch table *********/
@@ -42,40 +79,6 @@ static const struct {
 	{"GAME_OVER", badOpCodeHandler},
 	{NULL, NULL}
 };
-
-/******** globals *******/
-bool gameInProgress;
-
-/******* functions *******/
-int gameserver(char* gameId, char* kff, char* sf, int port);
-
-// handler functions
-static void FAClaimHandler(char* gameId, char *messagep, message_t *message, hashtable_t* teams, hashtable_t* krags, connection_t *connection, FILE *log);
-static void FALogHandler(char* gameId, char *messagep, message_t *message, hashtable_t* teams, hashtable_t* krags, connection_t *connection, FILE *log);
-static void GAStatusHandler(char* gameId, char *messagep, message_t *message, hashtable_t* teams, hashtable_t* krags, connection_t *connection, FILE *log);
-static void GAHintHandler(char* gameId, char *messagep, message_t *message, hashtable_t* teams, hashtable_t* krags, connection_t *connection, FILE *log);
-static void FALocationHandler(char* gameId, char *messagep, message_t *message, hashtable_t* teams, hashtable_t* krags, connection_t *connection, FILE *log);
-static void badOpCodeHandler(char* gameId, char *messagep, message_t *message, hashtable_t* teams, hashtable_t* krags, connection_t *connection, FILE *log);
-
-// validate functions
-static bool validateMessageParse(char* gameId, message_t* message, connection_t*, FILE* log);
-static int validateKrag(char* gameId, char* kragId, double latitude, double longitude, char* team, teamhashtable_t* teams, hashtable_t* krags);
-static bool validateFAClaim(char* gameId, messsage_t* message, hashtable_t* teams, hashtable_t* krags);
-static bool validateFALog(char* gameId, messsage_t* message, hashtable_t* teams, hashtable_t* krags);
-static bool validateGAStatus(char* gameId, messsage_t* message, hashtable_t* teams, hashtable_t* krags);
-static bool validateGAHint(char* gameId, messsage_t* message, hashtable_t* teams, hashtable_t* krags);
-static bool validateFALocation(char* gameId, messsage_t* message, hashtable_t* teams, hashtable_t* krags);
-
-// message sending functions
-static bool sendGameStatus(char* gameId, char* guideId, int numClaimed, int numKrags, connection_t* connection, FILE* log);
-static bool forwardHint(char* hintMessage, connection_t* connection, FILE* log);
-static bool sendAllGSAgents(char* gameId, char* team, hashtable_t* teams, connection_t* connection, FILE* log);
-static bool sendClue(char* gameId, char* guideId, char* clue, double latitude, double longitude, connection_t* connection, FILE* log);
-static bool sendSecret(char* gameId, char* guideId, char* secret, connection_t* connection, FILE* log);
-static bool sendGameOver(char* gameId, hashtable_t* teams, FILE* log);
-static bool sendTeamRecord(char* gameId, hashtable_t* teams, FILE* log);
-static bool sendResponse(char* gameId, char* respCode, char* text, connection_t* connection, FILE* log);
-
 
 /*
 * main function that parses arguments
@@ -219,16 +222,14 @@ int gameserver(char* gameId, char* kff, char* sf, int port)
 	// initialize variables
 	connection_t* server; // server connection
 	int socket; // socket
-	int numKrags; // number of krags
-	hashtable_t krags; // all krags
-	numTeams = 0; // keep track of the number of teams
-	hashtable_t teams = initTeams(); // keep track of the teams
+	hashtable_t* krags; // all krags
+	hashtable_t* teams = initTeams(); // keep track of the teams
 	gameInProgress = true; // boolean for while loop
 
 
 	// open log file
 	FILE* log;
-	if if ((log = fopen("../logs/gameserver.log", "w")) == NULL) {
+	if((log = fopen("../logs/gameserver.log", "w")) == NULL) {
 		fprintf(stderr, "error opening log file\n");
 		return 5;
 	}
@@ -245,18 +246,17 @@ int gameserver(char* gameId, char* kff, char* sf, int port)
 	// load the krags
 	krags = readKrag(kff);
 	if(krags == NULL){
-		fprintf("Unable to load krag file\n");
+		fprintf(stderr, "Unable to load krag file\n");
 		return 7;
 	}
-	numKrags = totalKrags(krags);
 
 	// while the game hasn't ended
 	while(gameInProgress){
 		
 		// initialize a return connection to receive from
-		struct sockaddr* rAddr; // could be replaced by saved address
+		struct sockaddr_in* rAddr; // could be replaced by saved address
 		rAddr->sin_family = AF_INET;
-		connection_t* rconn = newConnection(socket, rAddr);
+		connection_t* rconn = newConnection((sockaddr *)socket, rAddr);
 		if(rconn == NULL){
 			continue; // skip message if connection is NULL
 		}
@@ -446,17 +446,16 @@ static bool validateMessageParse(char* gameId, message_t* message, connection_t*
 	else if(message->errorCode == 1){
 		// send message
 	if(!sendResponse(message->gameId, "SH_ERROR_DUPLICATE_FIELD", message->opCode)){
-		fprintf(stderr, "Unable to send duplicate field message\n");
+		fprintf(stderr, "Unable to send duplicate field message\n", log);
 	}
-		return false;
 	}
 	else if(message->errorCode == 2){
 		// send message
-	if(!sendResponse(message->gameId, "SH_ERROR_INVALID_FIELD", message->opCode)){
-		fprintf(stderr, "Unable to send invalid field message\n");
+		if(!sendResponse(message->gameId, "SH_ERROR_INVALID_FIELD", message->opCode)){
+			fprintf(stderr, "Unable to send invalid field message\n", log);
+		}
 	}
-		return false;
-	}
+	return false;
 }
 
 /*
@@ -464,18 +463,25 @@ static bool validateMessageParse(char* gameId, message_t* message, connection_t*
 * Return 0 if valid, 1 if found already, 2 if invalid
 *
 */
-static int validateKrag(char* gameId, char* kragId, double latitude, double longitude, char* team, teamhashtable_t* teams, hashtable_t* krags)
+static int validateKrag(char* gameId, char* kragId, double latitude, double longitude, char* team, hashtable_t* teams, hashtable_t* krags)
 {
+	// get longitude and latitude
+	krag_t* krag = hashtable_find(krags, kragId);
+	double latitude = (double)krag->latitude;
+	double longitude = (double)krag->longitude;
+
+	// calculate differences
 	double meters = 10;
-	double latDiff = 0.0000089 * meters;
-	double longDiff = latDiff/cos(latitude*0.018)
-	double newLatPos = latitude + latDiff;
+	double latDiff = 0.0000089 * meters; // calculate 10 meters difference for lat
+	double longDiff = latDiff/cos(latitude*0.018) // calculate 10 meters difference for long
+	
+	// create a box of 10 meter radius around the position
+	double newLatPos = latitude + latDiff; 
 	double newLatNeg = latitude - latDiff;
 	double newLongPos = longitude + longDiff;
 	double newLongNeg = longitude - longDiff;
-	double newLongNeg
-	krag_t* krag = hashtable_find(krags, kragId);
-	if(krag->latitude <= newLatPos && krag->latitude >= newLatNeg ** krag->longitude <= newLongPos && krag->longitude >= newLongNeg){
+	
+	if((latitude <= newLatPos && latitude >= newLatNeg && longitude <= newLongPos && longitude >= newLongNeg){
 		return addKrag(team, kragId, krags, teams); // add krag if not already found
 	} else {
 		return 2; // return invalid find
@@ -488,12 +494,12 @@ static int validateKrag(char* gameId, char* kragId, double latitude, double long
 * Return true if valid
 *
 */
-static bool validateFAClaim(char* gameId, messsage_t* message, hashtable_t* teams, hashtable_t* krags)
+static bool validateFAClaim(char* gameId, message_t* message, hashtable_t* teams, hashtable_t* krags)
 {
 	if(gameId != message->gameId){
 		return false;
 	}
-
+	return true;
 }
 
 
@@ -502,7 +508,7 @@ static bool validateFAClaim(char* gameId, messsage_t* message, hashtable_t* team
 * Return true if valid
 *
 */
-static bool validateFALog(char* gameId, messsage_t* message, hashtable_t* teams, hashtable_t* krags)
+static bool validateFALog(char* gameId, message_t* message, hashtable_t* teams, hashtable_t* krags)
 {
 	return true;
 }
@@ -513,7 +519,7 @@ static bool validateFALog(char* gameId, messsage_t* message, hashtable_t* teams,
 * Return true if valid
 *
 */
-static bool validateGAStatus(char* gameId, messsage_t* message, hashtable_t* teams, hashtable_t* krags)
+static bool validateGAStatus(char* gameId, message_t* message, hashtable_t* teams, hashtable_t* krags)
 {
 	return true;
 }
@@ -524,7 +530,7 @@ static bool validateGAStatus(char* gameId, messsage_t* message, hashtable_t* tea
 * Return true if valid
 *
 */
-static bool validateGAHint(char* gameId, messsage_t* message, hashtable_t* teams, hashtable_t* krags)
+static bool validateGAHint(char* gameId, message_t* message, hashtable_t* teams, hashtable_t* krags)
 {
 	return true;
 }
@@ -534,7 +540,7 @@ static bool validateGAHint(char* gameId, messsage_t* message, hashtable_t* teams
 * Return true if valid
 *
 */
-static bool validateFALocation(char* gameId, messsage_t* message, hashtable_t* teams, hashtable_t* krags)
+static bool validateFALocation(char* gameId, message_t* message, hashtable_t* teams, hashtable_t* krags)
 {
 	return true;
 }
