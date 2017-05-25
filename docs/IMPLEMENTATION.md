@@ -552,6 +552,14 @@ Sends a `GAME_OVER` command to all players. Returns true on success.
 static bool sendGameOver(char* gameId, hashtable_t* teams, FILE* log);
 ```
 
+**sendTeamRecord**
+
+Sends a team record to every team at the end of the game.
+
+```c
+static bool sendTeamRecord(char* gameId, hashtable_t* teams, FILE* log);
+```
+
 **sendResponse**
 
 Sends a `GS_RESPONSE` message to a specified player. Returns true on success.
@@ -577,30 +585,36 @@ static bool sendResponse(char* gameId, char* respCode, char* text, connection_t*
 		3. Parse the message wtih `parseMessage`
 		4. Iterate through the op code function table `opCodes` and call the appropriate handler function
 			* FA_CLAIM -> FAClaimHandler
-				1. Call `validateFAClaim` to validate message structure
-				2. Call `validateKrag` to validate the krag ID, team, and location
-				3. Update the krag and team structs
-				4. Send `SH_CLAIMED` or `SH_CLAIMED_ALREADY` depending on step 2
-				5. Updates and sends the team's secret string, sets `gameInProgress` to false if the string is completely revealed.
-				6. Sends two clues to the GA if the string is not yet complete
+				1. Logs the message
+				2. Call `validateFAClaim` to validate message structure
+				3. Call `validateKrag` to validate the krag ID, team, and location
+				4. Update the krag and team structs
+				5. Send `SH_CLAIMED` or `SH_CLAIMED_ALREADY` depending on step 2
+				6. Updates and sends the team's secret string, sets `gameInProgress` to false if the string is completely revealed.
+				7. Sends two clues to the GA if the string is not yet complete
 			* FA_LOG -> FALogHandler
-				1. Calls `validateFALog` to valdiate message structure
-				2. Logs the message using `logMessage`
+				1. Logs the message
+				2. Calls `validateFALog` to valdiate message structure
+				3. Logs the message using `logMessage`
 			* GA_STATUS -> GAStatusHandler
-				1. Calls `validateGAStatus` to validate message structure
-				2. Calls `addGuideAgent` which adds a team if it doesn't exist, adds a Guide Agent to the team if it doesn't exist, and does nothing if both exist.
-				3. Calls `sendGameStatus` if the agent was new or if the GA_STATUS message requested an update
-				4. Calls `sendAllGSAgents` to send Field Agent info to the Guide Agent
+				1. Logs the message
+				2. Calls `validateGAStatus` to validate message structure
+				3. Calls `addGuideAgent` which adds a team if it doesn't exist, adds a Guide Agent to the team if it doesn't exist, and does nothing if both exist.
+				4. Calls `sendGameStatus` if the agent was new or if the GA_STATUS message requested an update
+				5. Calls `sendAllGSAgents` to send Field Agent info to the Guide Agent
 			* GA_HINT -> GAHintHandler
-				1. Calls `validateGAHint` to validate message structure
-				2. Forwards the hint to the appropriate Field Agent(s) using `forwardHint`
+				1. Logs the message
+				2. Calls `validateGAHint` to validate message structure
+				3. Forwards the hint to the appropriate Field Agent(s) using `forwardHint`
 			* FA_LOCATION -> FALocationHandler
-				1. Calls `validateFALocation` to validate message structure
-				2. Calls `addNewFieldAgent` which adds a new team if it doesn't exist, adds the Field Agent if it doesn't exist, and does nothing if both exist
-				3. Update the Field Agent struct with the new location
-				4. Calls `sendGameStatus` to send the game status if the agent was new or if a status was requested
+				1. Logs the message
+				2. Calls `validateFALocation` to validate message structure
+				3. Calls `addNewFieldAgent` which adds a new team if it doesn't exist, adds the Field Agent if it doesn't exist, and does nothing if both exist
+				4. Update the Field Agent struct with the new location
+				5. Calls `sendGameStatus` to send the game status if the agent was new or if a status was requested
 			* GAME_STATUS -> badOpCodeHandler
-				1. Sends `SH_ERROR_INVALID_OPCODE` to the caller to indicate bad op code
+				1. Logs the message
+				2. Sends `SH_ERROR_INVALID_OPCODE` to the caller to indicate bad op code
 		5. Free the message and message string breaking from the `opCodes` loop
 		6. Delete the receiving address connection
 	6. Call `sendGameOver` to tell all players the game has ended
@@ -611,6 +625,7 @@ static bool sendResponse(char* gameId, char* respCode, char* text, connection_t*
 The Game Server is cohesive because most routines perform one function, or set of operations, on a specific set of data. For example, the validate functions perform validation on a single specific message. 
 
 Another example is the function table that calls each handler. Each handler performs a very specific function to handle a specific message and is called via a structure that clearly passes data between functions via data-structure coupling. Many parameters are passed in these functions because the lower validation and send message functions require this data. In this way coupling allows functions with strong cohesion.
+
 
 ## Common - Network
 
