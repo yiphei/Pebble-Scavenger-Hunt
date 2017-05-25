@@ -279,6 +279,9 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 				break;
 			}
 		}
+
+		free(messagep);
+		deleteMessage(message);
 	}
 
 	char *gameId = me->gameID;
@@ -338,10 +341,14 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 
 		}
 
+		free(messagep);
+		deleteMessage(message);
 	}
 
 
 	fclose(log);
+	deleteConnection(connection);
+	deleteTeam(teamp);
 
 	return 0;
 }
@@ -548,11 +555,25 @@ static void gameOverHandler(char *messagep, message_t *message, team_t *teamp, c
 /********** message validation functions ************/
 static bool gameStatusValidate(message_t *message, team_t *teamp) 
 {
-	// guideId or gameId fields were not valid
+	// gameId and guideId checks
+	// never initialized
 	if (message->guideId == NULL || message->gameId == NULL) {
 		fprintf(stderr, "invalid GAME_STATUS message\n");
 		return false;
 	} 
+
+	// hexidecimal format check
+	unsigned int guideIdFormat;
+	if (sscanf(message->guideId, "%x", &guideIdFormat) != 1) {
+		fprintf(stderr, "invalid GAME_STATUS message\n");
+		return false;
+	}
+
+	unsigned int gameIdFormat;
+	if (sscanf(message->gameId, "%x", &gameIdFormat) != 1) {
+		fprintf(stderr, "invalid GAME_STATUS message\n");
+		return false;
+	}
 
 	// numClaimed field was not initialized when parsing
 	if (message->numClaimed == 0 && teamp->claimed != 0) {
@@ -560,37 +581,112 @@ static bool gameStatusValidate(message_t *message, team_t *teamp)
 		return false;
 	}
 
-	// numKrags field was not initialized when parsing
+	// numKrags field was not initialized when parsing (can't be 0 total krags)
 	if (message->numKrags == 0) {
 		fprintf(stderr, "invalid GAME_STATUS message\n");
 		return false;
 	}
-
-
 
 	return true;
 }
 
 static bool GSAgentValidate(message_t *message)
 {
+	// gameId and pebbleId checks
+	// never initialized when parsing
+	if (message->gameId == NULL || message->pebbleId == NULL) {
+		fprintf(stderr, "invalid GS_AGENT message\n");
+		return false;
+	}
+
+	// hexidecimal format check
+	unsigned int gameIdFormat;
+	if (sscanf(message->gameId, "%x", &gameIdFormat) != 1) {
+		fprintf(stderr, "invalid GAME_STATUS message\n");
+		return false;
+	}
+
+	unsigned int pebbleIdFormat;
+	if (sscanf(message->pebbleId, "%x", &pebbleIdFormat) != 1) {
+		fprintf(stderr, "invalid GAME_STATUS message\n");
+		return false;
+	}
+
+	// longitude and latitude initialization checks
+	if (message->latitude == 0) {
+		fprintf(stderr, "invalid GS_AGENT message\n");
+		return false;
+	}
+
+	if (message->longitude == 0) {
+		fprintf(stderr, "invalid GS_AGENT message\n");
+		return false;
+	}
 
 	return true;
 }
 
 static bool GSClueValidate(message_t *message)
 {
+	if (message->gameId == NULL || message->guideId == NULL || message->clue == NULL) {
+		fprintf(stderr, "invalid GS_CLUE message\n");
+		return false;
+	}
+
+	// hexidecimal format check
+	unsigned int gameIdFormat;
+	if (sscanf(message->gameId, "%x", &gameIdFormat) != 1) {
+		fprintf(stderr, "invalid GAME_STATUS message\n");
+		return false;
+	}
+
+	unsigned int guideIdFormat;
+	if (sscanf(message->guideId, "%x", &guideIdFormat) != 1) {
+		fprintf(stderr, "invalid GAME_STATUS message\n");
+		return false;
+	}
 
 	return true;
 }
 
 static bool GSSecretValidate(message_t *message)
 {
+	// message field initialization checks
+	if (message->gameId == NULL || message->guideId == NULL || message->secret == NULL) {
+		fprintf(stderr, "invalid GS_SECRET message\n");
+		return false;
+	}
+
+	// hexidecimal format checks
+	unsigned int gameIdFormat;
+	if (sscanf(message->gameId, "%x", &gameIdFormat) != 1) {
+		fprintf(stderr, "invalid GAME_STATUS message\n");
+		return false;
+	}
+
+	unsigned int guideIdFormat;
+	if (sscanf(message->guideId, "%x", &guideIdFormat) != 1) {
+		fprintf(stderr, "invalid GAME_STATUS message\n");
+		return false;
+	}
 
 	return true;
 }
 
 static bool GSResponseValidate(message_t *message)
 {
+	// uninitialized message fields check
+	if (message->gameId == NULL || message->respCode == NULL || message->text == NULL) {
+		fprintf(stderr, "invalid GS_RESPONSE message\n");
+		return false;
+	}
+
+	// gameId hexidecimal format check
+	unsigned int gameIdFormat;
+	if (sscanf(message->gameId, "%x", &gameIdFormat) != 1) {
+		fprintf(stderr, "invalid GAME_STATUS message\n");
+		return false;
+	}
 
 	return true;
 }

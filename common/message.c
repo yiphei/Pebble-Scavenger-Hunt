@@ -171,6 +171,16 @@ static int parseHelper(char *message, message_t *parsedMessage)
 			strcpy(parsedMessage->secret, field + 7);
 		}
 
+		else if (strncmp(field, "text=", 5) == 0) {
+			if (parsedMessage->text != NULL) {
+				fprintf(stderr, "duplicate team field given, message ignored\n");
+				return 1;
+			}
+
+			parsedMessage->text = malloc(strlen(field) - 5);
+			strcpy(parsedMessage->text, field + 5);
+		}
+
 		else if (strncmp(field, "lastContact=", 12) == 0) {
 			if (parsedMessage->lastContact != -600) {
 				fprintf(stderr, "duplicate lastContact field given, message ignored\n");
@@ -370,6 +380,10 @@ void deleteMessage(message_t *message) {
 	}
 
 	if (message->secret != NULL) {
+		free(message->secret);
+	}
+
+	if (message->text != NULL) {
 		free(message->secret);
 	}
 
