@@ -28,6 +28,7 @@ typedef struct team {
   char * recentClues[2];    //array of the two most recent clues
   set_t * clues;   //set of all the clues a team has
   int claimed;  //number of claimed krags of the team
+  int numPlayers; // number of players on the team
 } team_t;
 
 
