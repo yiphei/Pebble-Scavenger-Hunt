@@ -219,6 +219,138 @@ interface for the Guide Agent. It allows for abstracted use of the GUI by
 `guideagent.c` to separate the display from the actual logic of the game for
 the Guide Agent.
 
+## Field Agent
+
+### Data Structures:
+
+* Both the hardcoded list of player names and team names will be in the form of an array of strings (`char *[]`).  While they are both default of size 4, they are independent of each other (i.e. it is possible to change the list of player names to be of size 5 and have the list of team names be of size 3).
+* The list of hints will be stored in a `set` data structure.  Each individual hint will be represented by a string, with a timestamp as the key (in string format).
+
+### Functions:
+
+**Main, Init, Deinit:**
+
+* `int main(void)`: runs `init()`, then `app_event_loop()`, and finally `deinit()`
+* `static void init()`: registers Bluetooth communication callbacks (`inbox_received_handler`, `inbox_dropped_callback`, `outbox_failed_callback`, and `outbox_sent_callback`), then creates a `join_game_window`, `select_player_window`, `select_team_window`, `in_game_window`, `claim_krag_window`, and `hints_log_window`.  For each of those windows, it sets the `.load` and `.unload` to their corresponding handlers (will discuss further below).  Finally, it will push the `join_game_window` onto the window stack.
+* `static void deinit()`: destroys all of the windows created in `init()`
+
+**Join Game Menu:**
+
+* `static void join_game_window_load(Window *window`: `.load` handler for `join_game_window`.  Creates a Menulayer called `join_game_layer`, and sets `.get_num_rows`, `.draw_row`, `.get_cell_height`, `.select_click` to their corresponding callbacks.  It adds this to the `join_game_window`.  Also, it runs `menu_layer_set_click_config_onto_window`, so that the user can interact with this particular layer.
+* `static void join_game_window_unload(Window *window)`: destroys the previously created `join_game_layer` Menulayer.
+* `static uint16_t join_game_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *context)`: callback for `get_num_rows` for `join_game_layer` Menulayer.  It returns the number of rows in the menu for the `join_game_layer`.
+* `static void join_game_draw_row_callback(GContext *ctx, const Layer *cell_layer, MenuIndex *cell_index, void *context)`: callback for `.draw_row` for `join_game_layer` Menulayer.  It draws the corresponding row in the menu, depending on which is requested.  Row 0 is the "Select Player" option, row 1 is the "Select Team" option, and row 2 is the "Join Game" option.
+* `static int16_t join_game_get_cell_height_callback`: callback for `.get_cell_height` in the `join_game_layer` Menulayer.  Returns the height for each cell in the menu.
+* `static void join_game_select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *context)`: callback for `.select_click` for the `join_game_layer` Menulayer.  This handles each time the select (middle right) button on the pebble is pressed.  If it is pressed when it is on the "Select Player" option, it runs `select_player_window_push()` (see below), if it is pressed on the "Select Team" option, it runs `select_team_window_push()` (see below), and finally, if it is pressed on the "Join Game" option, then it attempts to connect to the game.  Upon success, it runs `in_game_window_push` to push `in_game_window` Window onto the window stack. It then subscribes to the `tick_timer_service` using `tick_timer_service_subscribe`, using `tick_callback` function (see below).  Otherwise, it runs `my_dialog_window_push` with the `type` being `error` and the `text` being `failed to connect to server`.
+
+**Select Team Menu:**
+
+* `static void select_team_window_push()`: creates the `select_team_window` Window if it had not been created yet, and creates the corresponding WindowHandlers for `.load` and `.unload` (see below) for the `select_team_layer`.  Then it pushes the `select_team_window` onto the window stack using `window_stack_push`.
+* `static void select_team_window_load(Window *window)`: callback for `.load` for `select_team_window`. Creates the `select_team_layer` Menulayer, and gives sets the corresponding handlers for `.get_num_rows`, `.draw_row`, `.get_cell_height`, and `.select_click`.  Puts everything onto the `select_team_window`.
+* `static void select_team_window_unload(Window *window)`: callback for `.unload` for `select_team_window`. Destroys the `select_team_layer`.
+* `static void select_team_select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *callback_context)`: callback for `select_click` for `select_team_layer` Menulayer.  This runs whenever the select (middle right) button on the Pebble is pressed.  If it is pressed on any option except for the "Submit" option, then it changes the static `selected_team` string to the corresponding team name.  On the other hand, if the select btton is pressed on the "Submit" option, then it first unloads the `select_team_window`, and then pops the `select_team_window` off of the window stack.
+* `static int16_t select_team_get_cell_height_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *context)`: callback for `.get_cell_height` for `select_team_layer` Menulayer. Returns the cell height of each cell in the `select_team_layer` Menulayer.
+* `static void select_team_draw_row_callback(GContext *ctx, const Layer *cell_layer, MenuIndex *cell_index, void *context)`: callback for `.draw_row` in `select_team_layer` Menulayer.  Draws a row for each  item inside the `team_names` array of `char *` (The initial values are "One", "Two", "Three", and "Four").  For each of those cells, it also draws an empty circle, which represents the radio_button (unless the option had been selected, in which case it is drawn as a filled in circle).  The last option in this Menulayer is "Submit", and this one does not have a radio button.
+* `static uint16_t select_team_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *context)`: callback for `.get_num_rows` for `select_team_layer` Menulayer.  Returns the number of rows in the `select_team_layer` Menulayer.  This is the number of items in the `team_names` array plus one (for the "Submit" option).
+
+**Select Player Name Menu:**
+
+* `static void select_player_window_push()`: creates the `select_player_window` Window if it has not been created yet, and creates the corresponding WindowHandlers for `.load` and `.unload` (see below) for the `select_player_layer`.  Then it pushes the `select_player_window` onto the window stack using `window_stack_push`.
+* `static void select_player_window_load(Window *window)`: handler for `.load` for `select_player_window` Window. creates the `select_player_layer` Menulayer, and gives sets the corresponding handlers for `.get_num_rows`, `.draw_row`, `.get_cell_height`, and `.select_click`.  Puts everything onto the `select_player_window`.
+* `static void select_player_window_unload(Window *window)`: callback for `.unload` for `select_player_window`. Destroys the `select_player_layer`.
+* `static void select_player_select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *callback_context)`: callback for `select_click` for `select_player_layer` Menulayer.  This runs whenever the select (middle right) button on the Pebble is pressed.  If it is pressed on any option except for the "Submit" option, then it changes the static `selected_player` string to the corresponding team name.  On the other hand, if the select btton is pressed on the "Submit" option, first it unloads the `select_player_window`  then it pops the `select_player_window` off of the window stack.
+* `static int16_t select_player_get_cell_height_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *context)`: callback for `.get_cell_height` for `select_player_layer` Menulayer. Returns the cell height of each cell in the `select_player_layer` Menulayer. 
+* `static void select_player_draw_row_callback(GContext *ctx, const Layer *cell_layer, MenuIndex *cell_index, void *context)`: callback for `.draw_row` in `select_player_layer` Menulayer.  Draws a row for each  item inside the `player_names` array of `char *` (The initial values are "Paolo", "Tony", "Michael", and "Yifei").  For each of those cells, it also draws an empty circle, which represents the radio_button (unless the option had been selected, in which case it is drawn as a filled in circle).  The last option in this Menulayer is "Submit", and this one does not have a radio button.
+* `static uint16_t select_player_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *context)`: callback for `.get_num_rows` for `select_player_layer` Menulayer.  Returns the number of rows in the `select_player_layer` Menulayer.  This is the number of items in the `player_names` array plus one (for the "Submit" option).
+
+**In Game Menu:**
+
+* `static void in_game_window_push()`: creates the `in_game_window` Window if it has not been created yet, and creates the corresponding WindowHandlers for `.load` and `.unload` (see below) for the `in_game_layer`.  Then it pushes the `in_game_window` onto the window stack using `window_stack_push`.
+* `static void in_game_window_load(Window *window)`: handler for `.load` for `in_game_window` Window. Creates the `in_game_layer` Menulayer, and gives sets the corresponding handlers for `.get_num_rows`, `.draw_row`, `.get_cell_height`, and `.select_click`.  Puts everything onto the `in_game_window`.
+* `static void in_game_window_unload(Window *window)`: callback for `.unload` for `in_game_window`. Destroys the `in_game_layer`.
+* `static void in_game_select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *callback_context)`: callback for `select_click` for `in_game_layer` Menulayer.  This runs whenever the select (middle right) button on the Pebble is pressed.  It can select and of three options: "Claim", "Hint", and "Status".  If "Claim" is selected, then `claim_krag_window` is pushed to the window stack.  If "Hint" is selected, then `hints_log_window` is pushed to the window stack.  If "Status" is selected, then a status request is sent to the game_server, and the given information is presented in a `my_dialog_box`.  The `type` will be `status` and the `text` will be whatever information was gotten from the Game Server, in a string.
+* `static int16_t in_game_get_cell_height_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *context)`: callback for `.get_cell_height` for `in_game_layer` Menulayer. Returns the cell height of each cell in the `in_game_layer` Menulayer. 
+* `static void in_game_draw_row_callback(GContext *ctx, const Layer *cell_layer, MenuIndex *cell_index, void *context)`: callback for `.draw_row` for `in_game_layer` Menulayer.  It draws the corresponding row in the menu, depending on which is requested.  Row 0 is the "Claim Krag" option, row 1 is the "Hints" option, and row 2 is the "Status" option.
+* `static uint16_t in_game_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *context)`: callback for `get_num_rows` for `in_game_layer` Menulayer.  It returns the number of rows in the menu for the `in_game_layer`.
+
+**Claim Krag Pin Entry:**
+
+* `static void claim_krag_window_push()`: creates the `claim_krag_window` Window if it has not been created yet, and creates the corresponding WindowHandlers for `.load` and `.unload` (see below) for `claim_krag_layer`
+* `static void claim_krag_window_load(Window *window)`: handler for `.load` for `claim_krag_window` Window.  Creates the `claim_krag_layer` PinWindow, with the corresponding callback for `.pin_complete`.
+* `static void claim_krag_window_unload(Window *window)`: callback for `.unload` for `claim_krag_window`. Destroys the `claim_krag_layer`.
+* `claim_krag_complete(PIN pin, void *context)`: callback for `.pin_complete` for `claim_krag_layer` PinWindow.  It saves the pin as a static string, for future use by other functions.  Then, it runs `send_claim` now that it has this information (see below).  
+* `claim_krag_draw(Layer *layer, GContext *ctx)`: draws the Pin Entry Window designed to be used to claim krags.
+
+**Hints Log Menu:**
+
+* `static void hints_log_window_push()`: creates the `hints_log_window` Window if it has not been created yet, and creates the corresponding WindowHandlers for `.load` and `.unload` (see below) for the `in_game_layer`.  Then it pushes the `in_game_window` onto the window stack using `window_stack_push`.
+* `static void hints_log_window_load(Window *window)`: handler for `.load` for `hints_log_window` Window. Creates the `hints_log_layer` Menulayer, and sets the corresponding handlers for `.get_num_rows`, `.draw_row`, `.get_cell_height`, and `.select_click`.  Puts everything onto the `hints_log_window`.
+* `static void hints_log_window_unload(Window *window)`: callback for `.unload` for `hints_log_window`. Destroys the `hints_log_layer`.
+* `static void hints_log_select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *callback_context)`: callback for `select_click` for `in_game_layer` Menulayer.  This runs whenever the select (middle right) button on the Pebble is pressed.  Whenever it is pressed on any item, it displays the corresponding hint in a `my_dialog_window`, where the `type` is `hint`, and the `text` is whatever the text of the hint is (in string format).
+* `static int16_t hints_log_get_cell_height_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *context)`: callback for `.get_cell_height` for `hints_log_layer` Menulayer. Returns the cell height of each cell in the `hints_log_layer` Menulayer.
+* `static void hints_log_draw_row_callback(GContext *ctx, const Layer *cell_layer, MenuIndex *cell_index, void *context)`: callback for `.draw_row` for `hints_log_layer` Menulayer.  It draws the corresponding row in the menu, depending on which is requested.  Each row is the timestamp for its corresponding hint, all of which are found in the static `set` of hints.
+* `static uint16_t hints_log_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *context)`: callback for `get_num_rows` for `hints_log_layer` Menulayer.  It returns the number of rows in the menu for the `hints_log_layer`.  Equivalent to the size of the number of hints in the static `set` of hints.
+
+**Dialog Boxes:**
+
+Dialog boxes are windows that pop up with information to alert the user.  For this project, they have a ton of uses (errors, claiming krags [succesfully or unsuccesfully], hints, status, game over), so I will create a `my_dialog_window` module that will have capabilities to create any dialog window, given two strings as parameters: `type` and `text`.  `type` is title of the message ("Hint", "Error", "Claim", etc.), and `text` is the actual content of the message.
+
+* `void my_dialog_window_push(char *p_type, char *p_text)`: copies `p_type` and `p_text` into static (file-scope) `type` and `text` strings.  Creates static `my_dialog_window` Window, with the corresponding WindowHandlers for `.load`, `.unload`, and `.appear`.  Finally, pushes `my_dialog_window` to the window stack using `window_stack_push`.
+* `void my_dialog_window_pop()`: unloads `my_dialog_window`, and then pops it from the window stack using `window_stack_pop`.
+* `static void window_load(Window *window)`: handler for `.load` for `my_dialog_window` Window.  Adds `s_background_layer`, then `my_dialog_type_layer`, and finally `my_dialog_text_layer` to the `my_dialog_window` Window.  It sets all their text to either `text` or `type`, depending on which layer it is.  
+* `static void window_unload(Window *window)`: handler for `.unload` for `my_dialog_window` Window.  Destroys `s_background_layer`, `my_dialog_type_layer`, and `my_dialog_text_layer`.  Then it sets `my_dialod_window` to NULL, and finally frees both `type` and `text` strings.
+* `static void window_appear(Window *window)`: handler for `.appear` for `my_dialog_window` Window.  It makes the window appear in a cool, animated fashion, and settles in to the right place according to the bounds that were gathered. Also creates the handler for `.stopped` for static `s_appear_anim` Animation.
+* `static void background_update_proc(Layer *layer, GContext *ctx)`: Sets the background color to yellow if possible, otherwise to white.  Then it fills in the color.  Used by `window_load`.
+* `static void anim_stopped_handler(Animation *animation, bool finished, void *context)`: handler for `.stopped` for `s_appear_anim` Animation.  Simply returns NULL.
+
+**Messaging:**
+
+* `inbox_received_handler(DictionaryIterator *iterator, void *context)`: AppMessage Bluetooth communication callback for `app_message_register_inbox_received`. Called when a message is received from the smartphone JS proxy (which passes along messages from the Game Server).  This identifies the type of message, and responds accordingly. Furthermore, this is where the `pebbleId` can be found and hence stored as a static variable for future use by other functions.  There are many possible messages to do, and thus many different outcomes this function could have.  Here they are: (If anything in any message is invalid, it is logged and ignored)
+	- `GAME_STATUS`: create `my_dialog_window` with type `status` and pertinent information, from the opcode.
+	- `GA_HINT`: create `my_dialog_window` with type `hint` and pertinint information, form the opcode
+	- `SH_ERROR_DUPLICATE_PLAYERNAME`: create `my_dialog_window` with type `error`  and text `player name is already chosen, please select a different one`
+	- `SH_CLAIMED`: create `my_dialog_window` with type `krag` and text `succesfully claimed krag!`
+	- `SH_CLAIMED_ALREADY`: create `my_dialog_window` with type `krag` and text `krag has already been claimed`
+	- `GS_RESPONSE`: Respond 
+	- `GAME_OVER`: create `my_dialog_window` with type `game over` and the secret as text
+	- `TEAM_RECORD`: create `my_dialog_window` with type `game over`, and the `text` being information from the `TEAM_RECORD` opcode.
+	- `SH_ERROR_INVALID_MESSAGE`: log in app log
+	- `SH_ERROR_INVALID_OPCODE`: log in app log
+	- `SH_ERROR_INVALID_FIELD`: log in app log
+	- `SH_ERROR_DUPLICATE_FIELD`: log in app log
+	- `SH_ERROR_INVALID_GAME_ID`: disconnect from game, prompt user with In Game Menu.
+	- `SH_ERROR_INVALID_TEAMNAME`: create `my_dialog_window` with type `error` and text `please select a different team`
+	- `SH_ERROR_INVALID_PLAYERNAME`: create `my_dialog_window` with type `error` and text `please select and different player name`
+	- `SH_ERROR_INVALID_ID`: disconnect from game, prompt user with In Game Menu
+	- Anything else: `send_log` that the message was received, and do nothing more.
+* `inbox_dropped_callback(AppMessageResult reason, void *context)`: AppMessage Bluetooth communication callback for `app_message_register_inbox_dropped`. This means that the inbox was dropped for some reason (in order to get this, the message must have been received by the smartphone JS environment).  This is logged by the app as an error, and nothing else can be done.
+* `outbox_failed_callback(DictionaryIterator *iterator, AppMessageResult reason, void *context)`: AppMessage Bluetooth communication callback for `app_message_outbox_failed`. This means that the message send from the Pebble to the smartphone JS environment has failed to send, implying that perhaps the JS environment is not up and running.  This is logged by the app as an error, and it is noted that the JS environment is not running.  The user is prompted to turn on his Bluetooth on his smartphone and connect to the Pebble using a `my_dialog_box` of type `error`.
+* `outbox_sent_callback(DictionaryIterator *iterator, void *context)`: AppMessage Bluetooth communication callback for `app_message_outbox_sent. This implys that the smartphone JS environment is up and running.  It is logged by the app that the message has been succesfully sent, and it is noted that the smartphone JS environment is up and running.
+* `static void send_location(bool status)` - First requests the current user location by use of `request_location`, then it formats that and other pertinent information to conform with the `FA_LOCATION` OpCode.  Hence, the `gameId`, `pebbleId`, `team` and `player` must already be present and recorded in corresponding static variables.  If they are not, then an error will be recored in the app log, and a message will not be sent.  It is sent by the `send_string` function.  (To better understand `request_location` and `send_string`, see below).  Finally, it takes a parameterized boolean input to know whether or not to request a status message as part of the sent message.  Note, the exception is `gameId`, if that does not exist, the function sends a value of zero instead.
+* `static void send_claim()`: runs after a claim code is submitted via the Claim Krag Pin Entry Window.  It requests the location via `request_location` (see below).  It formats this information with all other associated static information in order to send a `FA_CLAIM` message to the Game Server via `send_string`.  If any necesesary information is not stored within the corresponding static variables, an error is logged in the app log, and no message is sent.
+* `static void send_log(char *text)`: sends a log to the server that conforms with the `FA_LOG` opcode.  It is given a string input to serve as the `text` information.  It needs the pebbleId to already be stored in static information, if it is not, then no mesage is sent and an error is logged in the app log.
+* `static void request_location()`: function that requests the current location of the user from the smartphone.  Requests the location of the user, and then records it in two static strings, `latitude` and `longitude`.  This is called by `send_location`
+* `static void send_string(char *string)`: sends a string (from a parameter) to the Game Server (via the smartphone JS proxy).  It attempts to send the message, and records any errors that occured in doing so.
+
+
+**Other:**
+
+* `static void tick_callback(struct tm *tick_time, TimeUnits units_changed)`: run `send_location` every 15 seconds (will check every tick to see if it is the 15th second aka tick).  It does this if the smartphone JS proxy environment is up and running.  If it is not, a `my_dialog_window` is created with type `error` and `text` turn on your smartphone's Bluetooth`.
+* `static char **parse_opcode(char *string, char *delim)`: parses the string opcod ethat is received, given a delimiter.  It is used by `inbox_received_handler` to both determine what type of opcode it is, as well as to extract the pertinent information.
+
+**Modularity/Cohesion:**
+
+
+I decided to make a module for dialog boxes, because they all essentially do the same thing.  They display some text.  In order to be able to differentiate between them, I added that they display the `type` string as a header in addition to the `text` string as their content.  Hence, I can use one module (`my_dialog_window`) to take care of every dialog window box that I will ever have to make.
+
+On the other hand, I decided to keep menus individual from each other, and not a single module (or two, one for typical menus, and one for menus with radio buttons).  This is because all of these menus had different purposes, and different behaviors when interacted with, so it is difficult to generalize all of their behavior into a single module.  Some menus will manipulate strings, and others will pop other Windows onto the window stack.  Furthermore, their layouts are not necessarily the same either.  For example, one may decide that they want to add more possible player names for the `select_player_layer` Menulayer, but also decrease the number possible teams to join for the `select_team_layer`.  With my solution, this is easily doable.  Yet, there are some universal aspects of every menu.  For example, they all use the `JOIN_GAME_CELL_HEIGHT` macro to determine their cell height.
+
+### Pseudocode:
+1. Run `init()`
+2. Run `app_event_loop()`
+3. Respond and handle input as it comes (from either user ot Game Server inputs).  All of those functions are outlined above.
+4. Run `deinit()`
+
 ## Game Server
 
 ### Data Structures
@@ -636,137 +768,3 @@ as part of the message log entry.
 ```
 void logMessage(FILE *file, char *message, char *direction, connection_t *connect);
 ```
-
----
-
-## Field Agent
-
-### Data Structures:
-
-* Both the hardcoded list of player names and team names will be in the form of an array of strings (`char *[]`).  While they are both default of size 4, they are independent of each other (i.e. it is possible to change the list of player names to be of size 5 and have the list of team names be of size 3).
-* The list of hints will be stored in a `set` data structure.  Each individual hint will be represented by a string, with a timestamp as the key (in string format).
-
-### Functions:
-
-**Main, Init, Deinit:**
-
-* `int main(void)`: runs `init()`, then `app_event_loop()`, and finally `deinit()`
-* `static void init()`: registers Bluetooth communication callbacks (`inbox_received_handler`, `inbox_dropped_callback`, `outbox_failed_callback`, and `outbox_sent_callback`), then creates a `join_game_window`, `select_player_window`, `select_team_window`, `in_game_window`, `claim_krag_window`, and `hints_log_window`.  For each of those windows, it sets the `.load` and `.unload` to their corresponding handlers (will discuss further below).  Finally, it will push the `join_game_window` onto the window stack.
-* `static void deinit()`: destroys all of the windows created in `init()`
-
-**Join Game Menu:**
-
-* `static void join_game_window_load(Window *window`: `.load` handler for `join_game_window`.  Creates a Menulayer called `join_game_layer`, and sets `.get_num_rows`, `.draw_row`, `.get_cell_height`, `.select_click` to their corresponding callbacks.  It adds this to the `join_game_window`.  Also, it runs `menu_layer_set_click_config_onto_window`, so that the user can interact with this particular layer.
-* `static void join_game_window_unload(Window *window)`: destroys the previously created `join_game_layer` Menulayer.
-* `static uint16_t join_game_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *context)`: callback for `get_num_rows` for `join_game_layer` Menulayer.  It returns the number of rows in the menu for the `join_game_layer`.
-* `static void join_game_draw_row_callback(GContext *ctx, const Layer *cell_layer, MenuIndex *cell_index, void *context)`: callback for `.draw_row` for `join_game_layer` Menulayer.  It draws the corresponding row in the menu, depending on which is requested.  Row 0 is the "Select Player" option, row 1 is the "Select Team" option, and row 2 is the "Join Game" option.
-* `static int16_t join_game_get_cell_height_callback`: callback for `.get_cell_height` in the `join_game_layer` Menulayer.  Returns the height for each cell in the menu.
-* `static void join_game_select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *context)`: callback for `.select_click` for the `join_game_layer` Menulayer.  This handles each time the select (middle right) button on the pebble is pressed.  If it is pressed when it is on the "Select Player" option, it runs `select_player_window_push()` (see below), if it is pressed on the "Select Team" option, it runs `select_team_window_push()` (see below), and finally, if it is pressed on the "Join Game" option, then it attempts to connect to the game.  Upon success, it runs `in_game_window_push` to push `in_game_window` Window onto the window stack. It then subscribes to the `tick_timer_service` using `tick_timer_service_subscribe`, using `tick_callback` function (see below).  Otherwise, it runs `my_dialog_window_push` with the `type` being `error` and the `text` being `failed to connect to server`.
-
-**Select Team Menu:**
-
-* `static void select_team_window_push()`: creates the `select_team_window` Window if it had not been created yet, and creates the corresponding WindowHandlers for `.load` and `.unload` (see below) for the `select_team_layer`.  Then it pushes the `select_team_window` onto the window stack using `window_stack_push`.
-* `static void select_team_window_load(Window *window)`: callback for `.load` for `select_team_window`. Creates the `select_team_layer` Menulayer, and gives sets the corresponding handlers for `.get_num_rows`, `.draw_row`, `.get_cell_height`, and `.select_click`.  Puts everything onto the `select_team_window`.
-* `static void select_team_window_unload(Window *window)`: callback for `.unload` for `select_team_window`. Destroys the `select_team_layer`.
-* `static void select_team_select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *callback_context)`: callback for `select_click` for `select_team_layer` Menulayer.  This runs whenever the select (middle right) button on the Pebble is pressed.  If it is pressed on any option except for the "Submit" option, then it changes the static `selected_team` string to the corresponding team name.  On the other hand, if the select btton is pressed on the "Submit" option, then it first unloads the `select_team_window`, and then pops the `select_team_window` off of the window stack.
-* `static int16_t select_team_get_cell_height_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *context)`: callback for `.get_cell_height` for `select_team_layer` Menulayer. Returns the cell height of each cell in the `select_team_layer` Menulayer.
-* `static void select_team_draw_row_callback(GContext *ctx, const Layer *cell_layer, MenuIndex *cell_index, void *context)`: callback for `.draw_row` in `select_team_layer` Menulayer.  Draws a row for each  item inside the `team_names` array of `char *` (The initial values are "One", "Two", "Three", and "Four").  For each of those cells, it also draws an empty circle, which represents the radio_button (unless the option had been selected, in which case it is drawn as a filled in circle).  The last option in this Menulayer is "Submit", and this one does not have a radio button.
-* `static uint16_t select_team_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *context)`: callback for `.get_num_rows` for `select_team_layer` Menulayer.  Returns the number of rows in the `select_team_layer` Menulayer.  This is the number of items in the `team_names` array plus one (for the "Submit" option).
-
-**Select Player Name Menu:**
-
-* `static void select_player_window_push()`: creates the `select_player_window` Window if it has not been created yet, and creates the corresponding WindowHandlers for `.load` and `.unload` (see below) for the `select_player_layer`.  Then it pushes the `select_player_window` onto the window stack using `window_stack_push`.
-* `static void select_player_window_load(Window *window)`: handler for `.load` for `select_player_window` Window. creates the `select_player_layer` Menulayer, and gives sets the corresponding handlers for `.get_num_rows`, `.draw_row`, `.get_cell_height`, and `.select_click`.  Puts everything onto the `select_player_window`.
-* `static void select_player_window_unload(Window *window)`: callback for `.unload` for `select_player_window`. Destroys the `select_player_layer`.
-* `static void select_player_select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *callback_context)`: callback for `select_click` for `select_player_layer` Menulayer.  This runs whenever the select (middle right) button on the Pebble is pressed.  If it is pressed on any option except for the "Submit" option, then it changes the static `selected_player` string to the corresponding team name.  On the other hand, if the select btton is pressed on the "Submit" option, first it unloads the `select_player_window`  then it pops the `select_player_window` off of the window stack.
-* `static int16_t select_player_get_cell_height_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *context)`: callback for `.get_cell_height` for `select_player_layer` Menulayer. Returns the cell height of each cell in the `select_player_layer` Menulayer. 
-* `static void select_player_draw_row_callback(GContext *ctx, const Layer *cell_layer, MenuIndex *cell_index, void *context)`: callback for `.draw_row` in `select_player_layer` Menulayer.  Draws a row for each  item inside the `player_names` array of `char *` (The initial values are "Paolo", "Tony", "Michael", and "Yifei").  For each of those cells, it also draws an empty circle, which represents the radio_button (unless the option had been selected, in which case it is drawn as a filled in circle).  The last option in this Menulayer is "Submit", and this one does not have a radio button.
-* `static uint16_t select_player_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *context)`: callback for `.get_num_rows` for `select_player_layer` Menulayer.  Returns the number of rows in the `select_player_layer` Menulayer.  This is the number of items in the `player_names` array plus one (for the "Submit" option).
-
-**In Game Menu:**
-
-* `static void in_game_window_push()`: creates the `in_game_window` Window if it has not been created yet, and creates the corresponding WindowHandlers for `.load` and `.unload` (see below) for the `in_game_layer`.  Then it pushes the `in_game_window` onto the window stack using `window_stack_push`.
-* `static void in_game_window_load(Window *window)`: handler for `.load` for `in_game_window` Window. Creates the `in_game_layer` Menulayer, and gives sets the corresponding handlers for `.get_num_rows`, `.draw_row`, `.get_cell_height`, and `.select_click`.  Puts everything onto the `in_game_window`.
-* `static void in_game_window_unload(Window *window)`: callback for `.unload` for `in_game_window`. Destroys the `in_game_layer`.
-* `static void in_game_select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *callback_context)`: callback for `select_click` for `in_game_layer` Menulayer.  This runs whenever the select (middle right) button on the Pebble is pressed.  It can select and of three options: "Claim", "Hint", and "Status".  If "Claim" is selected, then `claim_krag_window` is pushed to the window stack.  If "Hint" is selected, then `hints_log_window` is pushed to the window stack.  If "Status" is selected, then a status request is sent to the game_server, and the given information is presented in a `my_dialog_box`.  The `type` will be `status` and the `text` will be whatever information was gotten from the Game Server, in a string.
-* `static int16_t in_game_get_cell_height_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *context)`: callback for `.get_cell_height` for `in_game_layer` Menulayer. Returns the cell height of each cell in the `in_game_layer` Menulayer. 
-* `static void in_game_draw_row_callback(GContext *ctx, const Layer *cell_layer, MenuIndex *cell_index, void *context)`: callback for `.draw_row` for `in_game_layer` Menulayer.  It draws the corresponding row in the menu, depending on which is requested.  Row 0 is the "Claim Krag" option, row 1 is the "Hints" option, and row 2 is the "Status" option.
-* `static uint16_t in_game_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *context)`: callback for `get_num_rows` for `in_game_layer` Menulayer.  It returns the number of rows in the menu for the `in_game_layer`.
-
-**Claim Krag Pin Entry:**
-
-* `static void claim_krag_window_push()`: creates the `claim_krag_window` Window if it has not been created yet, and creates the corresponding WindowHandlers for `.load` and `.unload` (see below) for `claim_krag_layer`
-* `static void claim_krag_window_load(Window *window)`: handler for `.load` for `claim_krag_window` Window.  Creates the `claim_krag_layer` PinWindow, with the corresponding callback for `.pin_complete`.
-* `static void claim_krag_window_unload(Window *window)`: callback for `.unload` for `claim_krag_window`. Destroys the `claim_krag_layer`.
-* `claim_krag_complete(PIN pin, void *context)`: callback for `.pin_complete` for `claim_krag_layer` PinWindow.  It saves the pin as a static string, for future use by other functions.  Then, it runs `send_claim` now that it has this information (see below).  
-* `claim_krag_draw(Layer *layer, GContext *ctx)`: draws the Pin Entry Window designed to be used to claim krags.
-
-**Hints Log Menu:**
-
-* `static void hints_log_window_push()`: creates the `hints_log_window` Window if it has not been created yet, and creates the corresponding WindowHandlers for `.load` and `.unload` (see below) for the `in_game_layer`.  Then it pushes the `in_game_window` onto the window stack using `window_stack_push`.
-* `static void hints_log_window_load(Window *window)`: handler for `.load` for `hints_log_window` Window. Creates the `hints_log_layer` Menulayer, and sets the corresponding handlers for `.get_num_rows`, `.draw_row`, `.get_cell_height`, and `.select_click`.  Puts everything onto the `hints_log_window`.
-* `static void hints_log_window_unload(Window *window)`: callback for `.unload` for `hints_log_window`. Destroys the `hints_log_layer`.
-* `static void hints_log_select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *callback_context)`: callback for `select_click` for `in_game_layer` Menulayer.  This runs whenever the select (middle right) button on the Pebble is pressed.  Whenever it is pressed on any item, it displays the corresponding hint in a `my_dialog_window`, where the `type` is `hint`, and the `text` is whatever the text of the hint is (in string format).
-* `static int16_t hints_log_get_cell_height_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *context)`: callback for `.get_cell_height` for `hints_log_layer` Menulayer. Returns the cell height of each cell in the `hints_log_layer` Menulayer.
-* `static void hints_log_draw_row_callback(GContext *ctx, const Layer *cell_layer, MenuIndex *cell_index, void *context)`: callback for `.draw_row` for `hints_log_layer` Menulayer.  It draws the corresponding row in the menu, depending on which is requested.  Each row is the timestamp for its corresponding hint, all of which are found in the static `set` of hints.
-* `static uint16_t hints_log_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *context)`: callback for `get_num_rows` for `hints_log_layer` Menulayer.  It returns the number of rows in the menu for the `hints_log_layer`.  Equivalent to the size of the number of hints in the static `set` of hints.
-
-**Dialog Boxes:**
-
-Dialog boxes are windows that pop up with information to alert the user.  For this project, they have a ton of uses (errors, claiming krags [succesfully or unsuccesfully], hints, status, game over), so I will create a `my_dialog_window` module that will have capabilities to create any dialog window, given two strings as parameters: `type` and `text`.  `type` is title of the message ("Hint", "Error", "Claim", etc.), and `text` is the actual content of the message.
-
-* `void my_dialog_window_push(char *p_type, char *p_text)`: copies `p_type` and `p_text` into static (file-scope) `type` and `text` strings.  Creates static `my_dialog_window` Window, with the corresponding WindowHandlers for `.load`, `.unload`, and `.appear`.  Finally, pushes `my_dialog_window` to the window stack using `window_stack_push`.
-* `void my_dialog_window_pop()`: unloads `my_dialog_window`, and then pops it from the window stack using `window_stack_pop`.
-* `static void window_load(Window *window)`: handler for `.load` for `my_dialog_window` Window.  Adds `s_background_layer`, then `my_dialog_type_layer`, and finally `my_dialog_text_layer` to the `my_dialog_window` Window.  It sets all their text to either `text` or `type`, depending on which layer it is.  
-* `static void window_unload(Window *window)`: handler for `.unload` for `my_dialog_window` Window.  Destroys `s_background_layer`, `my_dialog_type_layer`, and `my_dialog_text_layer`.  Then it sets `my_dialod_window` to NULL, and finally frees both `type` and `text` strings.
-* `static void window_appear(Window *window)`: handler for `.appear` for `my_dialog_window` Window.  It makes the window appear in a cool, animated fashion, and settles in to the right place according to the bounds that were gathered. Also creates the handler for `.stopped` for static `s_appear_anim` Animation.
-* `static void background_update_proc(Layer *layer, GContext *ctx)`: Sets the background color to yellow if possible, otherwise to white.  Then it fills in the color.  Used by `window_load`.
-* `static void anim_stopped_handler(Animation *animation, bool finished, void *context)`: handler for `.stopped` for `s_appear_anim` Animation.  Simply returns NULL.
-
-**Messaging:**
-
-* `inbox_received_handler(DictionaryIterator *iterator, void *context)`: AppMessage Bluetooth communication callback for `app_message_register_inbox_received`. Called when a message is received from the smartphone JS proxy (which passes along messages from the Game Server).  This identifies the type of message, and responds accordingly. Furthermore, this is where the `pebbleId` can be found and hence stored as a static variable for future use by other functions.  There are many possible messages to do, and thus many different outcomes this function could have.  Here they are: (If anything in any message is invalid, it is logged and ignored)
-	- `GAME_STATUS`: create `my_dialog_window` with type `status` and pertinent information, from the opcode.
-	- `GA_HINT`: create `my_dialog_window` with type `hint` and pertinint information, form the opcode
-	- `SH_ERROR_DUPLICATE_PLAYERNAME`: create `my_dialog_window` with type `error`  and text `player name is already chosen, please select a different one`
-	- `SH_CLAIMED`: create `my_dialog_window` with type `krag` and text `succesfully claimed krag!`
-	- `SH_CLAIMED_ALREADY`: create `my_dialog_window` with type `krag` and text `krag has already been claimed`
-	- `GS_RESPONSE`: Respond 
-	- `GAME_OVER`: create `my_dialog_window` with type `game over` and the secret as text
-	- `TEAM_RECORD`: create `my_dialog_window` with type `game over`, and the `text` being information from the `TEAM_RECORD` opcode.
-	- `SH_ERROR_INVALID_MESSAGE`: log in app log
-	- `SH_ERROR_INVALID_OPCODE`: log in app log
-	- `SH_ERROR_INVALID_FIELD`: log in app log
-	- `SH_ERROR_DUPLICATE_FIELD`: log in app log
-	- `SH_ERROR_INVALID_GAME_ID`: disconnect from game, prompt user with In Game Menu.
-	- `SH_ERROR_INVALID_TEAMNAME`: create `my_dialog_window` with type `error` and text `please select a different team`
-	- `SH_ERROR_INVALID_PLAYERNAME`: create `my_dialog_window` with type `error` and text `please select and different player name`
-	- `SH_ERROR_INVALID_ID`: disconnect from game, prompt user with In Game Menu
-	- Anything else: `send_log` that the message was received, and do nothing more.
-* `inbox_dropped_callback(AppMessageResult reason, void *context)`: AppMessage Bluetooth communication callback for `app_message_register_inbox_dropped`. This means that the inbox was dropped for some reason (in order to get this, the message must have been received by the smartphone JS environment).  This is logged by the app as an error, and nothing else can be done.
-* `outbox_failed_callback(DictionaryIterator *iterator, AppMessageResult reason, void *context)`: AppMessage Bluetooth communication callback for `app_message_outbox_failed`. This means that the message send from the Pebble to the smartphone JS environment has failed to send, implying that perhaps the JS environment is not up and running.  This is logged by the app as an error, and it is noted that the JS environment is not running.  The user is prompted to turn on his Bluetooth on his smartphone and connect to the Pebble using a `my_dialog_box` of type `error`.
-* `outbox_sent_callback(DictionaryIterator *iterator, void *context)`: AppMessage Bluetooth communication callback for `app_message_outbox_sent. This implys that the smartphone JS environment is up and running.  It is logged by the app that the message has been succesfully sent, and it is noted that the smartphone JS environment is up and running.
-* `static void send_location(bool status)` - First requests the current user location by use of `request_location`, then it formats that and other pertinent information to conform with the `FA_LOCATION` OpCode.  Hence, the `gameId`, `pebbleId`, `team` and `player` must already be present and recorded in corresponding static variables.  If they are not, then an error will be recored in the app log, and a message will not be sent.  It is sent by the `send_string` function.  (To better understand `request_location` and `send_string`, see below).  Finally, it takes a parameterized boolean input to know whether or not to request a status message as part of the sent message.  Note, the exception is `gameId`, if that does not exist, the function sends a value of zero instead.
-* `static void send_claim()`: runs after a claim code is submitted via the Claim Krag Pin Entry Window.  It requests the location via `request_location` (see below).  It formats this information with all other associated static information in order to send a `FA_CLAIM` message to the Game Server via `send_string`.  If any necesesary information is not stored within the corresponding static variables, an error is logged in the app log, and no message is sent.
-* `static void send_log(char *text)`: sends a log to the server that conforms with the `FA_LOG` opcode.  It is given a string input to serve as the `text` information.  It needs the pebbleId to already be stored in static information, if it is not, then no mesage is sent and an error is logged in the app log.
-* `static void request_location()`: function that requests the current location of the user from the smartphone.  Requests the location of the user, and then records it in two static strings, `latitude` and `longitude`.  This is called by `send_location`
-* `static void send_string(char *string)`: sends a string (from a parameter) to the Game Server (via the smartphone JS proxy).  It attempts to send the message, and records any errors that occured in doing so.
-
-
-**Other:**
-
-* `static void tick_callback(struct tm *tick_time, TimeUnits units_changed)`: run `send_location` every 15 seconds (will check every tick to see if it is the 15th second aka tick).  It does this if the smartphone JS proxy environment is up and running.  If it is not, a `my_dialog_window` is created with type `error` and `text` turn on your smartphone's Bluetooth`.
-* `static char **parse_opcode(char *string, char *delim)`: parses the string opcod ethat is received, given a delimiter.  It is used by `inbox_received_handler` to both determine what type of opcode it is, as well as to extract the pertinent information.
-
-**Modularity/Cohesion:**
-
-
-I decided to make a module for dialog boxes, because they all essentially do the same thing.  They display some text.  In order to be able to differentiate between them, I added that they display the `type` string as a header in addition to the `text` string as their content.  Hence, I can use one module (`my_dialog_window`) to take care of every dialog window box that I will ever have to make.
-
-On the other hand, I decided to keep menus individual from each other, and not a single module (or two, one for typical menus, and one for menus with radio buttons).  This is because all of these menus had different purposes, and different behaviors when interacted with, so it is difficult to generalize all of their behavior into a single module.  Some menus will manipulate strings, and others will pop other Windows onto the window stack.  Furthermore, their layouts are not necessarily the same either.  For example, one may decide that they want to add more possible player names for the `select_player_layer` Menulayer, but also decrease the number possible teams to join for the `select_team_layer`.  With my solution, this is easily doable.  Yet, there are some universal aspects of every menu.  For example, they all use the `JOIN_GAME_CELL_HEIGHT` macro to determine their cell height.
-
-### Pseudocode:
-1. Run `init()`
-2. Run `app_event_loop()`
-3. Respond and handle input as it comes (from either user ot Game Server inputs).  All of those functions are outlined above.
-4. Run `deinit()`
