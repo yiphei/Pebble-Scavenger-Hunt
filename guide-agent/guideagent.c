@@ -15,6 +15,7 @@
 #include <netdb.h>             // socket-related structures
 #include <time.h>
 #include <ncurses.h>
+#include "display.h"
 #include "guideagent.h"
 
 /******** function declarations ********/
@@ -33,7 +34,7 @@ static void teamRecordHandler(char *messagep, message_t *message, team_t *teamp,
 static void gameOverHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log);
 
 /********* local message validation functions *********/
-static bool gameStatusValidate(message_t *message);
+static bool gameStatusValidate(message_t *message, team_t *teamp);
 static bool GSAgentValidate(message_t *message);
 static bool GSClueValidate(message_t *message);
 static bool GSSecretValidate(message_t *message);
@@ -427,7 +428,7 @@ static void badOpCodeHandler(char *messagep, message_t *message, team_t *teamp, 
 // handle specific, applicable opCodes
 static void gameStatusHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
 {
-	if (gameStatusValidate(message_t *message)) {
+	if (gameStatusValidate(message, teamp)) {
 
 		// first game status received, set gameId for later use
 		if (strcmp(teamp->guideAgent->gameID, "0") == 0) {
@@ -447,7 +448,7 @@ static void gameStatusHandler(char *messagep, message_t *message, team_t *teamp,
 
 static void GSAgentHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
 {
-	if (GSAgentValidate(message_t *message)) {
+	if (GSAgentValidate(message)) {
 
 		char *player = message->player;
 		double latitude = message->latitude;
@@ -481,7 +482,7 @@ static void GSAgentHandler(char *messagep, message_t *message, team_t *teamp, co
 
 static void GSClueHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
 { 
-	if (GSClueValidate(message_t *message)) {
+	if (GSClueValidate(message)) {
 
 		// arbitrary key for the clue because it doesn't affect Guide Agent
 		int keyNum = rand();
@@ -505,7 +506,7 @@ static void GSClueHandler(char *messagep, message_t *message, team_t *teamp, con
 
 static void GSSecretHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
 {
-	if (GSSecretValidate(message_t *message)) {
+	if (GSSecretValidate(message)) {
 
 		// copy message's secret to be the team's secret
 		strcpy(teamp->revealedString, message->secret);
@@ -521,7 +522,7 @@ static void GSSecretHandler(char *messagep, message_t *message, team_t *teamp, c
 static void GSResponseHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
 {
 	// validate GS respondse, if valid log it and do nothing else
-	if (GSResponseValidate(message_t *message)) {
+	if (GSResponseValidate(message)) {
 		logMessage(log, messagep, "FROM", connection);
 	}
 }
@@ -545,7 +546,7 @@ static void gameOverHandler(char *messagep, message_t *message, team_t *teamp, c
 }
 
 /********** message validation functions ************/
-static bool gameStatusValidate(message_t *message) 
+static bool gameStatusValidate(message_t *message, team_t *teamp) 
 {
 	// guideId or gameId fields were not valid
 	if (message->guideId == NULL || message->gameId == NULL) {
