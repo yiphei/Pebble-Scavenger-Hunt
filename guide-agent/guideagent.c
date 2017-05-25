@@ -425,6 +425,8 @@ bool sendGA_HINT(char *gameId, char *guideId, char *team, char *player, char *pe
 }
 
 /*********** dispath/opCode functions **********/
+// based on specific dispatch call, handle a message type accordingly
+
 // received an incorrect opCode, print error message and ignore
 static void badOpCodeHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log)
 {
@@ -446,7 +448,8 @@ static void gameStatusHandler(char *messagep, message_t *message, team_t *teamp,
 
 		int totalKrags = message->numKrags;
 
-		// TODO: update the interface
+		updateKragsClaimed_I(teamp->claimed);
+		updateTotalKrags_T(totalKrags);
 
 		logMessage(log, messagep, "FROM", connection);
 
@@ -480,7 +483,7 @@ static void GSAgentHandler(char *messagep, message_t *message, team_t *teamp, co
 			set_insert(FAset, player, FA);
 		}
 
-		// TODO: update interface based on new locations
+		updateMap_I(FAset);
 
 		logMessage(log, messagep, "FROM", connection);
 
@@ -553,6 +556,7 @@ static void gameOverHandler(char *messagep, message_t *message, team_t *teamp, c
 }
 
 /********** message validation functions ************/
+// validate each specific message type so it can be handled accordingly
 static bool gameStatusValidate(message_t *message, team_t *teamp) 
 {
 	// gameId and guideId checks
