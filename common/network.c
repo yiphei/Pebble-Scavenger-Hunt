@@ -68,13 +68,6 @@ connection_t* openSocket(int port, char* host){
     	return NULL;
   	}
 
-  	// attempt to connect this socket to the server
-  	// **modeled off of inclient.c from ~cs50/examples**
-  	if (connect(comm, (struct sockaddr *) &server, sizeof(server)) < 0) {
-  		fprintf(stderr, "error connecting stream socket\n");
-  		return NULL;
-  	} 
-
   	// create connection to return
   	connection_t* connection = malloc(sizeof(connection_t));
   	connection->socket = comm;
