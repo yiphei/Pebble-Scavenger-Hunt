@@ -92,10 +92,10 @@ char* receiveMessage(connection_t* connection)
 	}
 
 	// get struct variables
-	socklen_t remoteLen = sizeof(remote);
+	socklen_t* remoteLen = sizeof(remote);
 	int comm = connection->socket;
 	// receive messages
-	int messageLen = recvfrom(comm, buf, BUFSIZE-1, 0, remote, &remoteLen);
+	int messageLen = recvfrom(comm, buf, BUFSIZE-1, 0, remote, remoteLen);
 	
 	// if messages are received, return them
 	if(messageLen > 0){
