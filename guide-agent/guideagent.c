@@ -15,9 +15,7 @@
 #include <netdb.h>             // socket-related structures
 #include <time.h>
 #include <ncurses.h>
-#include "display.h"
 #include "guideagent.h"
-#include "../common/word.h"
 
 /******** function declarations ********/
 int game(char *guideId, char *team, char *player, char *host, int port);
@@ -264,6 +262,9 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 	guideAgent_t *me = newGuideAgent(guideId, player, "0", connection);
 	teamp->guideAgent = me;
 
+	// init the team hashtable that will be used at GAME_OVER before game loop
+	hashtable_t *teams = initHash();
+
 	/* wait until server sends GAME_STATUS back to start game loop.
 	Once received, initialize the team struct and break this loop */
 	while (true) {
@@ -287,9 +288,6 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 	}
 
 	char *gameId = me->gameID;
-
-	// init the team hashtable that will be used at GAME_OVER before game loop
-	hashtable_t *teams = initHash();
 
 	// TODO: create and initialize interface
 
@@ -328,20 +326,33 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 		}
 
 		// read for user input and send hint if there is input
-		char *input = input();
+		char *hint = input_I();
 
+		// if there was input, send it to the server
+		if (hint != NULL) {
 
+			// allocate enough space for maximum length name (10 chars)
+			char *name = malloc(11);
 
+			sscanf(hint, "%s", name);
 
+			NormalizeWord(name);
 
+			fieldAgent_t *current = set_find(teamp->FAset, name);
 
+			if (current != NULL) {
 
+				sendGA_HINT(gameId, guideId, team, player, current->pebbleID, hint, connection, log);
 
-		// TODO: fix this! needs a pebbleId
-		if (input != NULL) {
-			fieldAgent_t *current = FAset
+			}
 
-			sendGA_HINT(gameId, guideId, player, NULL)
+			else {
+
+				sendGA_HINT(gameId, guideId, team, player, "*", hint, connection, log);
+
+			}
+
+			free(name);
 		}
 
 
@@ -481,7 +492,7 @@ static void gameStatusHandler(char *messagep, message_t *message, team_t *teamp,
 		int totalKrags = message->numKrags;
 
 		updateKragsClaimed_I(teamp->claimed);
-		updateTotalKrags_T(totalKrags);
+		updateTotalKrags_I(totalKrags);
 
 		logMessage(log, messagep, "FROM", connection);
 
@@ -586,8 +597,7 @@ static void teamRecordHandler(char *messagep, message_t *message, team_t *teamp,
 static void gameOverHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log, hashtable_t *teams)
 {
 
-	// TODO: update GUI to tell user game is over with final game stats and
-	// show the fully revealed secret
+	gameOver_I(teams);
 
 	logMessage(log, messagep, "FROM", connection);
 }
