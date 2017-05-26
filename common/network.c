@@ -123,7 +123,7 @@ bool sendMessage(char* message, connection_t* connection)
 
 	socklen_t remoteLen = sizeof(remote);
 	int comm = connection->socket;
-	if(sendto(comm, message, strlen(message), 0, remote, remoteLen == -1)){
+	if(sendto(comm, message, strlen(message), 0, remote, remoteLen) == -1){
 		fprintf(stderr, "Unable to send message: %s\n",message);
 		return false;
 	}
