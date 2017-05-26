@@ -48,6 +48,13 @@ connection_t* openSocket(int port, char* host){
 	}
 	// connect to host
 	struct hostent *hostp = gethostbyname(host);
+
+	// check for valid host/successful host search
+	if (hostp == NULL) {
+		fprintf(stderr, "unknown host name: %s\n", host);
+		return NULL;
+	}
+
 	// Initialize fields of the server address
 	struct sockaddr_in server;  // address of the server
 	server.sin_family = AF_INET;
@@ -60,6 +67,13 @@ connection_t* openSocket(int port, char* host){
     	fprintf(stderr,"Unable to open socket\n");
     	return NULL;
   	}
+
+  	// attempt to connect this socket to the server
+  	// **modeled off of inclient.c from ~cs50/examples**
+  	if (connect(comm, (struct sockaddr *) &server, sizeof(server)) < 0) {
+  		fprintf(stderr, "error connecting stream socket\n");
+  		return NULL;
+  	} 
 
   	// create connection to return
   	connection_t* connection = malloc(sizeof(connection_t));

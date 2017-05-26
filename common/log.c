@@ -34,4 +34,5 @@ void logMessage(FILE *file, char *message, char *direction, connection_t *connec
 	int port = connect->socket;
 
 	fprintf(file, "%s %s %s@%d: %s \n", timestamp, direction, ip, port, message);
+	printf("logged message\n");
 }

@@ -234,7 +234,7 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 
 	// open log directory and file to log activity
 	FILE *log;
-	if ((log = fopen("../logs/guideagent.log", "r")) == NULL) {
+	if ((log = fopen("../logs/guideagent.log", "w")) == NULL) {
 		fprintf(stderr, "error opening log file\n");
 		return 6;
 	}
@@ -265,6 +265,10 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 	// init the team hashtable that will be used at GAME_OVER before game loop
 	hashtable_t *teams = initHash();
 
+	// initialize the interface
+	initialize_curses();
+	initializeWindows_I();
+
 	/* wait until server sends GAME_STATUS back to start game loop.
 	Once received, initialize the team struct and break this loop */
 	while (true) {
@@ -288,10 +292,6 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 	}
 
 	char *gameId = me->gameID;
-
-	// initialize the interface
-	initialize_curses();
-	initializeWindows();
 
 	// loop runs until GAME_OVER message received, then breaks
 	while (true) {
