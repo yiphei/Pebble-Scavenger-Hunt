@@ -289,7 +289,9 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 
 	char *gameId = me->gameID;
 
-	// TODO: create and initialize interface
+	// initialize the interface
+	initialize_curses();
+	initializeWindows();
 
 	// loop runs until GAME_OVER message received, then breaks
 	while (true) {
@@ -354,16 +356,6 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 
 			free(name);
 		}
-
-
-
-
-
-
-
-
-
-
 
 		// every 30 seconds send a GA_STATUS
 		now = time(NULL);
