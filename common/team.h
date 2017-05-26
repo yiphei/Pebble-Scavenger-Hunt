@@ -17,7 +17,10 @@
 #include <stdbool.h>
 #include "../libcs50/hashtable.h"
 #include "krag.h"
+#ifndef LOG_H
+#define LOG_H
 #include "network.h"
+#endif
 
 /**************** global types ****************/
 typedef struct team {
