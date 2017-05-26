@@ -121,6 +121,7 @@ bool sendMessage(char* message, connection_t* connection)
 		return false;
 	}
 	printf("Connection: %s\n",connection->address->sa_data);
+	printf("Family: %d\n",connection->address->sa_family);
 	socklen_t remoteLen = sizeof(remote);
 	int comm = connection->socket;
 	if(sendto(comm, message, strlen(message), 0, remote, remoteLen) < 0){
