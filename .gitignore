@@ -6,3 +6,6 @@
 
 # Programs
 guide-agent/guideagent
+guide-agent/displaytest
+guide-agent/inboundmessagetest.c
+guide-agent/outboundmessagetest.c
