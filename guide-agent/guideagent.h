@@ -9,12 +9,20 @@
 
 #ifndef __GUIDEAGENT_H
 #define __GUIDEAGENT_H
-#include "../common/team.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <stdbool.h>
+#include <string.h>
+#include <ctype.h>             // isdigit
+#include <netdb.h>             // socket-related structures
+#include <time.h>
+#include <ncurses.h>
 #include "../libcs50/memory.h"
 #include "display.h"
 #include "../libcs50/set.h"
 #include "../common/message.h"
 #include "../common/log.h"
+#include "../common/word.h"
 
 /* game uses the network.h common module to create a connection to the Game Server,
 opens a log file to be written to over the course of the game, then starts the
