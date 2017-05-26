@@ -34,10 +34,9 @@ connection_t* startServer(int port){
 		return NULL;
 	}
 
+	struct sockaddr* newaddrp = (struct sockaddr *) &myaddr;
 	// create connection to return
-	connection_t* connection = malloc(sizeof(connection_t));
-	connection->socket = comm;
-	connection->address = (struct sockaddr *)&myaddr;
+	connection_t* connection = newConnection(comm, *newaddrp);
 	return connection; 
 }
 
@@ -67,11 +66,9 @@ connection_t* openSocket(int port, char* host){
     	fprintf(stderr,"Unable to open socket\n");
     	return NULL;
   	}
-
+  	struct sockaddr* newaddrp = (struct sockaddr *) &server;
   	// create connection to return
-  	connection_t* connection = malloc(sizeof(connection_t));
-  	connection->socket = comm;
-  	connection->address = (struct sockaddr *)&server;
+  	connection_t* connection = newConnection(comm, *newaddrp);
   	return connection;
 }
 
@@ -85,17 +82,13 @@ char* receiveMessage(connection_t* connection)
 		return NULL;
 	}
 	// get remote
-	struct sockaddr* remote = connection->address;
-	// make sure address exists
-	if(remote == NULL){
-		return false;
-	}
+	struct sockaddr remote = connection->address;
 
 	// get struct variables
 	socklen_t remoteLen = sizeof(remote);
 	int comm = connection->socket;
 	// receive messages
-	int messageLen = recvfrom(comm, buf, BUFSIZE-1, 0, remote, &remoteLen);
+	int messageLen = recvfrom(comm, buf, BUFSIZE-1, 0, &remote, &remoteLen);
 	
 	// if messages are received, return them
 	if(messageLen > 0){
@@ -114,18 +107,11 @@ bool sendMessage(char* message, connection_t* connection)
 	if(connection == NULL || message == NULL){
 		return false;
 	}
-	struct sockaddr* remote = connection->address;
+	struct sockaddr remote = connection->address;
 
-	// make sure address exists
-	if(remote == NULL){
-		return false;
-	}
-	printf("Socket: %d\n", connection->socket);
-	printf("Connection: %s\n",connection->address->sa_data);
-	printf("Family (should be %d): %d\n",AF_INET,connection->address->sa_family);
 	socklen_t remoteLen = sizeof(remote);
 	int comm = connection->socket;
-	if(sendto(comm, message, strlen(message), 0, remote, remoteLen) < 0){
+	if(sendto(comm, message, strlen(message), 0, &remote, remoteLen) < 0){
 		fprintf(stderr, "Unable to send message: %s\n",message);
 		return false;
 	}
@@ -133,7 +119,7 @@ bool sendMessage(char* message, connection_t* connection)
 }
 
 /***** newConnection *****/
-connection_t* newConnection(int socket, struct sockaddr* address)
+connection_t* newConnection(int socket, struct sockaddr address)
 {
 	// allocate space
 	connection_t* conn = malloc(sizeof(connection_t));
@@ -149,7 +135,6 @@ connection_t* newConnection(int socket, struct sockaddr* address)
 /***** deleteConnection *****/
 void deleteConnection(connection_t* connection)
 {
-	free(connection->address);
 	free(connection);
 }
 

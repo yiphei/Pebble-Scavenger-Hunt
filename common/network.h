@@ -19,7 +19,7 @@
 /***** structs *****/
 typedef struct connection {
 	int socket;
-	struct sockaddr* address;
+	struct sockaddr address;
 } connection_t;
 
 /*
@@ -75,7 +75,7 @@ bool sendMessage(char* message, connection_t* connection);
 * User is responsible for freeing it
 *
 */
-connection_t* newConnection(int socket, struct sockaddr* address);
+connection_t* newConnection(int socket, struct sockaddr address);
 
 /*
 * Deletes a connection structure
