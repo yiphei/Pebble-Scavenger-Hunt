@@ -120,6 +120,7 @@ bool sendMessage(char* message, connection_t* connection)
 	if(remote == NULL){
 		return false;
 	}
+	printf("Socket: %d\n", connection->socket);
 	printf("Connection: %s\n",connection->address->sa_data);
 	printf("Family (should be %d): %d\n",AF_INET,connection->address->sa_family);
 	socklen_t remoteLen = sizeof(remote);
