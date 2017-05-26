@@ -14,7 +14,7 @@
 
 /******** function declaration ********/
 static int parseHelper(char *message, message_t *parsedMessage);
-
+static char * myStrtok(char *s, char *delim);
 /******** function definition *********/
 
 // parses message into a message struct using helper function to factor
@@ -447,13 +447,11 @@ void deleteMessage(message_t *message) {
  * SUCH DAMAGE.
  */
 
-char *
-myStrtok(s, delim)
-	register char *s;
-	register const char *delim;
+static char *
+myStrtok(char *s, char *delim)
 {
-	register char *spanp;
-	register int c, sc;
+	char *spanp;
+	int c, sc;
 	char *tok;
 	static char *last;
 
