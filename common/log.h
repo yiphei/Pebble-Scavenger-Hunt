@@ -10,7 +10,10 @@
 #include <string.h>
 #include <netdb.h>  // socket-related structures
 #include <time.h>
+#ifndef LOG_H
+#define LOG_H
 #include "network.h"
+#endif
 
 /* this function logs a given message to a given file in the logfile format in
 the requirements spec. It uses the direction parameter to print "TO" or "FROM"
