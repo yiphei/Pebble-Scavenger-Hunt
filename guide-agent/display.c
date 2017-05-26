@@ -22,10 +22,19 @@
 static int NROWS;
 static int NCOLS;
 
+static const char DEADCELL = ' ';
+
 static inline int min(int a, int b) { return a < b ? a : b; }
 static inline int max(int a, int b) { return a > b ? a : b; }
 
-int map_uy = 45;  //map height
+
+/* Local function prototypes */
+static char **new_board(void);
+static void load_board(char **board, FILE *fp);
+static void display_board(char **board);
+
+
+int map_uy = 46;  //map height
 int map_ux = 90;  //map width
 int map_ly = 0;   //y-coordinate of map
 int map_lx = 0;	  //x-coordinate of map
@@ -109,7 +118,16 @@ void updateMap_I(set_t * fieldagents){
 	box(mapWin, 0 , 0);
 
 	//display players and their locations
-	addPlayers_I(fieldagents);  
+	FILE * fp = fopen("campusmap", "r");
+	char **board1 = new_board();
+
+	load_board(board1, fp);
+	display_board(board1);
+
+	fclose(fp);
+
+	//addPlayers_I(fieldagents);  
+
 }
 
 //helper function to display agents names and their locations in different colors
@@ -155,39 +173,73 @@ void addPlayers_I(set_t * fieldagents){
 }
 
 
+static char**
+new_board(void)
+{
+	//columns is vertical
+	//row is horizontals
 
-// void loadMap()
-// {
-//   const int size = NCOLS+2;  // include room for \n\0
-//   char line[size];	      // a line of input
-//   int y = 0;
+  // allocate a 2-dimensional array of NROWS x NCOLS
+  char **board = calloc(map_uy, sizeof(char*));
+  char *contents = calloc(map_uy * map_ux, sizeof(char));
+  if (board == NULL || contents == NULL) {
+    fprintf(stderr, "cannot allocate memory for board\r\n");
+    exit(1);
+  }
 
-//   // read each line and copy it to the board
-//   while ( fgets(line, size, fp) != NULL && y < NROWS) {
-//     int len = strlen(line);
-//     if (line[len-1] == '\n') {
-//       // normal line
-//       len--; // don't copy the newline
-//     } else {
-//       // overly wide line
-//       len = NCOLS;
-//       fprintf(stderr, "board line %d too wide for screen; truncated.\r\n", y);
-//       for (char c = 0; c != '\n' && c != EOF; c = getc(fp))
-// 	; // scan off the excess part of the line
-//     }
-//     strncpy(board[y++], line, len);
-//   }
+  // set up the array of pointers, one for each row
+  for (int y = 0; y < map_uy; y++) {
+    board[y] = contents + y * map_ux;
+  }
 
-//   if (!feof(fp)) {
-//     fprintf(stderr, "board too big for screen; truncated to %d lines\r\n", y);
-//   }
-// }
-
-
-void loadMap_I(void){
+  // fill the board with empty cells
+  for (int y = 0; y < map_uy; y++) {
+    for (int x = 0; x < map_ux; x++) {
+      board[y][x] = DEADCELL;
+    }
+  }
+  return board;
+}
 
 
-	FILE * fp = fopen("campusmpa", "r");
+
+static void
+load_board(char **board, FILE *fp)
+{
+  const int size = map_ux+2;  // include room for \n\0
+  char line[size];	      // a line of input
+  int y = 0;
+
+  // read each line and copy it to the board
+  while ( fgets(line, size, fp) != NULL && y < map_uy) {
+    int len = strlen(line);
+    if (line[len-1] == '\n') {
+      // normal line
+      len--; // don't copy the newline
+    } else {
+      // overly wide line
+      len = map_ux;
+      for (char c = 0; c != '\n' && c != EOF; c = getc(fp))
+	; // scan off the excess part of the line
+    }
+    strncpy(board[y++], line, len);
+  }
+
+  if (!feof(fp)) {
+    fprintf(stderr, "board too big for screen; truncated to %d lines\r\n", y);
+  }
+}
+
+static void
+display_board(char **board)
+{
+  for (int y = 0; y < map_uy; y++) {
+    for (int x = 0; x < map_ux; x++) {
+      move(y,x);	      // CURSES
+      addch(board[y][x]);     // CURSES
+    }
+  }
+  refresh();				      // CURSES
 }
 
 
