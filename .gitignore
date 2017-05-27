@@ -9,3 +9,9 @@ guide-agent/guideagent
 guide-agent/displaytest
 guide-agent/inboundmessagetest.c
 guide-agent/outboundmessagetest.c
+*/core
+guide-agent/file.c
+guide-agent/file.h
+guide-agent/server
+guide-agent/servertest.c
+logs/guideagent.log
