@@ -9,7 +9,7 @@ MAKE = make
 
 all: 
 	@echo "Making everything..."
-	$(MAKE) -C field_agent
+	$(MAKE) -C field-agent
 	$(MAKE) -C guide_agent
 	$(MAKE) -C game_server
 

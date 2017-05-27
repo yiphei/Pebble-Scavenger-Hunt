@@ -3,7 +3,7 @@
 # Yifei Yan
 
 PROG = commontest
-OBJS = krag.o team.o commontest.o
+OBJS = krag.o team.o # commontest.o
 LIB = common.a
 LIBS = -lm -lcurl
 LLIBS = ../libcs50/libcs50.a-Linux
@@ -11,10 +11,12 @@ LLIBS = ../libcs50/libcs50.a-Linux
 # uncomment the following to turn on verbose memory logging
 # TESTING=-DMEMTEST
 
-FLAGS = # -DNOPEBBLE # -DNOSLEEP # -DMEMTEST
+FLAGS = #-DNOPEBBLE # -DNOSLEEP # -DMEMTEST
+#PFLAGS = -DNOPEBBLE # -DNOSLEEP # -DMEMTEST
 
 CFLAGS = -Wall -pedantic -std=gnu11 -ggdb $(FLAGS)
 CFLAGS2 = -Wall -pedantic -std=gnu11 -ggdb $(TESTING) -I../common
+#PCFLAGS = 
 CC = gcc
 MAKE = make
 
@@ -30,9 +32,12 @@ $(PROG): $(OBJS) $(LLIBS)
 # Dependencies: object files depend on header files
 krag.o: krag.h team.h
 team.o: team.h krag.h network.h
-commontest.o: krag.h team.h
+#commontest.o: krag.h team.h
 
-.PHONY: clean sourcelist
+.PHONY: clean sourcelist pebble
+
+#pebble:
+#	ar cr $(LIB) $(OBJS)
 
 
 test: $(PROG)

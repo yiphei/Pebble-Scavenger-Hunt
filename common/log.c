@@ -5,7 +5,7 @@
  * GREP, CS50, May 2017
  */
 
-#ifdef NOPEBBLE
+//#ifdef NOPEBBLE
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,4 +38,4 @@ void logMessage(FILE *file, char *message, char *direction, connection_t *connec
 	printf("logged message\n");
 }
 
-#endif
+//#endif

@@ -1,4 +1,4 @@
-
+{
   "uuid": "aedf9e00-06d7-433c-98e0-1bb79422aa23",
   "shortName": "KA",
   "longName": "Key Assembly",
@@ -24,7 +24,7 @@
   "capabilities": [ "location" ], 
   "appjsDebug": "false", 
   "proxyWSSServerURL": "flume.cs.dartmouth.edu", 
-  "proxyWSSServerPort": 12345, 
+  "proxyWSSServerPort": 54087, 
   "targetServerURL": "flume.cs.dartmouth.edu", 
-  "targetServerPort": 54321
+  "targetServerPort": 36587
 }

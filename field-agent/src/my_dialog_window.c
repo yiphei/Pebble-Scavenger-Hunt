@@ -133,6 +133,6 @@ void my_dialog_window_push(char *p_type, char *p_text)
 
 void my_dialog_window_pop()
 {
-  window_unload(my_dialog_window);
+  //window_unload(my_dialog_window);
   window_stack_pop(my_dialog_window);
 }

@@ -8,6 +8,7 @@ export PEBBLE_QEMU=localhost:12344                                              
 alias pebbuild="pebble build"                                                   # compile & build project into '.pbw' file
 alias pebclean="pebble clean"                                                   # delete all files in ./build
 
+# pebble physical device (WiFi) aliases
 alias pebphoneping="pebble ping --phone ${PEBBLE_PHONE}"                        # ping pebble via phone by IP
 alias pebphoneinstall="pebble install --phone ${PEBBLE_PHONE}"                  # install 'pbw' onto connected phone over WiFi (by IP)
 alias pebphoneinstalllogs="pebphoneinstall --logs"                              # install 'pbw' onto connected phone over WiFi (by IP; immediately attach & get log info)
