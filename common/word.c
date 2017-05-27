@@ -6,6 +6,7 @@
  * Michael Perezous, CS50, May 2017
  */
 
+#ifdef NOPEBBLE
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
@@ -19,3 +20,4 @@ void NormalizeWord(char *word) {
 	}
 	
 }
+#endif
