@@ -14,7 +14,7 @@
 
 /******** function declaration ********/
 static int parseHelper(char *message, message_t *parsedMessage);
-static char * myStrtok(char *s, char *delim);
+char * myStrtok(char *s, char *delim);
 /******** function definition *********/
 
 // parses message into a message struct using helper function to factor
