@@ -41,11 +41,9 @@ static void badOpCodeHandler(char* gameId, char *messagep, message_t *message, h
 // validate functions           
 static bool validateMessageParse(char* gameId, message_t* message, connection_t*, FILE* log);
 static int validateKrag(char* gameId, char* kragId, double latitude, double longitude, char* team, hashtable_t* teams, hashtable_t* krags);
-static bool validateFAClaim(char* gameId, message_t* message, hashtable_t* teams, hashtable_t* krags);
-static bool validateFALog(char* gameId, message_t* message, hashtable_t* teams, hashtable_t* krags);
-static bool validateGAStatus(char* gameId, message_t* message, hashtable_t* teams, hashtable_t* krags);
-static bool validateGAHint(char* gameId, message_t* message, hashtable_t* teams, hashtable_t* krags);
-static bool validateFALocation(char* gameId, message_t* message, hashtable_t* teams, hashtable_t* krags);
+static bool validateFA(char* gameId, message_t* message, hashtable_t* teams, hashtable_t* krags);
+static bool validateGA(char* gameId, message_t* message, hashtable_t* teams, hashtable_t* krags);
+static bool validatePebbleId(char* pebbleId, char* team, hashtable_t* teams);
 
 // message sending functions
 static bool sendGameStatus(char* gameId, char* guideId, int numClaimed, int numKrags, connection_t* connection, FILE* log);
@@ -230,7 +228,7 @@ int gameserver(char* gameId, char* kff, char* sf, int port)
 
 	// open log file
 	FILE* log;
-	if((log = fopen("../logs/gameserver.log", "w")) == NULL) {
+	if((log = fopen("../logs/gameserver.log", "a")) == NULL) {
 		fprintf(stderr, "error opening log file\n");
 		return 5;
 	}
@@ -255,9 +253,8 @@ int gameserver(char* gameId, char* kff, char* sf, int port)
 	while(gameInProgress){
 		
 		// initialize a return connection to receive from
-		struct sockaddr_in* rAddr; // could be replaced by saved address
-		rAddr->sin_family = AF_INET;
-		connection_t* rconn = newConnection((struct sockaddr *) socket, rAddr);
+		struct sockaddr rAddr;
+		connection_t* rconn = newConnection(socket, rAddr);
 		if(rconn == NULL){
 			continue; // skip message if connection is NULL
 		}
@@ -279,7 +276,7 @@ int gameserver(char* gameId, char* kff, char* sf, int port)
 		// call function from function table to handle messages
 		for (int fn = 0; opCodes[fn].opCode != NULL; fn++) {
 			if(strcmp(message->opCode, opCodes[fn].opCode) == 0) {
-				(*opCodes[fn].func)(messageString, message, teams, krags, rconn, log);
+				(*opCodes[fn].func)(gameId, messageString, message, teams, krags, rconn, log);
 				free(messageString);
 				deleteMessage(message);
 				break;
@@ -310,8 +307,9 @@ static void FAClaimHandler(char* gameId, char *messagep, message_t *message, has
 {
 
 	logMessage(log, messagep, "FROM", connection); // log message
-	// validate fields
-	if(!validateFAClaim(gameId, message, teams, krags)){
+	
+	// validate team and player
+	if(!validateFA(gameId, message, teams, krags)){
 		return;
 	}
 
@@ -337,9 +335,15 @@ static void FAClaimHandler(char* gameId, char *messagep, message_t *message, has
 		// send the updated message
 		sendSecret(gameId, message->guideId, getRevealedString(message->team,teams), connection,log);
 
-		// add two clues to the team
-		randomClue(message->team, krags, teams);
-		//sendClue
+		krag_t* krag; // initialize the krag
+
+		// add two clues to the team and send them
+		for(int i = 0; i < 2; i++){
+			// get random clue
+			krag = randomClue(message->team, krags, teams);
+			//sendClue
+			sendClue(gameId, message->guideId, krag->clue, krag->latitude, krag->longitude, connection, log);
+		}
 	}
 }
 
@@ -351,12 +355,6 @@ static void FAClaimHandler(char* gameId, char *messagep, message_t *message, has
 static void FALogHandler(char* gameId, char *messagep, message_t *message, hashtable_t* teams, hashtable_t* krags, connection_t *connection, FILE *log)
 {
 	logMessage(log, messagep, "FROM", connection); // log message
-
-	// TODO: validate message structure
-
-	// TODO: log the text to the field agent log
-
-	
 }
 
 /*
@@ -369,13 +367,31 @@ static void GAStatusHandler(char* gameId, char *messagep, message_t *message, ha
 
 	logMessage(log, messagep, "FROM", connection); // log message
 
-	// TODO: validate message structure
+	// validate the team and player
+	if(!validateGA(gameId, message, teams, krags)){
+		return;
+	}
 
-	// TODO: add the guide agent to the game
+	// Add the guide agent if it doesn't exist
+	// Return val is 1 if the agent already existed, 0 otherwise
+	int returnVal = addGuideAgent(message->player, message->pebbleId, message->team, gameId, connection, teams);
 
-	// TODO: respond with GAME_STATUS (if requested)
-
-	// TODO: send a GS_AGENT to GA for each FA (if requested)
+	// if the player is new or if a status is requested
+	if(returnVal == 0 || message->statusReq == 1){
+		team_t* team = hashtable_find(teams, message->team);
+		if(team == NULL){
+			return;
+		}
+		// respond with GAME_STATUS
+		if(!sendGameStatus(gameId, message->guideId, team->claimed, totalKrags(krags), connection,log)){
+			return;
+		}
+	
+		// send GS_AGENT messages
+		if(!sendAllGSAgents(gameId, message->team, teams, connection, log)){
+			return;
+		}
+	}
 
 	
 }
@@ -390,11 +406,24 @@ static void GAHintHandler(char* gameId, char *messagep, message_t *message, hash
 
 	logMessage(log, messagep, "FROM", connection); // log message
 
-	// TODO: validate message structure
+	// validate message structure
+	if(!validateGA(gameId, message, teams, krags)){
+		return;
+	}
 
-	// TODO: forward the hint to the appropriate field agent(s)
+	if(!validatePebbleId){
+		return;
+	}
 
-	
+	// forward to all field agents
+	if(strcmp(message->pebbleId, "*") == 0){
+		// TODO: forwad hints
+		printf("Finish forward hints code\n");
+	} else{
+		printf("Finish forward one hint code\n");
+		// TODO: forward to one field agent
+		//forwardHint(message->hint, connection_t* newConnection, log);
+	}
 }
 
 /*
@@ -407,13 +436,29 @@ static void FALocationHandler(char* gameId, char *messagep, message_t *message, 
 
 	logMessage(log, messagep, "FROM", connection); // log message
 
-	// TODO: validate message structure
+	// validate the Field Agent fields
+	if(!validateFA(gameId, message, teams, krags)){
+		return;
+	}
 
-	// TODO: add new field agent
+	// add new field agent if it doesn't exist
+	int returnVal = addFieldAgent(message->player, message->pebbleId, message->team, gameId, connection, teams);
 
-	// TODO: update the field agent struct with the new location
+	// update the field agent struct with the new location
+	updateLocation(message->player, message->team, message->longitude, message->latitude, teams);
 
-	// TODO: send GAME_STATUS (if requested)
+	// send GAME_STATUS (if requested)
+	if(returnVal == 0 || message->statusReq == 1){
+		// get the team
+		team_t* team = hashtable_find(teams, message->team);
+		if(team == NULL){
+			return;
+		}
+		// respond with GAME_STATUS
+		if(!sendGameStatus(gameId, message->guideId, team->claimed, totalKrags(krags), connection,log)){
+			return;
+		}
+	}
 
 }
 
@@ -428,7 +473,7 @@ static void badOpCodeHandler(char* gameId, char *messagep, message_t *message, h
 	logMessage(log, messagep, "FROM", connection); // log message
 
 	// send message
-	if(!sendResponse(message->gameId, "SH_ERROR_INVALID_OPCODE", message->opCode)){
+	if(!sendResponse(message->gameId, "SH_ERROR_INVALID_OPCODE", message->opCode, connection, log)){
 		fprintf(stderr, "Unable to send badOpCode message\n");
 		return;
 	}
@@ -469,13 +514,16 @@ static int validateKrag(char* gameId, char* kragId, double latitude, double long
 {
 	// get longitude and latitude
 	krag_t* krag = hashtable_find(krags, kragId);
+	if(krag == NULL){
+		return 2; // krag doesn't exist
+	}
 	double kragLatitude = (double)krag->latitude;
 	double kragLongitude = (double)krag->longitude;
 
 	// calculate differences
 	double meters = 10;
 	double latDiff = 0.0000089 * meters; // calculate 10 meters difference for lat
-	double longDiff = latDiff/cos(latitude*0.018) // calculate 10 meters difference for long
+	double longDiff = latDiff/cos(latitude*0.018); // calculate 10 meters difference for long
 	
 	// create a box of 10 meter radius around the position
 	double newLatPos = kragLatitude + latDiff; 
@@ -483,7 +531,7 @@ static int validateKrag(char* gameId, char* kragId, double latitude, double long
 	double newLongPos = kragLongitude + longDiff;
 	double newLongNeg = kragLongitude - longDiff;
 	
-	if((latitude <= newLatPos && latitude >= newLatNeg && longitude <= newLongPos && longitude >= newLongNeg){
+	if(latitude <= newLatPos && latitude >= newLatNeg && longitude <= newLongPos && longitude >= newLongNeg){
 		return addKrag(team, kragId, krags, teams); // add krag if not already found
 	} else {
 		return 2; // return invalid find
@@ -492,58 +540,72 @@ static int validateKrag(char* gameId, char* kragId, double latitude, double long
 
 
 /*
-* Validates FA_CLAIM message
+* Validates all fields for a Field agent
 * Return true if valid
 *
 */
-static bool validateFAClaim(char* gameId, message_t* message, hashtable_t* teams, hashtable_t* krags)
+static bool validateFA(char* gameId, message_t* message, hashtable_t* teams, hashtable_t* krags)
 {
+	// check for proper gameId
 	if(gameId != message->gameId){
 		return false;
 	}
-	return true;
-}
+	// check that the team exists
+	team_t* team = hashtable_find(teams, message->team);
+	if(team == NULL){
+		return false;
+	}
 
+	// check that the player exists
+	fieldAgent_t* fa = set_find(team->FAset, message->player);
+	if(fa == NULL){
+		return false;
+	}
 
-/*
-* Validates FA_LOG message
-* Return true if valid
-*
-*/
-static bool validateFALog(char* gameId, message_t* message, hashtable_t* teams, hashtable_t* krags)
-{
-	return true;
-}
+	// check that the pebble Id is valid
+	if(!validatePebbleId){
+		return false;
+	}
 
-
-/*
-* Validates GA_STATUS message
-* Return true if valid
-*
-*/
-static bool validateGAStatus(char* gameId, message_t* message, hashtable_t* teams, hashtable_t* krags)
-{
-	return true;
-}
-
-
-/*
-* Validates GA_HINT message
-* Return true if valid
-*
-*/
-static bool validateGAHint(char* gameId, message_t* message, hashtable_t* teams, hashtable_t* krags)
-{
-	return true;
+	return true; // return true for success
 }
 
 /*
-* Validates FA_LOCATION message
+* Validates all fields for a Guide Agent
 * Return true if valid
 *
 */
-static bool validateFALocation(char* gameId, message_t* message, hashtable_t* teams, hashtable_t* krags)
+static bool validateGA(char* gameId, message_t* message, hashtable_t* teams, hashtable_t* krags)
 {
+	// check for proper gameId
+	if(gameId != message->gameId){
+		return false;
+	}
+	// check that the team exists
+	team_t* team = hashtable_find(teams, message->team);
+	if(team == NULL){
+		return false;
+	}
+
+	// check that the player exists
+	if(team->guideAgent == NULL){
+		return false;
+	}
+
+	// check that the guideId is correct
+	if(strcmp(team->guideAgent->guideID,message->guideId) != 0){
+		return false;
+	}
+
+	return true; // return true for success
+}
+
+/*
+* Validates the pebble ID
+*
+*
+*/
+static bool validatePebbleId(char* pebbleId, char* team, hashtable_t* teams){
 	return true;
 }
 
