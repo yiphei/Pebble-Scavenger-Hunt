@@ -11,7 +11,7 @@ LLIBS = ../libcs50/libcs50.a-Linux
 # uncomment the following to turn on verbose memory logging
 # TESTING=-DMEMTEST
 
-FLAGS = # -DNOSLEEP # -DMEMTEST 
+FLAGS = # -DNOSLEEP # -DMEMTEST # -DNOPEBBLE
 
 CFLAGS = -Wall -pedantic -std=gnu11 -ggdb $(FLAGS)
 CFLAGS2 = -Wall -pedantic -std=gnu11 -ggdb $(TESTING) -I../common
