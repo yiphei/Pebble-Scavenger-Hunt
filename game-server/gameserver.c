@@ -26,6 +26,7 @@
 
 /******** globals *******/
 bool gameInProgress;
+int MAXOUTMESSAGELENGTH = 400; // used for mallocing out-messages
 
 /******* functions *******/
 int gameserver(char* gameId, char* kff, char* sf, int port);
@@ -605,7 +606,8 @@ static bool validateGA(char* gameId, message_t* message, hashtable_t* teams, has
 *
 *
 */
-static bool validatePebbleId(char* pebbleId, char* team, hashtable_t* teams){
+static bool validatePebbleId(char* pebbleId, char* team, hashtable_t* teams)
+{
 	return true;
 }
 
@@ -616,6 +618,34 @@ static bool validatePebbleId(char* pebbleId, char* team, hashtable_t* teams){
 */
 static bool sendGameStatus(char* gameId, char* guideId, int numClaimed, int numKrags, connection_t* connection, FILE* log)
 {
+	// allocate enough space needed for the  message 
+	char *messagep = malloc(sizeof(char) * MAXOUTMESSAGELENGTH);
+
+	if (messagep == NULL) {
+		return false;
+	}
+
+	// construct message inductively
+	strcat(messagep, "opCode=GAME_STATUS|gameId=");
+	strcat(messagep, gameId);
+	strcat(messagep, "|guideId=");
+	strcat(messagep, guideId);
+	strcat(messagep, "|numClaimed=");
+	strcat(messagep, numClaimed);
+	strcat(messagep, "|numKrags=");
+	strcat(messagep, numKrags);
+
+	// send the message
+	if (!sendMessage(messagep, connection)){
+		return false;
+	}
+
+	// log the message
+	logMessage(log, messagep, "TO", connection);
+
+	// free the message
+	free(messagep);
+
 	return true;
 }
 
@@ -626,6 +656,16 @@ static bool sendGameStatus(char* gameId, char* guideId, int numClaimed, int numK
 */
 static bool forwardHint(char* hintMessage, connection_t* connection, FILE* log)
 {
+	// send the message
+	if (!sendMessage(hintMessage, connection)){
+		return false;
+	}
+
+	// log the message
+	logMessage(log, hintMessage, "TO", connection);
+
+	// free the message
+	free(messagep);
 	return true;
 }
 
@@ -646,6 +686,36 @@ static bool sendAllGSAgents(char* gameId, char* team, hashtable_t* teams, connec
 */
 static bool sendClue(char* gameId, char* guideId, char* clue, double latitude, double longitude, connection_t* connection, FILE* log)
 {
+	// allocate enough space needed for the  message 
+	char *messagep = malloc(sizeof(char) * MAXOUTMESSAGELENGTH);
+
+	if (messagep == NULL) {
+		return false;
+	}
+
+	// construct message inductively
+	strcat(messagep, "opCode=GS_CLUE|gameId=");
+	strcat(messagep, gameId);
+	strcat(messagep, "|guideId=");
+	strcat(messagep, guideId);
+	strcat(messagep, "|latitude=");
+	strcat(messagep, latitude);
+	strcat(messagep, "|longitude=");
+	strcat(messagep, longitude);
+	strcat(messagep, "|clue=");
+	strcat(messagep, clue);
+
+	// send the message
+	if (!sendMessage(messagep, connection)){
+		return false;
+	}
+
+	// log the message
+	logMessage(log, messagep, "TO", connection);
+
+	// free the message
+	free(messagep);
+
 	return true;
 }
 
@@ -656,6 +726,32 @@ static bool sendClue(char* gameId, char* guideId, char* clue, double latitude, d
 */
 static bool sendSecret(char* gameId, char* guideId, char* secret, connection_t* connection, FILE* log)
 {
+	// allocate enough space needed for the  message 
+	char *messagep = malloc(sizeof(char) * MAXOUTMESSAGELENGTH);
+
+	if (messagep == NULL) {
+		return false;
+	}
+
+	// construct message inductively
+	strcat(messagep, "opCode=GS_SECRET|gameId=");
+	strcat(messagep, gameId);
+	strcat(messagep, "|guideId=");
+	strcat(messagep, guideId);
+	strcat(messagep, "|secret=");
+	strcat(messagep, secret);
+
+	// send the message
+	if (!sendMessage(messagep, connection)){
+		return false;
+	}
+
+	// log the message
+	logMessage(log, messagep, "TO", connection);
+
+	// free the message
+	free(messagep);
+
 	return true;
 }
 
@@ -666,6 +762,33 @@ static bool sendSecret(char* gameId, char* guideId, char* secret, connection_t* 
 */
 static bool sendGameOver(char* gameId, hashtable_t* teams, FILE* log)
 {
+	// allocate enough space needed for the  message 
+	char *messagep = malloc(sizeof(char) * MAXOUTMESSAGELENGTH);
+
+	if (messagep == NULL) {
+		return false;
+	}
+
+	// construct message inductively
+	strcat(messagep, "opCode=GS_SECRET|gameId=");
+	strcat(messagep, gameId);
+	strcat(messagep, "|secret=");
+	strcat(messagep, secret);
+
+
+
+	// send the message
+	if (!sendMessage(messagep, connection)){
+		return false;
+	}
+
+	// log the message
+	logMessage(log, messagep, "TO", connection);
+
+	// free the message
+	free(messagep);
+
+	return true;
  	return true;
 }
 
