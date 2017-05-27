@@ -447,7 +447,7 @@ void deleteMessage(message_t *message) {
  * SUCH DAMAGE.
  */
 
-static char *
+char *
 myStrtok(char *s, char *delim)
 {
 	char *spanp;
