@@ -84,25 +84,20 @@ main(int argc, char *argv[])
 
   updateClues_I(clues);
 
-    team_t * team = hashtable_find(teamhash, "one");
+  team_t * team = hashtable_find(teamhash, "one");
 
   team->claimed = 5;
 
-  char * message = input_I();
+  char * message = "hello";
 
-  printf("string:%s", message);
+  while (strcmp(message, "end") != 0 ){
 
-  if ( strcmp(message, "end") == 0){
-
-     gameOver_I(teamhash);
-
+    message = input_I();
   }
+
+  gameOver_I(teamhash);
+
+
+
 }
-
-
-
-//mygcc -o displaytest displaytest.c display.c display.h -lncurses
-
-
-//mygcc -o displaytest displaytest.c display.c display.h ../common/team.h ../libcs50/hashtable.h ../libcs50/set.h -lncurses
 

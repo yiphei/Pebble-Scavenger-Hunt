@@ -313,6 +313,10 @@ void updateKragsClaimed_I(int claimed){
 // caller must free pointer
 char * input_I(void){
 
+	//erase previosu input
+	werase(inputWin);
+	box(inputWin, 0 , 0);
+
 	int c; //the character
 	char * string = malloc(141);  //the hint
 
@@ -330,7 +334,6 @@ char * input_I(void){
 
   wrefresh(inputWin);
   string[pos] = '\0';  //add terminate charcters
-  refresh();
   return string;
 }
 
