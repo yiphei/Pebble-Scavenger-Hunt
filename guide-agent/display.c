@@ -22,7 +22,11 @@
 static int NROWS;
 static int NCOLS;
 
-static const char EMPTY = ' '; 
+static const char DEADCELL = ' ';
+
+static inline int min(int a, int b) { return a < b ? a : b; }
+static inline int max(int a, int b) { return a > b ? a : b; }
+
 
 /* Local function prototypes */
 static char **new_board(void);
@@ -44,9 +48,9 @@ WINDOW * statsWin;   //window where game stats are displayed
 WINDOW * cluesWin;   //window where all avaible clues are displayed
 WINDOW * inputWin;   //window where the input box is displayed
 
-//From life.c program of David Kotz.
-void initialize_curses(){
-
+//from life.c of David Kotz
+void initialize_curses()
+{
   // initialize the screen - which defines LINES and COLS
   initscr();
 
@@ -61,6 +65,8 @@ void initialize_curses(){
   start_color();
 }
 
+
+//source  http://www.tldp.org/HOWTO/NCURSES-Programming-HOWTO/windows.html
 WINDOW * createWin_I(int height, int width, int starty, int startx)
 {	
 	WINDOW *local_win;
@@ -69,6 +75,8 @@ WINDOW * createWin_I(int height, int width, int starty, int startx)
 	wrefresh(local_win);	
 	return local_win;
 }
+
+
 
 void initializeWindows_I(void){
 	int x,y;
@@ -109,17 +117,17 @@ void updateMap_I(set_t * fieldagents){
 	werase(mapWin);
 	box(mapWin, 0 , 0);
 
-	//load the campus map and display it
+	//display players and their locations
 	FILE * fp = fopen("campusmap", "r");
-	char **board = new_board();
-	load_board(board, fp);
-	display_board(board);
+	char **board1 = new_board();
+
+	load_board(board1, fp);
+	display_board(board1);
+
 	fclose(fp);
 
-	//display players and their locations
-	addPlayers_I(fieldagents); 
+	//addPlayers_I(fieldagents);  
 
-	free(board);
 }
 
 //helper function to display agents names and their locations in different colors
@@ -130,20 +138,20 @@ static void displayAgents(void *arg, const char *key, void *item)
 
 	//if y > 7, then no more colors avaible, so restart from color 1
 	if ( *y > 7){
-		attron(COLOR_PAIR(*y - 7));  //turn the color on
+		wattron(mapWin, COLOR_PAIR(*y - 7));  //turn the color on
 	}
 	else{
-		attron(COLOR_PAIR(*y));   //turn the color on
+		wattron(mapWin, COLOR_PAIR(*y));   //turn the color on
 	}
   	fieldAgent_t * fa = item;
   	double longitude = fa->longitude;
   	double latitude = fa->latitude;
 
- 	mvprintw( *y, 1,  "%s", key);  //print agent name
- 	mvprintw(latitude, longitude,  "*", key);   //print agent lcoation
-	refresh();
+ 	mvwprintw(mapWin, *y, 1,  "%s\n", key);  //print agent name
+ 	mvwprintw(mapWin, latitude, longitude,  "*", key);   //print agent lcoation
+	wrefresh(mapWin);
 
-	attroff( COLOR_PAIR(*y));  //turn the color off
+	wattroff(mapWin, COLOR_PAIR(*y));  //turn the color off
 	(*y)++;
 
 }
@@ -153,26 +161,25 @@ void addPlayers_I(set_t * fieldagents){
 
 	int y = 1; //y coordinate where the agent name is displayed
 
-	//initialize color pairs for the different field agents
-	init_pair(1,COLOR_RED, COLOR_BLACK); 
-	init_pair(2,COLOR_BLUE, COLOR_BLACK);
-	init_pair(3,COLOR_GREEN, COLOR_BLACK);
-	init_pair(4,COLOR_YELLOW, COLOR_BLACK);
-	init_pair(5,COLOR_MAGENTA, COLOR_BLACK);
-	init_pair(6,COLOR_CYAN, COLOR_BLACK);
-	init_pair(7,COLOR_WHITE, COLOR_BLACK);
+		//initialize color pairs for the different field agents
+	 init_pair(1,COLOR_RED, COLOR_BLACK); 
+	 init_pair(2,COLOR_BLUE, COLOR_BLACK);
+	 init_pair(3,COLOR_GREEN, COLOR_BLACK);
+	 init_pair(4,COLOR_YELLOW, COLOR_BLACK);
+	 init_pair(5,COLOR_MAGENTA, COLOR_BLACK);
+	 init_pair(6,COLOR_CYAN, COLOR_BLACK);
+	 init_pair(7,COLOR_WHITE, COLOR_BLACK);
 	set_iterate(fieldagents, &y, displayAgents);   //display field agents and their locations with different colors
 }
 
-/* 
- * allocate and erase a new board - fill with EMPTY
- * From life.c program of David Kotz.
- */
+
 static char**
 new_board(void)
 {
+	//columns is vertical
+	//row is horizontals
 
-  // allocate a 2-dimensional array of map_uy x map_ux
+  // allocate a 2-dimensional array of NROWS x NCOLS
   char **board = calloc(map_uy, sizeof(char*));
   char *contents = calloc(map_uy * map_ux, sizeof(char));
   if (board == NULL || contents == NULL) {
@@ -188,19 +195,14 @@ new_board(void)
   // fill the board with empty cells
   for (int y = 0; y < map_uy; y++) {
     for (int x = 0; x < map_ux; x++) {
-      board[y][x] = EMPTY;
+      board[y][x] = DEADCELL;
     }
   }
-
-  free(contents);
   return board;
 }
 
 
-/* 
- * Load the board from the campus map file.
- * From life.c program of David Kotz
- */
+
 static void
 load_board(char **board, FILE *fp)
 {
@@ -228,12 +230,6 @@ load_board(char **board, FILE *fp)
   }
 }
 
-
-/* 
- * Display the board onto the screen; we just copy all chars 
- * of the board to the screen.
-  * From life.c program of David Kotz
- */
 static void
 display_board(char **board)
 {
@@ -273,7 +269,7 @@ static void printClues(void *arg, const char *key, void *item){
 
 	//make sure clues dont go out the window boundaries
 	if ( *ly < max){
-		mvprintw( *ly + 2, x + 1,  "%s", clue);  //print the clue
+		mvprintw( *ly + 2, x + 1,  "%s\n", clue);  //print the clue
 		refresh();
 	}
 	(*ly)++;  //increment y coordinate
@@ -289,15 +285,14 @@ void updateClues_I(set_t * clues){
 	int lx, ly;
 	getbegyx(cluesWin, ly, lx);  //get upper left coordinates
 	set_iterate(clues, &ly, printClues);  //print all clues
-
-	lx++; //no needed at all. This is for getting rid of compiler warnin
+	wrefresh(cluesWin);
 
 }
 
 void updateTotalKrags_I(int totalKrags){
 
 	//display total krags
-	mvwprintw(statsWin, 2, 1,  "Total krags in game: %d", totalKrags);
+	mvwprintw(statsWin, 2, 1,  "Total krags in game: %d\n", totalKrags);
 	wrefresh(statsWin);
 }
 
@@ -305,17 +300,13 @@ void updateTotalKrags_I(int totalKrags){
 void updateKragsClaimed_I(int claimed){
 
 	//display krags claimed
-	mvwprintw(statsWin, 3, 1,  "Total krags claimed: %d", claimed);
+	mvwprintw(statsWin, 3, 1,  "Total krags claimed: %d\n", claimed);
 	wrefresh(statsWin);
 }
 
 
 // caller must free pointer
 char * input_I(void){
-
-	//erase previosu input
-	werase(inputWin);
-	box(inputWin, 0 , 0);
 
 	int c; //the character
 	char * string = malloc(141);  //the hint
@@ -334,24 +325,25 @@ char * input_I(void){
 
   wrefresh(inputWin);
   string[pos] = '\0';  //add terminate charcters
+  refresh();
   return string;
 }
 
-//helper function to print out game over stats like teamname, number of players, and
-// krags claimed
+
 static void printGameOver(void *arg, const char *key, void *item){
 
 	int *y = (int *)arg;
 	(*y)++;
 	team_t * team = item;
 
-	mvprintw( *y , 30,"\n", key); //print space
+	mvprintw( *y , 30,"\n", key);
 	(*y)++;
-	mvprintw( *y , 30,"Team: %s\n", key);  //print teamname
+	mvprintw( *y , 30,"Team: %s\n", key);
 	(*y)++;
-	mvprintw(*y, 30, "Players: %d\n", team->numPlayers);  //print number of players
+	mvprintw(*y, 30, "Players: %d\n", team->numPlayers);
 		(*y)++;
-	mvprintw(*y, 30, "Krasgs claimed: %d\n", team->claimed);  //print n of krags claimed
+	mvprintw(*y, 30, "Krasgs claimed: %d\n", team->claimed);
+
 	refresh();
 
 }
@@ -383,7 +375,8 @@ void gameOver_I(hashtable_t * teamhash){
 
 	mvprintw( y+ 3, x,"Press any key to exit\n");
 	getch();
-  	endwin();  //end ncurses
+  	endwin();
+
 }
 
 
