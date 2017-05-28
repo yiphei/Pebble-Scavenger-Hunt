@@ -56,8 +56,10 @@ static bool sendSecret(char* gameId, char* guideId, char* secret, connection_t* 
 static bool sendGameOver(char* gameId, hashtable_t* teams, char* secret, FILE* log);
 static bool sendTeamRecord(char* gameId, hashtable_t* teams, FILE* log);
 static bool sendResponse(char* gameId, char* respCode, char* text, connection_t* connection, FILE* log);
-static bool sendToAllFA(char* messagep, char* team, hashtable_t* teams);
+static bool sendToAllFA(char* messagep, team_t* team);
 static void sendToALLFAHelper(void* arg, const char* key, void* item);
+static void sendToAll(void* arg, const char* key, void* item);
+static void sendTeamRecordToAll(void* arg, const char* key, void* item);
 
 /***** structs *****/
 /********* functions dispatch table *********/
@@ -294,8 +296,9 @@ int gameserver(char* gameId, char* kff, char* sf, int port)
 	}
 
 	// end the game
-	sendGameOver(gameId, teams, secret, log);
 	sendTeamRecord(gameId, teams, log);
+	sendGameOver(gameId, teams, secret, log);
+	
 
 	// clean up
 	deleteKragHash(krags); // delete the krag hashtable
@@ -696,7 +699,11 @@ static bool forwardHint(char* hintMessage, connection_t* connection, FILE* log)
 static bool forwardHintToAll(char* hintMessage, char* team, hashtable_t* teams, FILE* log)
 {
 	// send the message
-	sendToAllFA(hintMessage, team, teams);
+	team_t* teamObj = hashtable_find(teams, team);
+	sendToAllFA(hintMessage, teamObj);
+
+	// log the message
+	logMessage(log, hintMessage, "TO", NULL);
 
 	return true;
 }
@@ -812,24 +819,21 @@ static bool sendGameOver(char* gameId, hashtable_t* teams, char* secret, FILE* l
 	}
 
 	// construct message inductively
-	strcat(messagep, "opCode=GS_SECRET|gameId=");
+	strcat(messagep, "opCode=GAME_OVER|gameId=");
 	strcat(messagep, gameId);
 	strcat(messagep, "|secret=");
 	strcat(messagep, secret);
 
 
 	// send the message
-	if (!sendMessage(messagep, connection)){
-		return false;
-	}
+	hashtable_iterate(teams, messagep, sendToAll);
 
 	// log the message
-	logMessage(log, messagep, "TO", connection);
+	logMessage(log, messagep, "TO", NULL);
 
 	// free the message
 	free(messagep);
 
-	return true;
  	return true;
 }
 
@@ -840,6 +844,26 @@ static bool sendGameOver(char* gameId, hashtable_t* teams, char* secret, FILE* l
 */
 static bool sendTeamRecord(char* gameId, hashtable_t* teams, FILE* log)
 {
+	// allocate enough space needed for the  message 
+	char *messagep = malloc(sizeof(char) * MAXOUTMESSAGELENGTH);
+
+	if (messagep == NULL) {
+		return false;
+	}
+
+	// construct message inductively (only the first part)
+	strcat(messagep, "opCode=TEAM_RECORD|gameId=");
+	strcat(messagep, gameId);
+
+
+	// send the message
+	hashtable_iterate(teams, messagep, sendTeamRecordToAll);
+
+	// log the message
+	logMessage(log, messagep, "TO", NULL);
+
+	// free the message
+	free(messagep);
 	return true;
 }
 
@@ -850,8 +874,8 @@ static bool sendTeamRecord(char* gameId, hashtable_t* teams, FILE* log)
 */
 static bool sendResponse(char* gameId, char* respCode, char* text, connection_t* connection, FILE* log)
 {
-	// allocate full space needed for the  message (140+20 to account for unknown characters)
-	char *messagep = malloc(strlen(gameId) + strlen(respCode) + 160);
+	// allocate full space needed for the  message
+	char *messagep = malloc(MAXOUTMESSAGELENGTH);
 
 	if (messagep == NULL) {
 		return false;
@@ -884,10 +908,10 @@ static bool sendResponse(char* gameId, char* respCode, char* text, connection_t*
 *
 *
 */
-static bool sendToAllFA(char* messagep, char* team, hashtable_t* teams)
+static bool sendToAllFA(char* messagep, team_t* team)
 {	
 	// get the set of field agents
-	set_t* fieldAgents = getAllFieldAgents(team, teams);
+	set_t* fieldAgents = team->FAset;
 	// iterate through the set sending the message
 	set_iterate(fieldAgents, messagep, sendToALLFAHelper);
 }
@@ -904,4 +928,59 @@ static void sendToALLFAHelper(void* arg, const char* key, void* item)
 	fieldAgent_t* agent = (fieldAgent_t*)item; // cast item
 	sendMessage(message, agent->conn); // send the message
 
+}
+
+/*
+* Sends a message to every player
+*
+*
+*/
+static void sendToAll(void* arg, const char* key, void* item)
+{
+	char* message = (char*)arg; // cast arg
+	team_t* team = (team_t*)item; // cast item
+	// send message to GA
+	sendMessage(message, team->guideAgent->conn);
+
+	// send message to all FAs
+	sendToAllFA(message, team);
+}
+
+/*
+* Constructs and sends Team Record to all
+* 
+*
+*/
+static void sendTeamRecordToAll(void* arg, const char* key, void* item)
+{
+	char* message = (char*)arg; // cast arg
+	char* newMessage = malloc(sizeof(message)); // copy the message
+	strcpy(newMessage, message);
+	team_t* team = (team_t*)item; // cast item
+
+	// convert numClaimed to a string
+	int numClaimedDigits = (int)((ceil(log10(team->claimed))+1)); // get the length of the string
+	char* numClaimedStr= malloc(numClaimedDigits*sizeof(char));
+	sprintf(numClaimedStr,"%d", team->claimed);
+
+	// convert numPlayers to a string
+	int numPlayersDigits = (int)((ceil(log10(team->claimed))+1)); // get the length of the string
+	char* numPlayersStr= malloc(numPlayersDigits*sizeof(char));
+	sprintf(numPlayersStr,"%d", team->numPlayers);
+
+	// construct the message inductively
+	strcat(newMessage, "|team=");
+	strcat(newMessage, key);
+	strcat(newMessage, "|numPlayers=");
+	strcat(newMessage, numPlayersStr);
+	strcat(newMessage, "|numClaimed=");
+	strcat(newMessage, numClaimedStr);
+
+	// send message to GA
+	sendMessage(newMessage, team->guideAgent->conn);
+
+	// send message to all FAs
+	sendToAllFA(newMessage, team);
+
+	free(newMessage);
 }
