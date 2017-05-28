@@ -6,7 +6,7 @@
 *
 * mygcc gameserver.c ../common/network.h ../common/team.h ../common/message.h ../common/krag.h ../common/log.h ../libcs50/hashtable.h -o gameserver
 *
-* Tony DiPadova, May 2017
+* GREP, May 2017
 */
 
 #include <stdio.h>
@@ -52,10 +52,11 @@ static bool forwardHint(char* hintMessage, connection_t* connection, FILE* log);
 static bool sendAllGSAgents(char* gameId, char* team, hashtable_t* teams, connection_t* connection, FILE* log);
 static bool sendClue(char* gameId, char* guideId, char* clue, double latitude, double longitude, connection_t* connection, FILE* log);
 static bool sendSecret(char* gameId, char* guideId, char* secret, connection_t* connection, FILE* log);
-static bool sendGameOver(char* gameId, hashtable_t* teams, FILE* log);
+static bool sendGameOver(char* gameId, hashtable_t* teams, char* secret, FILE* log);
 static bool sendTeamRecord(char* gameId, hashtable_t* teams, FILE* log);
 static bool sendResponse(char* gameId, char* respCode, char* text, connection_t* connection, FILE* log);
-
+static bool sendToAllFA(char* messagep, char* team, hashtable_t* teams);
+static void sendToALLFAHelper(void* arg, const char* key, void* item);
 
 /***** structs *****/
 /********* functions dispatch table *********/
@@ -225,7 +226,7 @@ int gameserver(char* gameId, char* kff, char* sf, int port)
 	hashtable_t* krags; // all krags
 	hashtable_t* teams = initHash(); // keep track of the teams
 	gameInProgress = true; // boolean for while loop
-
+	char* secret;
 
 	// open log file
 	FILE* log;
@@ -249,6 +250,9 @@ int gameserver(char* gameId, char* kff, char* sf, int port)
 		fprintf(stderr, "Unable to load krag file\n");
 		return 7;
 	}
+
+	// load the secret string
+	secret = getSecretString(sf);
 
 	// while the game hasn't ended
 	while(gameInProgress){
@@ -289,12 +293,13 @@ int gameserver(char* gameId, char* kff, char* sf, int port)
 	}
 
 	// end the game
-	sendGameOver(gameId, teams, log);
+	sendGameOver(gameId, teams, secret, log);
 	sendTeamRecord(gameId, teams, log);
 
 	// clean up
 	deleteKragHash(krags); // delete the krag hashtable
 	deleteTeamHash(teams); // delete the teams hashtable
+	free(secret);
 	fclose(log); // close the log file
 	return 0; // return 0 for success
 }
@@ -625,15 +630,29 @@ static bool sendGameStatus(char* gameId, char* guideId, int numClaimed, int numK
 		return false;
 	}
 
+	// convert numClaimed to a string
+	int numClaimedDigits = (int)((ceil(log10(numClaimed))+1)); // get the length of the string
+	char* numClaimedStr= malloc(numClaimedDigits*sizeof(char));
+	sprintf(numClaimedStr,"%d", numClaimed);
+
+
+
+	// convert numKrags to a string
+	int numKragsDigits = (int)((ceil(log10(numClaimed))+1)); // get the length of the string
+	char* numKragsStr = malloc(numKragsDigits*sizeof(char));
+	sprintf(numKragsStr, "%d", numKrags);
+
+
+
 	// construct message inductively
 	strcat(messagep, "opCode=GAME_STATUS|gameId=");
 	strcat(messagep, gameId);
 	strcat(messagep, "|guideId=");
 	strcat(messagep, guideId);
 	strcat(messagep, "|numClaimed=");
-	strcat(messagep, numClaimed);
+	strcat(messagep, numClaimedStr);
 	strcat(messagep, "|numKrags=");
-	strcat(messagep, numKrags);
+	strcat(messagep, numKragsStr);
 
 	// send the message
 	if (!sendMessage(messagep, connection)){
@@ -664,8 +683,6 @@ static bool forwardHint(char* hintMessage, connection_t* connection, FILE* log)
 	// log the message
 	logMessage(log, hintMessage, "TO", connection);
 
-	// free the message
-	free(messagep);
 	return true;
 }
 
@@ -693,15 +710,25 @@ static bool sendClue(char* gameId, char* guideId, char* clue, double latitude, d
 		return false;
 	}
 
+	// convert latitude to a string
+	int latitudeDigits = (int)((ceil(log10(latitude))+1)); // get the length of the string
+	char* latitudeStr = malloc(latitudeDigits*sizeof(char));
+	sprintf(latitudeStr, "%d", latitude);
+
+	// convert longitude to a string
+	int longitudeDigits = (int)((ceil(log10(latitude))+1)); // get the length of the string
+	char* longitudeStr = malloc(longitudeDigits*sizeof(char));
+	sprintf(longitudeStr, "%d", longitude);
+
 	// construct message inductively
 	strcat(messagep, "opCode=GS_CLUE|gameId=");
 	strcat(messagep, gameId);
 	strcat(messagep, "|guideId=");
 	strcat(messagep, guideId);
 	strcat(messagep, "|latitude=");
-	strcat(messagep, latitude);
+	strcat(messagep, latitudeStr);
 	strcat(messagep, "|longitude=");
-	strcat(messagep, longitude);
+	strcat(messagep, longitudeStr);
 	strcat(messagep, "|clue=");
 	strcat(messagep, clue);
 
@@ -760,7 +787,7 @@ static bool sendSecret(char* gameId, char* guideId, char* secret, connection_t* 
 * Returns true on sent
 *
 */
-static bool sendGameOver(char* gameId, hashtable_t* teams, FILE* log)
+static bool sendGameOver(char* gameId, hashtable_t* teams, char* secret, FILE* log)
 {
 	// allocate enough space needed for the  message 
 	char *messagep = malloc(sizeof(char) * MAXOUTMESSAGELENGTH);
@@ -774,7 +801,6 @@ static bool sendGameOver(char* gameId, hashtable_t* teams, FILE* log)
 	strcat(messagep, gameId);
 	strcat(messagep, "|secret=");
 	strcat(messagep, secret);
-
 
 
 	// send the message
@@ -836,4 +862,31 @@ static bool sendResponse(char* gameId, char* respCode, char* text, connection_t*
 	free(messagep);
 
 	return true;
+}
+
+/*
+* Sends a message to every Field Agent on a team
+*
+*
+*/
+static bool sendToAllFA(char* messagep, char* team, hashtable_t* teams)
+{	
+	// get the set of field agents
+	set_t* fieldAgents = getAllFieldAgents(team, teams);
+	// iterate through the set sending the message
+	set_iterate(fieldAgents, messagep, sendToALLFAHelper);
+}
+
+
+/*
+* Iterator function to send to every Field Agent
+*
+*
+*/
+static void sendToALLFAHelper(void* arg, const char* key, void* item)
+{
+	char* message = (char*)arg; // cast arg
+	fieldAgent_t* agent = (fieldAgent_t*)item; // cast item
+	
+
 }
