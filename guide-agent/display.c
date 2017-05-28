@@ -81,6 +81,14 @@ WINDOW * createWin_I(int height, int width, int starty, int startx)
 void initializeWindows_I(void){
 	int x,y;
 	mapWin =createWin_I(map_uy, map_ux, 0, 0);  //create map window
+	FILE * fp = fopen("campusmap", "r");
+	char **board1 = new_board();
+
+	load_board(board1, fp);
+	display_board(board1);
+
+	fclose(fp);
+
 
 	//create game stats window
 	statsWin =  createWin_I(stats_uy, stats_ux, 0, map_ux);  
@@ -285,7 +293,6 @@ void updateClues_I(set_t * clues){
 	int lx, ly;
 	getbegyx(cluesWin, ly, lx);  //get upper left coordinates
 	set_iterate(clues, &ly, printClues);  //print all clues
-	wrefresh(cluesWin);
 
 }
 
