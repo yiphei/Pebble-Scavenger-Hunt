@@ -5,7 +5,6 @@
  * GREP, CS50, May 2017
  */
 
-//#ifdef NOPEBBLE
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,7 +26,8 @@ void logMessage(FILE *file, char *message, char *direction, connection_t *connec
 	timestamp[25] = ')';
 
 	// get ip address
-	struct sockaddr_in *address = (struct sockaddr_in *)connect->address;
+	struct sockaddr *addrp = (struct sockaddr *) &connect->address;
+	struct sockaddr_in *address = (struct sockaddr_in *)addrp;
 
 	char *ip = inet_ntoa(address->sin_addr);
 
@@ -35,7 +35,4 @@ void logMessage(FILE *file, char *message, char *direction, connection_t *connec
 	int port = connect->socket;
 
 	fprintf(file, "%s %s %s@%d: %s \n", timestamp, direction, ip, port, message);
-	printf("logged message\n");
 }
-
-//#endif
