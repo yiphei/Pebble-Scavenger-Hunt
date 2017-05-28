@@ -253,7 +253,7 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 	team_t *teamp = newTeam();
 
 	if (teamp == NULL) {
-		fprintf(stderr, "error allocating memory\n");
+		fprintf(stderr, "error allocating memory for team\n");
 		return 7;
 	}
 
@@ -275,10 +275,8 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 	// loop runs until GAME_OVER message received, then breaks
 	while (true) {
 
-		// look for user input or message from Game Server
+		// listen for message from Game Server
 		messagep = receiveMessage(connection);
-
-		char *hint = input_I();
 
 		// handle the message if there is one, breaking if GAME_OVER received
 		if (messagep != NULL) {
@@ -287,6 +285,7 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 
 			// GAME_OVER opCode received and handled
 			if (statusCheck == 1) {
+				free(messagep);
 				break;
 			}
 
@@ -297,14 +296,14 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 		}
 
 		// read for user input and send hint if there is input
-
+		/*char *hint = input_I();
 
 		// if there was input, send it to the server
 		if (hint != NULL) {
 
 			handleHint(gameId, guideId, team, player, hint, connection, log, teamp);
 
-		}
+		}*/
 
 		// every 30 seconds send a GA_STATUS
 		now = time(NULL);
@@ -319,9 +318,9 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 			}
 
 			// try to send message to Game Server
-			if(!sendGA_STATUS(gameId, guideId, team, player, statusReq, connection, log)){
-				fprintf(stderr, "could not send GA_STATUS to Game Server\n");
-			}
+			sendGA_STATUS(gameId, guideId, team, player, statusReq, connection, log);
+
+			free(messagep);
 
 		}
 
@@ -341,7 +340,6 @@ int handleMessage(char *messagep, team_t *teamp, connection_t *connection, FILE 
 	message_t *message = parseMessage(messagep);
 
 	char *opCode = message->opCode;
-	printf("%s\n", opCode);
 
 	// loop over function table to call the correct opCode handler
 	int fn;
@@ -353,7 +351,6 @@ int handleMessage(char *messagep, team_t *teamp, connection_t *connection, FILE 
 	}
 
 	if (strcmp(opCode, "GAME_OVER") == 0) {
-		free(messagep);
 		return 1;
 	}
 
@@ -465,7 +462,6 @@ bool sendGA_HINT(char *gameId, char *guideId, char *team, char *player, char *pe
 // received an incorrect opCode, print error message and ignore
 static void badOpCodeHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, FILE *log, hashtable_t *teams)
 {
-	fprintf(stderr, "incorrect opCode received, no actions performed\n");
 	logMessage(log, messagep, "FROM", connection);
 }
 
@@ -529,14 +525,8 @@ static void GSClueHandler(char *messagep, message_t *message, team_t *teamp, con
 { 
 	if (GSClueValidate(message)) {
 
-		// arbitrary key for the clue because it doesn't affect Guide Agent
-		char *key = message->kragId;
-
-		// allocate 6 because rand only gives int of 5 digits long maximum
-		char *key = malloc(6);
-		sprintf(key, "%d", keyNum);
-
 		// add the clue to the set
+		char *key = message->kragId;
 		set_t *clues = teamp->clues;
 
 		set_insert(clues, key, message->clue);
@@ -598,6 +588,11 @@ static void gameOverHandler(char *messagep, message_t *message, team_t *teamp, c
 // validate each specific message type so it can be handled accordingly
 static bool gameStatusValidate(message_t *message, team_t *teamp) 
 {
+	// missing opCode
+	if (message->opCode == NULL) {
+		return false;
+	}
+
 	// gameId and guideId checks
 	// never initialized
 	if (message->guideId == NULL || message->gameId == NULL) {
@@ -620,20 +615,29 @@ static bool gameStatusValidate(message_t *message, team_t *teamp)
 
 static bool GSAgentValidate(message_t *message)
 {
+	// missing opCode
+	if (message->opCode == NULL) {
+		printf("no opCode\n");
+		return false;
+	}
+
 	// gameId and pebbleId checks
 	// never initialized when parsing
 	if (message->gameId == NULL || message->pebbleId == NULL) {
+		printf("gameId or pebbleId missing\n");
 		return false;
 	}
 
 	// hexidecimal format check
 	unsigned int gameIdFormat;
 	if (sscanf(message->gameId, "%x", &gameIdFormat) != 1) {
+		printf("not hexidecimal gameId\n");
 		return false;
 	}
 
 	unsigned int pebbleIdFormat;
 	if (sscanf(message->pebbleId, "%x", &pebbleIdFormat) != 1) {
+		printf("not hexidecimal pebbleId\n");
 		return false;
 	}
 
@@ -642,6 +646,11 @@ static bool GSAgentValidate(message_t *message)
 
 static bool GSClueValidate(message_t *message)
 {
+	// missing opCode
+	if (message->opCode == NULL) {
+		return false;
+	}
+
 	if (message->gameId == NULL || message->guideId == NULL || message->clue == NULL) {
 		return false;
 	}
@@ -662,6 +671,11 @@ static bool GSClueValidate(message_t *message)
 
 static bool GSSecretValidate(message_t *message)
 {
+	// missing opCode
+	if (message->opCode == NULL) {
+		return false;
+	}
+
 	// message field initialization checks
 	if (message->gameId == NULL || message->guideId == NULL || message->secret == NULL) {
 		return false;
@@ -683,6 +697,11 @@ static bool GSSecretValidate(message_t *message)
 
 static bool GSResponseValidate(message_t *message)
 {
+	// missing opCode
+	if (message->opCode == NULL) {
+		return false;
+	}
+
 	// uninitialized message fields check
 	if (message->gameId == NULL || message->respCode == NULL || message->text == NULL) {
 		return false;
