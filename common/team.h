@@ -26,6 +26,7 @@
 typedef struct team {
   struct guideAgent * guideAgent;  //guide agent of the team
   set_t * FAset;      //set of field agents
+  set_t * FAPebbleIds; // set of pebble Ids with names as items
   char * revealedString;  //the current releaved string of the team
   set_t * krags;   //set of all krags the team has found
   char * recentClues[2];    //array of the two most recent clues

@@ -49,6 +49,7 @@ static bool validatePebbleId(char* pebbleId, char* team, hashtable_t* teams);
 // message sending functions
 static bool sendGameStatus(char* gameId, char* guideId, int numClaimed, int numKrags, connection_t* connection, FILE* log);
 static bool forwardHint(char* hintMessage, connection_t* connection, FILE* log);
+static bool forwardHintToAll(char* hintMessage, char* team, char* teams, FILE* log);
 static bool sendAllGSAgents(char* gameId, char* team, hashtable_t* teams, connection_t* connection, FILE* log);
 static bool sendClue(char* gameId, char* guideId, char* clue, double latitude, double longitude, connection_t* connection, FILE* log);
 static bool sendSecret(char* gameId, char* guideId, char* secret, connection_t* connection, FILE* log);
@@ -423,12 +424,10 @@ static void GAHintHandler(char* gameId, char *messagep, message_t *message, hash
 
 	// forward to all field agents
 	if(strcmp(message->pebbleId, "*") == 0){
-		// TODO: forwad hints
-		printf("Finish forward hints code\n");
+		forwardHintToAll(messagep, messagep->team, teams);
 	} else{
-		printf("Finish forward one hint code\n");
-		// TODO: forward to one field agent
-		//forwardHint(message->hint, connection_t* newConnection, log);
+		// get the connection via pebble ID
+		forwardHint(messagep, conn, log);
 	}
 }
 
@@ -687,6 +686,22 @@ static bool forwardHint(char* hintMessage, connection_t* connection, FILE* log)
 }
 
 /*
+* Forwards a hint to all field agents
+* Returns true on sent
+*
+*/
+static bool forwardHintToAll(char* hintMessage, char* team, char* teams, FILE* log)
+{
+	// send the message
+	sendToAllFA(hintMessage, team, teams);
+
+	// log the message
+	logMessage(log, hintMessage, "TO", connection);
+
+	return true;
+}
+
+/*
 * Sends all FA statuses to the GA
 * Returns true on sent
 *
@@ -887,6 +902,6 @@ static void sendToALLFAHelper(void* arg, const char* key, void* item)
 {
 	char* message = (char*)arg; // cast arg
 	fieldAgent_t* agent = (fieldAgent_t*)item; // cast item
-	
+	sendMessage(message, agent->conn); // send the message
 
 }
