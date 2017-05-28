@@ -49,7 +49,7 @@ static bool validatePebbleId(char* pebbleId, char* team, hashtable_t* teams);
 // message sending functions
 static bool sendGameStatus(char* gameId, char* guideId, int numClaimed, int numKrags, connection_t* connection, FILE* log);
 static bool forwardHint(char* hintMessage, connection_t* connection, FILE* log);
-static bool forwardHintToAll(char* hintMessage, char* team, char* teams, FILE* log);
+static bool forwardHintToAll(char* hintMessage, char* team, hashtable_t* teams, FILE* log);
 static bool sendAllGSAgents(char* gameId, char* team, hashtable_t* teams, connection_t* connection, FILE* log);
 static bool sendClue(char* gameId, char* guideId, char* clue, double latitude, double longitude, connection_t* connection, FILE* log);
 static bool sendSecret(char* gameId, char* guideId, char* secret, connection_t* connection, FILE* log);
@@ -424,10 +424,13 @@ static void GAHintHandler(char* gameId, char *messagep, message_t *message, hash
 
 	// forward to all field agents
 	if(strcmp(message->pebbleId, "*") == 0){
-		forwardHintToAll(messagep, messagep->team, teams);
+		forwardHintToAll(messagep, message->team, teams, log);
 	} else{
 		// get the connection via pebble ID
-		forwardHint(messagep, conn, log);
+		team_t* team = hashtable_find(teams, message->team);
+		char* FAName = set_find(team->FAPebbleIds, message->pebbleId);
+		fieldAgent_t* agent = set_find(team->FAset, FAName);
+		forwardHint(messagep, agent->conn, log);
 	}
 }
 
@@ -690,13 +693,10 @@ static bool forwardHint(char* hintMessage, connection_t* connection, FILE* log)
 * Returns true on sent
 *
 */
-static bool forwardHintToAll(char* hintMessage, char* team, char* teams, FILE* log)
+static bool forwardHintToAll(char* hintMessage, char* team, hashtable_t* teams, FILE* log)
 {
 	// send the message
 	sendToAllFA(hintMessage, team, teams);
-
-	// log the message
-	logMessage(log, hintMessage, "TO", connection);
 
 	return true;
 }
