@@ -17,26 +17,31 @@
 #include "network.h"
 #endif
 
-void logMessage(FILE *file, char *message, char *direction, connection_t *connect)
+void logMessage(char *filePath, char *message, char *direction, connection_t *connect)
 {
+	FILE *log = fopen(filePath, "w");
+
+	// couldn't open log file
+	if (log == NULL) {
+		return;
+	}
+
 	// get timestamp
 	char timestamp[27];
 	time_t clk = time(NULL);
 	sprintf(timestamp, "(%s", ctime(&clk));
 	timestamp[25] = ')';
-	
-	if(connect != NULL){
-		// get ip address
-		struct sockaddr *addrp = (struct sockaddr *) &connect->address;
-		struct sockaddr_in *address = (struct sockaddr_in *)addrp;
 
-		char *ip = inet_ntoa(address->sin_addr);
+	// get ip address
+	struct sockaddr *addrp = (struct sockaddr *) &connect->address;
+	struct sockaddr_in *address = (struct sockaddr_in *)addrp;
 
-		// get port number
-		int port = connect->socket;
+	char *ip = inet_ntoa(address->sin_addr);
 
-		fprintf(file, "%s %s %s@%d: %s \n", timestamp, direction, ip, port, message);
-	} else {
-		fprintf(file, "%s %s @Multiple Recipients: %s \n", timestamp, direction, ip, port, message);
-	}
+	// get port number
+	int port = connect->socket;
+
+	fprintf(log, "%s %s %s@%d: %s \n", timestamp, direction, ip, port, message);
+
+	fclose(log);
 }
