@@ -43,6 +43,11 @@ int addFieldAgent(char * name, char * pebbleID, char * teamname, char * gameID, 
 	}
 	fieldAgent_t * newFA = newFieldAgent(gameID, pebbleID, conn);  //initialize a new field agent
 	set_insert(newteam->FAset, name, newFA);
+
+	// insert into pebble ID set
+	set_insert(newteam->FAPebbleIds, pebbleID, name);
+
+	// increment the numPlayers
 	newteam->numPlayers = newteam->numPlayers + 1;
 	return 0;
 }
@@ -202,6 +207,7 @@ static void deleteTeam(void *item)
   	set_delete(((team_t *)item)->FAset, deleteFA);
   	set_delete(((team_t *)item)->krags, deleteKrags);
   	set_delete(((team_t *)item)->clues, deleteKrags);
+  	set_delete(((team_t *)item)->FAPebbleIds, deleteKrags);
 
   				//free the array
 	for (int i=0; i<2; i++) {

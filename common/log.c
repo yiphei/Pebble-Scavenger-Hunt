@@ -24,15 +24,19 @@ void logMessage(FILE *file, char *message, char *direction, connection_t *connec
 	time_t clk = time(NULL);
 	sprintf(timestamp, "(%s", ctime(&clk));
 	timestamp[25] = ')';
+	
+	if(connect != NULL){
+		// get ip address
+		struct sockaddr *addrp = (struct sockaddr *) &connect->address;
+		struct sockaddr_in *address = (struct sockaddr_in *)addrp;
 
-	// get ip address
-	struct sockaddr *addrp = (struct sockaddr *) &connect->address;
-	struct sockaddr_in *address = (struct sockaddr_in *)addrp;
+		char *ip = inet_ntoa(address->sin_addr);
 
-	char *ip = inet_ntoa(address->sin_addr);
+		// get port number
+		int port = connect->socket;
 
-	// get port number
-	int port = connect->socket;
-
-	fprintf(file, "%s %s %s@%d: %s \n", timestamp, direction, ip, port, message);
+		fprintf(file, "%s %s %s@%d: %s \n", timestamp, direction, ip, port, message);
+	} else {
+		fprintf(file, "%s %s @Multiple Recipients: %s \n", timestamp, direction, ip, port, message);
+	}
 }
