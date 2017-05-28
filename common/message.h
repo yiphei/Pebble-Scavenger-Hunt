@@ -40,5 +40,3 @@ message_t * parseMessage(char *message);
 specifically all message types, and frees those that are not NULL, 
 then frees the message struct itself */
 void deleteMessage(message_t *message);
-
-char * myStrtok(char *s, char *delim);
