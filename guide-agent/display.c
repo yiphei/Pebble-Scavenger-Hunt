@@ -120,9 +120,6 @@ void updateMap_I(set_t * fieldagents){
 	addPlayers_I(fieldagents); 
 
 	free(board);
-
-
-
 }
 
 //helper function to display agents names and their locations in different colors
@@ -292,6 +289,8 @@ void updateClues_I(set_t * clues){
 	int lx, ly;
 	getbegyx(cluesWin, ly, lx);  //get upper left coordinates
 	set_iterate(clues, &ly, printClues);  //print all clues
+
+	lx++; //no needed at all. This is for getting rid of compiler warnin
 
 }
 
