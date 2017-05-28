@@ -40,9 +40,6 @@ main(int argc, char *argv[])
   updateLocation("yifei", "one", 18.5, 14.6, teamhash);
   set_t *  set = getAllFieldAgents("one", teamhash);
 
-  updateMap_I(set);
-
-
   updateLocation("mark", "one", 30.6, 38.7, teamhash);
 
   updateMap_I(set);
