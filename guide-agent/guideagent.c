@@ -19,6 +19,8 @@
 
 /******** function declarations ********/
 int game(char *guideId, char *team, char *player, char *host, int port);
+int handleMessage(char *message, team_t *teamp, connection_t *connection, FILE *log, hashtable_t *teams);
+void handleHint(char *gameId, char *guideId, char *team, char *player, char *hint, connection_t *connection, FILE *log, team_t *teamp);
 bool sendGA_STATUS(char *gameId, char *guideId, char *team, char *player, char *statusReq, connection_t *connection, FILE *file);
 bool sendGA_HINT(char *gameId, char *guideId, char *team, char *player, char *pebbleId, char *hint, connection_t *connection, FILE *file);
 
@@ -239,9 +241,6 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 		return 6;
 	}
 
-	char *messagep;
-	message_t *message;
-	char *opCode;
 
 	time_t start = time(NULL);
 	time_t now = time(NULL);
@@ -269,92 +268,42 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 	initialize_curses();
 	initializeWindows_I();
 
-	/* wait until server sends GAME_STATUS back to start game loop.
-	Once received, initialize the team struct and break this loop */
-	while (true) {
-
-		messagep = receiveMessage(connection);
-		message = parseMessage(messagep);
-		opCode = message->opCode;
-
-		// initialize this Guide Agent's team
-		for (int fn = 0; opCodes[fn].opCode != NULL; fn++) {
-			if(strcmp(opCode, opCodes[fn].opCode) == 0) {
-				(*opCodes[fn].func)(messagep, message, teamp, connection, log, teams);
-				free(messagep);
-				deleteMessage(message);
-				break;
-			}
-		}
-
-		free(messagep);
-		deleteMessage(message);
-	}
-
-	char *gameId = me->gameID;
+	// declare message types needed
+	char *messagep;
+	char *gameId;
 
 	// loop runs until GAME_OVER message received, then breaks
 	while (true) {
 
+		// look for user input or message from Game Server
 		messagep = receiveMessage(connection);
 
+		char *hint = input_I();
+
+		// handle the message if there is one, breaking if GAME_OVER received
 		if (messagep != NULL) {
-			
-			message = parseMessage(messagep);
+		
+			int statusCheck = handleMessage(messagep, teamp, connection, log, teams);
 
-			opCode = message->opCode;
-
-			// loop over function table to call the correct opCode handler
-			int fn;
-			for (fn = 0; opCodes[fn].opCode != NULL; fn++) {
-				if(strcmp(opCode, opCodes[fn].opCode) == 0) {
-					(*opCodes[fn].func)(messagep, message, teamp, connection, log, teams);
-					break;
-				}
-			}
-
-			if (strcmp(opCode, "GAME_OVER") == 0) {
+			// GAME_OVER opCode received and handled
+			if (statusCheck == 1) {
 				break;
 			}
 
-			if (opCodes[fn].opCode == NULL) {
-				fprintf(stderr, "Unknown opCode: %s\n", opCode);
+			if (gameId == NULL) {
+				gameId = me->gameID;
 			}
-
-			// free pointers for next time around the loop
-			free(messagep);
-			deleteMessage(message);
 
 		}
 
 		// read for user input and send hint if there is input
-		char *hint = input_I();
+
 
 		// if there was input, send it to the server
 		if (hint != NULL) {
 
-			// allocate enough space for maximum length name (10 chars)
-			char *name = malloc(11);
+			handleHint(gameId, guideId, team, player, hint, connection, log, teamp);
 
-			sscanf(hint, "%s", name);
-
-			NormalizeWord(name);
-
-			fieldAgent_t *current = set_find(teamp->FAset, name);
-
-			if (current != NULL) {
-
-				sendGA_HINT(gameId, guideId, team, player, current->pebbleID, hint, connection, log);
-
-			}
-
-			else {
-
-				sendGA_HINT(gameId, guideId, team, player, "*", hint, connection, log);
-
-			}
-
-			free(name);
 		}
 
 		// every 30 seconds send a GA_STATUS
@@ -376,8 +325,6 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 
 		}
 
-		free(messagep);
-		deleteMessage(message);
 	}
 
 
@@ -388,6 +335,59 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 	return 0;
 }
 
+/*********** handleMessage *********/
+int handleMessage(char *messagep, team_t *teamp, connection_t *connection, FILE *log, hashtable_t *teams)
+{
+	message_t *message = parseMessage(messagep);
+
+	char *opCode = message->opCode;
+	printf("%s\n", opCode);
+
+	// loop over function table to call the correct opCode handler
+	int fn;
+	for (fn = 0; opCodes[fn].opCode != NULL; fn++) {
+		if(strcmp(opCode, opCodes[fn].opCode) == 0) {
+			(*opCodes[fn].func)(messagep, message, teamp, connection, log, teams);
+			break;
+		}
+	}
+
+	if (strcmp(opCode, "GAME_OVER") == 0) {
+		free(messagep);
+		return 1;
+	}
+
+	return 0;
+}
+
+/******** handleHint ********/
+void handleHint(char *gameId, char *guideId, char *team, char *player, char *hint, connection_t *connection, FILE *log, team_t *teamp)
+{
+
+	// allocate enough space for maximum length name (10 chars)
+	char *name = malloc(11);
+
+	sscanf(hint, "%s", name);
+
+	NormalizeWord(name);
+
+	fieldAgent_t *current = set_find(teamp->FAset, name);
+
+	if (current != NULL) {
+
+		sendGA_HINT(gameId, guideId, team, player, current->pebbleID, hint, connection, log);
+
+	}
+
+	else {
+
+		sendGA_HINT(gameId, guideId, team, player, "*", hint, connection, log);
+
+	}
+
+	free(name);
+
+}
 
 /*********** sendGA_STATUS ************/
 bool sendGA_STATUS(char *gameId, char *guideId, char *team, char *player, char *statusReq, connection_t *connection, FILE *file)
@@ -530,7 +530,7 @@ static void GSClueHandler(char *messagep, message_t *message, team_t *teamp, con
 	if (GSClueValidate(message)) {
 
 		// arbitrary key for the clue because it doesn't affect Guide Agent
-		int keyNum = rand();
+		char *key = message->kragId;
 
 		// allocate 6 because rand only gives int of 5 digits long maximum
 		char *key = malloc(6);
@@ -601,32 +601,17 @@ static bool gameStatusValidate(message_t *message, team_t *teamp)
 	// gameId and guideId checks
 	// never initialized
 	if (message->guideId == NULL || message->gameId == NULL) {
-		fprintf(stderr, "invalid GAME_STATUS message\n");
 		return false;
 	} 
 
 	// hexidecimal format check
 	unsigned int guideIdFormat;
 	if (sscanf(message->guideId, "%x", &guideIdFormat) != 1) {
-		fprintf(stderr, "invalid GAME_STATUS message\n");
 		return false;
 	}
 
 	unsigned int gameIdFormat;
 	if (sscanf(message->gameId, "%x", &gameIdFormat) != 1) {
-		fprintf(stderr, "invalid GAME_STATUS message\n");
-		return false;
-	}
-
-	// numClaimed field was not initialized when parsing
-	if (message->numClaimed == 0 && teamp->claimed != 0) {
-		fprintf(stderr, "invalid GAME_STATUS message\n");
-		return false;
-	}
-
-	// numKrags field was not initialized when parsing (can't be 0 total krags)
-	if (message->numKrags == 0) {
-		fprintf(stderr, "invalid GAME_STATUS message\n");
 		return false;
 	}
 
@@ -638,31 +623,17 @@ static bool GSAgentValidate(message_t *message)
 	// gameId and pebbleId checks
 	// never initialized when parsing
 	if (message->gameId == NULL || message->pebbleId == NULL) {
-		fprintf(stderr, "invalid GS_AGENT message\n");
 		return false;
 	}
 
 	// hexidecimal format check
 	unsigned int gameIdFormat;
 	if (sscanf(message->gameId, "%x", &gameIdFormat) != 1) {
-		fprintf(stderr, "invalid GAME_STATUS message\n");
 		return false;
 	}
 
 	unsigned int pebbleIdFormat;
 	if (sscanf(message->pebbleId, "%x", &pebbleIdFormat) != 1) {
-		fprintf(stderr, "invalid GAME_STATUS message\n");
-		return false;
-	}
-
-	// longitude and latitude initialization checks
-	if (message->latitude == 0) {
-		fprintf(stderr, "invalid GS_AGENT message\n");
-		return false;
-	}
-
-	if (message->longitude == 0) {
-		fprintf(stderr, "invalid GS_AGENT message\n");
 		return false;
 	}
 
@@ -672,20 +643,17 @@ static bool GSAgentValidate(message_t *message)
 static bool GSClueValidate(message_t *message)
 {
 	if (message->gameId == NULL || message->guideId == NULL || message->clue == NULL) {
-		fprintf(stderr, "invalid GS_CLUE message\n");
 		return false;
 	}
 
 	// hexidecimal format check
 	unsigned int gameIdFormat;
 	if (sscanf(message->gameId, "%x", &gameIdFormat) != 1) {
-		fprintf(stderr, "invalid GAME_STATUS message\n");
 		return false;
 	}
 
 	unsigned int guideIdFormat;
 	if (sscanf(message->guideId, "%x", &guideIdFormat) != 1) {
-		fprintf(stderr, "invalid GAME_STATUS message\n");
 		return false;
 	}
 
@@ -696,20 +664,17 @@ static bool GSSecretValidate(message_t *message)
 {
 	// message field initialization checks
 	if (message->gameId == NULL || message->guideId == NULL || message->secret == NULL) {
-		fprintf(stderr, "invalid GS_SECRET message\n");
 		return false;
 	}
 
 	// hexidecimal format checks
 	unsigned int gameIdFormat;
 	if (sscanf(message->gameId, "%x", &gameIdFormat) != 1) {
-		fprintf(stderr, "invalid GAME_STATUS message\n");
 		return false;
 	}
 
 	unsigned int guideIdFormat;
 	if (sscanf(message->guideId, "%x", &guideIdFormat) != 1) {
-		fprintf(stderr, "invalid GAME_STATUS message\n");
 		return false;
 	}
 
@@ -720,14 +685,12 @@ static bool GSResponseValidate(message_t *message)
 {
 	// uninitialized message fields check
 	if (message->gameId == NULL || message->respCode == NULL || message->text == NULL) {
-		fprintf(stderr, "invalid GS_RESPONSE message\n");
 		return false;
 	}
 
 	// gameId hexidecimal format check
 	unsigned int gameIdFormat;
 	if (sscanf(message->gameId, "%x", &gameIdFormat) != 1) {
-		fprintf(stderr, "invalid GAME_STATUS message\n");
 		return false;
 	}
 

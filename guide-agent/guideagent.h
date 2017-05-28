@@ -24,7 +24,8 @@
 #include "../common/log.h"
 #include "../common/word.h"
 
-/* game uses the network.h common module to create a connection to the Game Server,
+/* 
+game uses the network.h common module to create a connection to the Game Server,
 opens a log file to be written to over the course of the game, then starts the
 game loop. In the game loop, it uses the function dispatch/opCode table to 
 handle messages based on the parsed opCode. The message is parsed into a
@@ -32,17 +33,34 @@ message_t struct that holds all components of a given message type. This
 further abstracts the message handling away from the game function so game
 handles only receiving messages, sending GA_STATUS messages to the Game 
 Server every 30 seconds, and requesting the game status from the Game Server
-(via GA_STATUS messages) every minute. */
+(via GA_STATUS messages) every minute.
+ */
 int game(char *guideId, char *team, char *player, char *host, int port);
 
-/* sendGA_STATUS inductively creates the message, given the correct
+/*
+Takes a hint as input and handles it as needed, calling the correct handling
+function from the function dispatch table.
+*/
+int handleMessage(char *messagep, team_t *teamp, connection_t *connection, FILE *log, hashtable_t *teams);
+
+/*
+Takes a hint from the user input and handles it as needed, sending it to the
+Game Server with sendGA_HINT and the appropriate Field Agent recipient(s).
+*/
+void handleHint(char *gameId, char *guideId, char *team, char *player, char *hint, connection_t *connection, FILE *log, team_t *teamp);
+
+/* 
+sendGA_STATUS inductively creates the message, given the correct
 components of the message, and sends the message via network.h's 
-sendMessage function and the connection_t pointer passed by game. */
+sendMessage function and the connection_t pointer passed by game. 
+*/
 bool sendGA_STATUS(char *gameId, char *guideId, char *team, char *player, char *statusReq, connection_t *connection, FILE *file);
 
-/* sendGA_HINT inductively creates the message, given the correct components
+/* 
+sendGA_HINT inductively creates the message, given the correct components
 of the message, and sends the message via network.h's sendMessage
-function and tghe connection_t pointer passed by the game */
+function and tghe connection_t pointer passed by the game 
+*/
 bool sendGA_HINT(char *gameId, char *guideId, char *team, char *player, char *pebbleId, char *hint, connection_t *connection, FILE *file);
 
 #endif // __GUIDEAGENT_H

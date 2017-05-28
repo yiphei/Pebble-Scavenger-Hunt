@@ -14,7 +14,7 @@
 
 /******** function declaration ********/
 static int parseHelper(char *message, message_t *parsedMessage);
-char * myStrtok(char *s, char *delim);
+static char * myStrtok(char *s, char *delim);
 /******** function definition *********/
 
 // parses message into a message struct using helper function to factor
@@ -203,7 +203,7 @@ static int parseHelper(char *message, message_t *parsedMessage)
 			free(lastContactTemp);
 		}
 
-		else if (strncmp(field, "latitiude=", 9) == 0) {
+		else if (strncmp(field, "latitude=", 9) == 0) {
 			if (parsedMessage->latitude != -600) {
 				fprintf(stderr, "duplicate latitude field given, message ignored\n");
 				return 1;
@@ -307,7 +307,7 @@ static int parseHelper(char *message, message_t *parsedMessage)
 			free(numKragsTemp);
 		}
 
-		else if (strncmp(field, "statusReqs=", 10) == 0) {
+		else if (strncmp(field, "statusReq=", 10) == 0) {
 			if (parsedMessage->statusReq != -600) {
 				fprintf(stderr, "duplicate statusReq field given, message ignored\n");
 				return 1;
@@ -447,7 +447,7 @@ void deleteMessage(message_t *message) {
  * SUCH DAMAGE.
  */
 
-char *
+static char *
 myStrtok(char *s, char *delim)
 {
 	char *spanp;
