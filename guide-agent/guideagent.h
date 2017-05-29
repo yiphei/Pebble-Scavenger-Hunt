@@ -23,6 +23,7 @@
 #include "../common/message.h"
 #include "../common/log.h"
 #include "../common/word.h"
+#include "file.h"
 
 /* 
 game uses the network.h common module to create a connection to the Game Server,
