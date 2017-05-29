@@ -19,7 +19,7 @@
 
 void logMessage(char *filePath, char *message, char *direction, connection_t *connect)
 {
-	FILE *log = fopen(filePath, "w");
+	FILE *log = fopen(filePath, "a");
 
 	// couldn't open log file
 	if (log == NULL) {
