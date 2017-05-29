@@ -44,8 +44,6 @@ static bool GSClaimedValidate(message_t *message);
 static bool GSSecretValidate(message_t *message);
 static bool GSResponseValidate(message_t *message);
 
-/********* file-local variables *********/
-
 /********* functions dispatch table *********/
 static const struct {
 
@@ -345,7 +343,7 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 					}
 
 					else if (statusReq == 6) {
-						sendGA_STATUS(gameId, guideId, team, player, "0", connection, filePath);
+						sendGA_STATUS(gameId, guideId, team, player, "1", connection, filePath);
 						statusReq = 0;
 					}
 
@@ -404,12 +402,18 @@ int handleMessage(char *messagep, team_t *teamp, connection_t *connection, char 
 void handleHint(char *gameId, char *guideId, char *team, char *player, char *hint, connection_t *connection, char *filePath, team_t *teamp)
 {
 	if (gameId != NULL) {
-		// allocate enough space for maximum length name (10 chars)
-		char *name = malloc(11);
+		char *name = malloc(140);
 
 		sscanf(hint, "%s", name);
 
 		NormalizeWord(name);
+
+		for (int i = 0; ; i++) {
+			if (!isalpha(name[i])) {
+				name[i] = '\0';
+				break;
+			}
+		}
 
 		fieldAgent_t *current = set_find(teamp->FAset, name);
 
@@ -575,21 +579,24 @@ static void GSClueHandler(char *messagep, message_t *message, team_t *teamp, con
 { 
 	if (GSClueValidate(message)) {
 
-		// add the clue to the set
-		char *key = malloc(strlen(message->kragId) + 1);
-		strcpy(key, message->kragId);
+		// only add clue if krag hasn't been found (error check)
+		if (set_find(teamp->krags, message->kragId) == NULL) {
+			// add the clue to the set
+			char *key = malloc(strlen(message->kragId) + 1);
+			strcpy(key, message->kragId);
 
-		char *clue = malloc(strlen(message->clue) + 1);
-		strcpy(clue, message->clue);
+			char *clue = malloc(strlen(message->clue) + 1);
+			strcpy(clue, message->clue);
 
-		set_t *clues = teamp->clues;
+			set_t *clues = teamp->clues;
 
-		set_insert(clues, key, clue);
+			set_insert(clues, key, clue);
 
-		// update GUI with new clue
-		updateClues_I(clues);
+			// update GUI with new clue
+			updateClues_I(clues);
 
-		logMessage(filePath, messagep, "FROM", connection);
+			logMessage(filePath, messagep, "FROM", connection);
+		}
 
 	}
 }
@@ -598,22 +605,26 @@ static void GSClaimedHandler(char *messagep, message_t *message, team_t *teamp, 
 {
 	if (GSClaimedValidate(message)) {
 
-		// check if the kragId was already inserted to the clues (error check)
+		// display the new krag
+		krag_t *new = kragNew(message->latitude, message->longitude);
+
+		char *kragId = malloc(strlen(message->kragId) + 1);
+		strcpy(kragId, message->kragId);
+		strcat(kragId, "\0");
+
+		set_insert(teamp->krags, kragId, new);
+		updateMap_I(teamp->FAset, teamp->krags);
+
+		// check if the kragId was already inserted to the clues (to remove)
 		if(set_find(teamp->clues, message->kragId) != NULL) {
 
-			char *clue = set_find(teamp->clues, message->kragId);
-			clue = NULL;
+			char *clue;
 
-			krag_t *new = kragNew(message->latitude, message->longitude);
-
-			char *kragId = malloc(strlen(message->kragId));
-			strcpy(kragId, message->kragId);
-			strcat(kragId, "\0");
-
-			set_insert(teamp->krags, kragId, new);
+			if ((clue = set_find(teamp->clues, kragId)) != NULL) {
+				clue[0] = '\0';
+			}
 
 			updateClues_I(teamp->clues);
-			updateMap_I(teamp->FAset, teamp->krags);
 		}
 	}
 }
