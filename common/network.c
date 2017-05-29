@@ -90,7 +90,7 @@ char* receiveMessage(connection_t* connection)
 	int comm = connection->socket;
 
 	// receive messages
-	int messageLen = recvfrom(comm, buf, BUFSIZE-1, 0, &remote, &remoteLen);
+	int messageLen = recvfrom(comm, buf, BUFSIZE-1, 0, &(connection->address), &remoteLen);
 	
 	// if messages are received, return them
 	if(messageLen > 0){
@@ -117,10 +117,12 @@ bool sendMessage(char* message, connection_t* connection)
 	int comm = connection->socket;
 
 	// send message
-	if(sendto(comm, message, strlen(message), 0, &remote, remoteLen) < 0){
+	if(sendto(comm, message, strlen(message), 0, &(connection->address), remoteLen) < 0){
 		fprintf(stderr, "Network: Unable to send message: %s\n",message);
 		return false;
 	}
+
+	printf("Sent: %s\n",message);
 	return true;
 }
 
