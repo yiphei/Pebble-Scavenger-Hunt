@@ -216,10 +216,20 @@ static void deleteTeam(void *item)
 
   	if (((team_t *)item)->guideAgent != NULL){
 
-	  	free((((team_t *)item)->guideAgent)->guideID);
-	  	free((((team_t *)item)->guideAgent)->name);
-	  	free((((team_t *)item)->guideAgent)->gameID);
-	  	deleteConnection((((team_t *)item)->guideAgent)->conn);
+  		if ((((team_t *)item)->guideAgent)->guideID != NULL){
+	  		free((((team_t *)item)->guideAgent)->guideID);
+	  	}
+	  	if ((((team_t *)item)->guideAgent)->name != NULL){
+	  		free((((team_t *)item)->guideAgent)->name);
+	  	}
+
+	  	if ((((team_t *)item)->guideAgent)->gameID != NULL){
+	  		free((((team_t *)item)->guideAgent)->gameID);
+		}
+	  	if ((((team_t *)item)->guideAgent)->conn != NULL){
+	  		deleteConnection((((team_t *)item)->guideAgent)->conn);
+	  	}
+
   		free(((team_t *)item)->guideAgent);
   	}
 
