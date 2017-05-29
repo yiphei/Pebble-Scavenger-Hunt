@@ -30,6 +30,12 @@ typedef struct krag {
 /**************** functions ****************/
 
 /*
+* This function creates a new krag and assigns coordinates to the krag. Caller
+* must free the pointer.
+*/
+krag_t * kragNew(double longitude, double latitude);
+
+/*
 * This functions reads a kragfile and creates a hashtable where the kragID is the key and the item
 * is a krag struct. Caller is rensposible for freeing the pointer
 */
@@ -72,16 +78,11 @@ void deleteKragHash(hashtable_t * kraghash);
 void printKrags(hashtable_t * kraghash);
 
 /*
-* This function store a random first clue in a given team. This function should be called
-* at the start of the game where a team is given one clue for a random krag.
+* This function stores a random clue for a krag that the team has not found yet. If the team has 
+* collected all clues, then this function shall not be called because it will get
+* stuck in an infinite loop.
 */
-void firstClue(char * teamname, hashtable_t * kraghash, hashtable_t * teamhash);
-
-/*
-* THis function stores two clues for two random krags that the team has not found yet.
-* THis funciton should be called when a team find a krag.
-*/
-void randomClue(char * teamname, hashtable_t * kraghash, hashtable_t * teamhash);
+krag_t * randomClue(char * teamname, hashtable_t * kraghash, hashtable_t * teamhash);
 
 
 #endif // __KRAG_H

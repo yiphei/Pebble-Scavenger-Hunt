@@ -20,10 +20,21 @@
 #include "../libcs50/file.h"
 
 #define HASH_SIZE 50
-#define ARRAY_SIZE 20
+#define ARRAY_SIZE 20  //assuming less than 20 krags in total
 
 unsigned int MAX_HEX;
-char * array [ARRAY_SIZE];
+char * array [ARRAY_SIZE];  
+
+
+krag_t * kragNew(double longitude, double latitude){
+
+	krag_t *krag = malloc(sizeof(krag_t));
+	krag->latitude = latitude;
+	krag->longitude = longitude;
+
+	return krag;
+}
+
 
 hashtable_t * readKrag(char * filename){
 
@@ -100,44 +111,47 @@ int revealCharacters(char * kragID, char * teamname, char * secret, hashtable_t 
 
 	team_t * team = hashtable_find(teamhash, teamname);
 
-	//if the team calls this function for the first time
-	if (!(team->revealedString)){
+	if (team != NULL){
 
-		team->revealedString = realloc(team->revealedString, strlen(secret) + 1);
-		char c = '_'; 
-		char * string = malloc(strlen(secret) + 1);
-		int x = 0;
+		//if the team calls this function for the first time
+		if (!(team->revealedString)){
 
-		//create a string with all undescores '_' and with the size of the secret string
-		for (x = 0; x < strlen(secret); x++){
-			string[x] = c;
-		}
+			team->revealedString = realloc(team->revealedString, strlen(secret) + 1);
+			char c = '_'; 
+			char * string = malloc(strlen(secret) + 1);
+			int x = 0;
 
-		string[x] = '\0';  //add null character
-
-		//assign it to the revealedString (AKA current string) of the team
-		strcpy(team->revealedString,string);
-		team->claimed = 0;  //set the number of claimed krags to zero
-
-		free(string);
-	}
-	else{
-		int nkrags = totalKrags(kraghash); //total number of krags in the game
-
-		krag_t * krag = hashtable_find(kraghash, kragID);
-
-		//reveal characters
-		for (int x = 0; x < strlen(secret); x++){
-			if (x % nkrags == (krag->n)){
-				(team->revealedString)[x] = secret[x];
+			//create a string with all undescores '_' and with the size of the secret string
+			for (x = 0; x < strlen(secret); x++){
+				string[x] = c;
 			}
+
+			string[x] = '\0';  //add null character
+
+			//assign it to the revealedString (AKA current string) of the team
+			strcpy(team->revealedString,string);
+			team->claimed = 0;  //set the number of claimed krags to zero
+
+			free(string);
 		}
+		else{
+			int nkrags = totalKrags(kraghash); //total number of krags in the game
 
-		team->claimed = team->claimed + 1;  //increment the number of krags found by the team
+			krag_t * krag = hashtable_find(kraghash, kragID);
 
-		//return 1 if team has claimed all krags
-		if (team->claimed == nkrags){
-			return 1;
+			//reveal characters
+			for (int x = 0; x < strlen(secret); x++){
+				if (x % nkrags == (krag->n)){
+					(team->revealedString)[x] = secret[x];
+				}
+			}
+
+			team->claimed = team->claimed + 1;  //increment the number of krags found by the team
+
+			//return 1 if team has claimed all krags
+			if (team->claimed == nkrags){
+				return 1;
+			}
 		}
 	}
 	return 0;
@@ -190,35 +204,9 @@ void printKrags(hashtable_t * kraghash){
 	hashtable_print(kraghash, stdout, kragPrint);
 }
 
+static krag_t * findClue(char * teamname, hashtable_t * kraghash, hashtable_t * teamhash){
 
-void firstClue(char * teamname, hashtable_t * kraghash, hashtable_t * teamhash){
-
-	srand(time(NULL)); 
-	int r = rand() % totalKrags(kraghash);  //random number
-	char kragID[5];
-
-	set_t * clues = getClues(teamname, teamhash);
-
-	//get a random kragID
-	for (int i = 0; i < ARRAY_SIZE; i++){
-		if (i == r){
-			strcpy(kragID, array[i]);
-			break;
-		}
-	}
-
-	krag_t * krag = hashtable_find(kraghash, kragID);
-
-	//insert clue in the team
-	set_insert(clues, kragID, krag->clue);
-	team_t * team = hashtable_find(teamhash, teamname);
-	strcpy(team->recentClues[0],krag->clue);
-}
-
-
-//helper function to find one clue for a random krag
-static void ClueOne(char * teamname, hashtable_t * kraghash, hashtable_t * teamhash){
-
+	//printf("AA\n");
 	srand(time(NULL)); 
 	int r = rand() % totalKrags(kraghash);  //random number
 	char kragID[5];
@@ -226,51 +214,40 @@ static void ClueOne(char * teamname, hashtable_t * kraghash, hashtable_t * teamh
 	set_t * krags = getKrags(teamname, teamhash);
 	set_t * clues = getClues(teamname, teamhash);
 
+	int i;
 	//get a random kragID that has not been found yet
-	for (int i = 0; i < ARRAY_SIZE; i++){
+	for (i = 0; i < ARRAY_SIZE; i++){
+
 		if (i == r && set_find(krags, array[i]) == NULL){
 			strcpy(kragID, array[i]);
 			break;
 		}
 	}
 
-	krag_t * krag = hashtable_find(kraghash, kragID);
-
-	//inserting clue in the team
-	set_insert(clues, kragID, krag->clue);
-	team_t * team = hashtable_find(teamhash, teamname);
-	strcpy(team->recentClues[0],krag->clue);
-}
-
-//helper function to find one clue for a random krag
-static void ClueTwo(char * teamname, hashtable_t * kraghash, hashtable_t * teamhash){
-
-	srand(time(NULL)); 
-	int r = rand() % totalKrags(kraghash);  //random number
-	char kragID[5];
-
-	set_t * krags = getKrags(teamname, teamhash);
-	set_t * clues = getClues(teamname, teamhash);
-
-	//get a random kragID that has not been found yet
-	for (int i = 0; i < ARRAY_SIZE; i++){
-		if (i == r && set_find(krags, array[i]) == NULL){
-			strcpy(kragID, array[i]);
-			break;
-		}
+	//if there was not clue available, return NULL
+	if (i > totalKrags(kraghash)){
+		return NULL;
 	}
 
 	krag_t * krag = hashtable_find(kraghash, kragID);
 
 	//inserting clue in the team
 	set_insert(clues, kragID, krag->clue);
-	team_t * team = hashtable_find(teamhash, teamname);
-	strcpy(team->recentClues[1],krag->clue);
+
+	return krag;
 }
 
-void randomClue(char * teamname, hashtable_t * kraghash, hashtable_t * teamhash){
-	ClueOne(teamname, kraghash, teamhash);
-	ClueTwo(teamname, kraghash, teamhash);
+
+krag_t * randomClue(char * teamname, hashtable_t * kraghash, hashtable_t * teamhash){
+
+	krag_t * krag = NULL;
+
+	while (krag == NULL){
+		krag = findClue(teamname, kraghash, teamhash);
+	}
+
+	return krag;
 }
+
 
 //#endif
