@@ -1,11 +1,7 @@
 /* 
- * display.h - header file for 'display' module
- * 
- * The krag module contains all the logic for saving krags to a hashtable,
- * getting the secret string, revealing characters, and providing clues to krags.
- * Given a filename, the module will read the file and store the krags in a hashtable
- * where the key is the kragID and the item is a krag struct. 
+ * display.c - 'display' module
  *
+ * see display.h for more information.
  *
  * GREP
  */
@@ -294,6 +290,8 @@ void updateClues_I(set_t * clues){
 	getbegyx(cluesWin, ly, lx);  //get upper left coordinates
 	set_iterate(clues, &ly, printClues);  //print all clues
 
+	lx++; //not needed, but just used to get rid of compiler warning
+
 }
 
 void updateTotalKrags_I(int totalKrags){
@@ -312,8 +310,12 @@ void updateKragsClaimed_I(int claimed){
 }
 
 
-// caller must free pointer
+//from curse.c of David Kotz 
 char * input_I(void){
+
+	//erase previous input
+	werase(inputWin);
+	box(inputWin, 0 , 0);
 
 	int c; //the character
 	char * string = malloc(141);  //the hint
