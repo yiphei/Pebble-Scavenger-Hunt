@@ -51,7 +51,7 @@ static bool sendGameStatus(char* gameId, char* guideId, int numClaimed, int numK
 static bool forwardHint(char* hintMessage, connection_t* connection, char* log);
 static bool forwardHintToAll(char* hintMessage, char* team, hashtable_t* teams, char* log);
 static bool sendAllGSAgents(char* gameId, char* team, hashtable_t* teams, connection_t* connection, char* log);
-static bool sendClue(char* gameId, char* guideId, char* clue, double latitude, double longitude, connection_t* connection, char* log);
+static bool sendClue(char* gameId, char* guideId, char* clue, char* kragId, connection_t* connection, char* log);
 static bool sendSecret(char* gameId, char* guideId, char* secret, connection_t* connection, char* log);
 static bool sendGameOver(char* gameId, hashtable_t* teams, char* secret, char* log);
 static bool sendTeamRecord(char* gameId, hashtable_t* teams, char* log);
@@ -362,14 +362,16 @@ static void FAClaimHandler(char* gameId, char *messagep, message_t *message, has
 		// send the updated message
 		sendSecret(gameId, message->guideId, getRevealedString(message->team,teams), connection,log);
 
-		krag_t* krag; // initialize the krag
-
+		char* kragId;
+		krag_t* krag;
 		// add two clues to the team and send them
 		for(int i = 0; i < 2; i++){
 			// get random clue
-			krag = randomClue(message->team, krags, teams);
+			kragId = randomClue(message->team, krags, teams);
+			// get krag
+			krag = hashtable_find(krags, kragId);
 			//sendClue
-			sendClue(gameId, message->guideId, krag->clue, krag->kragId, connection, log);
+			sendClue(gameId, message->guideId, krag->clue, kragId, connection, log);
 		}
 	}
 }
@@ -421,9 +423,10 @@ static void GAStatusHandler(char* gameId, char *messagep, message_t *message, ha
 		// send the guide agent the first clue if they are new to the game
 		if(returnVal == 0){
 			// get random clue
-			krag_t* krag = randomClue(message->team, krags, teams);
+			char* kragId = randomClue(message->team, krags, teams);
+			krag_t* krag = hashtable_find(krags, kragId);
 			//sendClue
-			sendClue(gameId, message->guideId, krag->clue, krag->latitude, krag->longitude, connection, log);
+			sendClue(gameId, message->guideId, krag->clue, kragId, connection, log);
 		}
 		// respond with GAME_STATUS
 		if(!sendGameStatus(gameId, message->guideId, team->claimed, totalKrags(krags), connection,log)){
