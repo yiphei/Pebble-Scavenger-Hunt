@@ -41,26 +41,26 @@ int game(char *guideId, char *team, char *player, char *host, int port);
 Takes a hint as input and handles it as needed, calling the correct handling
 function from the function dispatch table.
 */
-int handleMessage(char *messagep, team_t *teamp, connection_t *connection, FILE *log, hashtable_t *teams);
+int handleMessage(char *messagep, team_t *teamp, connection_t *connection, char *filePath, hashtable_t *teams);
 
 /*
 Takes a hint from the user input and handles it as needed, sending it to the
 Game Server with sendGA_HINT and the appropriate Field Agent recipient(s).
 */
-void handleHint(char *gameId, char *guideId, char *team, char *player, char *hint, connection_t *connection, FILE *log, team_t *teamp);
+void handleHint(char *gameId, char *guideId, char *team, char *player, char *hint, connection_t *connection, char *filePath, team_t *teamp);
 
 /* 
 sendGA_STATUS inductively creates the message, given the correct
 components of the message, and sends the message via network.h's 
 sendMessage function and the connection_t pointer passed by game. 
 */
-bool sendGA_STATUS(char *gameId, char *guideId, char *team, char *player, char *statusReq, connection_t *connection, FILE *file);
+bool sendGA_STATUS(char *gameId, char *guideId, char *team, char *player, char *statusReq, connection_t *connection, char *filePath);
 
 /* 
 sendGA_HINT inductively creates the message, given the correct components
 of the message, and sends the message via network.h's sendMessage
 function and tghe connection_t pointer passed by the game 
 */
-bool sendGA_HINT(char *gameId, char *guideId, char *team, char *player, char *pebbleId, char *hint, connection_t *connection, FILE *file);
+bool sendGA_HINT(char *gameId, char *guideId, char *team, char *player, char *pebbleId, char *hint, connection_t *connection, char *filePath);
 
 #endif // __GUIDEAGENT_H
