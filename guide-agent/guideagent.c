@@ -169,8 +169,9 @@ int main(int argc, char **argv)
 	}
 
 	// parse arguments for their substrings (past the = statements)
-	char *guideId = malloc(strlen(guideIdTemp) - 8);
-	guideId = strcpy(guideId, guideIdTemp + 8);
+	char *guideId = malloc(strlen(guideIdTemp) - 7);
+	strcpy(guideId, guideIdTemp + 8);
+	strcat(guideId, "\0");
 
 	// invalid guideId length
 	if (strlen(guideId) > 8 || strlen(guideId) == 0) {
@@ -184,24 +185,29 @@ int main(int argc, char **argv)
 		exit(4);
 	}
 
-	char *team = malloc(strlen(teamTemp) - 5);
+	char *team = malloc(strlen(teamTemp) - 4);
 	team = strcpy(team, teamTemp + 5);
+	strcat(team, "\0");
+
 	// team name exceeds max length
 	if (strlen(team) > 10) {
 		fprintf(stderr, "max team name length is 10 characters\n");
 		exit(4);
 	}
 
-	char *player = malloc(strlen(playerTemp) - 7);
+	char *player = malloc(strlen(playerTemp) - 6);
 	player = strcpy(player, playerTemp + 7);
+	strcat(player, "\0");
+
 	// player name exceeds max length
 	if (strlen(player) > 10) {
 		fprintf(stderr, "max player name length is 10 characters\n");
 		exit(4);
 	}
 
-	char *host = malloc(strlen(hostTemp) - 5);
+	char *host = malloc(strlen(hostTemp) - 4);
 	host = strcpy(host, hostTemp + 5);
+	strcat(host, "\0");
 
 	char *portTemp2 = malloc(strlen(portTemp) - 5);
 	portTemp2 = strcpy(portTemp2, portTemp + 5);
@@ -252,6 +258,7 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 	// make a new team
 	team_t *teamp = newTeam();
 
+
 	if (teamp == NULL) {
 		fprintf(stderr, "error allocating memory for team\n");
 		return 7;
@@ -269,9 +276,9 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 	initializeWindows_I();
 
 	// declare message types needed
-	char *messagep;
-	char *gameId;
-	int statusReq;
+	char *messagep = NULL;
+	char *gameId = NULL;
+	int statusReq = 0;
 
 	// loop runs until GAME_OVER message received, then breaks
 	while (true) {
@@ -287,6 +294,7 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 	    FD_SET(0, &rfds);         // stdin
 	    FD_SET(socket, &rfds); // the UDP socket
 	    int nfds = socket+1;   // highest-numbered fd in rfds
+	    /****** end source code ********/
 
 		int select_response = select(nfds, &rfds, NULL, NULL, NULL);
 
@@ -321,7 +329,7 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 
 					// assign gameId when first GAME_STATUS is received for later use
 					if (gameId == NULL) {
-						gameId = me->gameID;
+						gameId = teamp->guideAgent->gameID;
 					}
 
 					// keep track of when to send GA_STATUS (every 3 messages received)
@@ -368,6 +376,7 @@ int handleMessage(char *messagep, team_t *teamp, connection_t *connection, char 
 		}
 
 		free(messagep);
+		messagep = NULL;
 
 		if (strcmp(message->opCode, "GAME_OVER") == 0) {
 			deleteMessage(message);
@@ -375,6 +384,7 @@ int handleMessage(char *messagep, team_t *teamp, connection_t *connection, char 
 		}
 
 		deleteMessage(message);
+		message = NULL;
 
 	}
 
@@ -414,15 +424,15 @@ void handleHint(char *gameId, char *guideId, char *team, char *player, char *hin
 /*********** sendGA_STATUS ************/
 bool sendGA_STATUS(char *gameId, char *guideId, char *team, char *player, char *statusReq, connection_t *connection, char *filePath)
 {
-	// allocate full space needed for the  message (60 being known characters)
-	char *messagep = malloc(8191);
+	// allocate 8k buffer to the message
+	char *messagep = malloc(400);
 
 	if (messagep == NULL) {
 		return false;
 	}
 
 	// construct message inductively
-	strcat(messagep, "opCode=GA_STATUS|gameId=");
+	strcpy(messagep, "opCode=GA_STATUS|gameId=");
 	strcat(messagep, gameId);
 	strcat(messagep, "|guideId=");
 	strcat(messagep, guideId);
@@ -449,15 +459,14 @@ bool sendGA_STATUS(char *gameId, char *guideId, char *team, char *player, char *
 /********** sendGA_Hint **********/
 bool sendGA_HINT(char *gameId, char *guideId, char *team, char *player, char *pebbleId, char *hint, connection_t *connection, char *filePath)
 {
-	char *messagep = malloc(strlen(gameId) + strlen(guideId) + strlen(team) 
-		+ strlen(player) + strlen(pebbleId) + strlen(hint) + 64);
+	char *messagep = malloc(400);
 
 	if (messagep == NULL) {
 		return false;
 	} 
 
 	// construct message inductively
-	strcat(messagep, "opCode=GA_STATUS|gameId=");
+	strcpy(messagep, "opCode=GA_HINT|gameId=");
 	strcat(messagep, gameId);
 	strcat(messagep, "|guideId=");
 	strcat(messagep, guideId);
@@ -496,11 +505,17 @@ static void gameStatusHandler(char *messagep, message_t *message, team_t *teamp,
 {
 	if (gameStatusValidate(message, teamp)) {
 
-		// first game status received, set gameId for later use
-		if (strcmp(teamp->guideAgent->gameID, "0") == 0) {
-			teamp->guideAgent->gameID = message->gameId;
-		}
+		char *gameId = malloc(strlen(message->gameId) + 1);
 
+		strcpy(gameId, message->gameId);
+
+		teamp->guideAgent->gameID = malloc(strlen(gameId) + 1);
+
+		strcpy(teamp->guideAgent->gameID, gameId);
+
+		free(gameId);
+
+		// update the GUI with new (or not new) info
 		teamp->claimed = message->numClaimed;
 
 		int totalKrags = message->numKrags;
@@ -522,9 +537,7 @@ static void GSAgentHandler(char *messagep, message_t *message, team_t *teamp, co
 		double latitude = message->latitude;
 		double longitude = message->longitude;
 
-		set_t *FAset = teamp->FAset;
-
-		fieldAgent_t *FA = set_find(FAset, player);
+		fieldAgent_t *FA = set_find(teamp->FAset, player);
 
 		// if the field agent is already in the game, just update position
 		if (FA != NULL) {
@@ -538,10 +551,10 @@ static void GSAgentHandler(char *messagep, message_t *message, team_t *teamp, co
 			FA->latitude = latitude;
 			FA->longitude = longitude;
 
-			set_insert(FAset, player, FA);
+			set_insert(teamp->FAset, player, FA);
 		}
 
-		updateMap_I(FAset);
+		updateMap_I(teamp->FAset);
 
 		logMessage(filePath, messagep, "FROM", connection);
 
@@ -553,10 +566,15 @@ static void GSClueHandler(char *messagep, message_t *message, team_t *teamp, con
 	if (GSClueValidate(message)) {
 
 		// add the clue to the set
-		char *key = message->kragId;
+		char *key = malloc(strlen(message->kragId) + 1);
+		strcpy(key, message->kragId);
+
+		char *clue = malloc(strlen(message->clue) + 1);
+		strcpy(clue, message->clue);
+
 		set_t *clues = teamp->clues;
 
-		set_insert(clues, key, message->clue);
+		set_insert(clues, key, clue);
 
 		// update GUI with new clue
 		updateClues_I(clues);
@@ -626,6 +644,11 @@ static bool gameStatusValidate(message_t *message, team_t *teamp)
 		return false;
 	} 
 
+	// numClaimed or numKrags never initialized
+	if (message->numClaimed == -600 || message->numKrags == -600) {
+		return false;
+	}
+
 	// hexidecimal format check
 	unsigned int guideIdFormat;
 	if (sscanf(message->guideId, "%x", &guideIdFormat) != 1) {
@@ -652,6 +675,11 @@ static bool GSAgentValidate(message_t *message)
 	// never initialized when parsing
 	if (message->gameId == NULL || message->pebbleId == NULL) {
 		printf("gameId or pebbleId missing\n");
+		return false;
+	}
+
+	// latitude, longitude, or lastContact were never assigned
+	if (message->latitude == -600 || message->longitude == -600 || message->lastContact == -600) {
 		return false;
 	}
 
