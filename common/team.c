@@ -10,12 +10,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-#include "krag.h"
 #include "../libcs50/hashtable.h"
 #include "../libcs50/set.h"
 #include "../libcs50/file.h"
 #include "team.h"
-
 
 char * getRevealedString(char * teamname, hashtable_t * teamhash){
 	team_t * team = hashtable_find(teamhash, teamname); 
@@ -180,7 +178,6 @@ int getTime(char * name, char * teamname, hashtable_t * teamhash){
 //Helper function to free field agents
 static void deleteFA(void * item){
 	if (item){
-
 		free(((fieldAgent_t *) item)->gameID);
 		deleteConnection(((fieldAgent_t *) item)->conn);
 		free((fieldAgent_t *) item);
@@ -189,8 +186,22 @@ static void deleteFA(void * item){
 
 //helper functino to free krags
 static void deleteKrags(void * item){
+
 	if (item){
-		free(item);
+	}
+}
+
+//helper functino to free clues
+static void deleteClues(void * item){
+
+	if (item){
+	}
+}
+
+//helper functino to free pebble ids
+static void deletePebble(void * item){
+
+	if (item){
 	}
 }
 
@@ -198,6 +209,7 @@ static void deleteKrags(void * item){
 static void deleteTeam(void *item)
 {
   if ((team_t *)item != NULL) {
+
   	free(((team_t *)item)->revealedString);
   	free((((team_t *)item)->guideAgent)->guideID);
   	free((((team_t *)item)->guideAgent)->name);
@@ -206,10 +218,10 @@ static void deleteTeam(void *item)
   	free(((team_t *)item)->guideAgent);
   	set_delete(((team_t *)item)->FAset, deleteFA);
   	set_delete(((team_t *)item)->krags, deleteKrags);
-  	set_delete(((team_t *)item)->clues, deleteKrags);
-  	set_delete(((team_t *)item)->FAPebbleIds, deleteKrags);
+  	set_delete(((team_t *)item)->clues, deleteClues);
+  	set_delete(((team_t *)item)->FAPebbleIds, deletePebble);
 
-  				//free the array
+  	//free the array
 	for (int i=0; i<2; i++) {
 		if (((team_t *)item)->recentClues[i] != NULL) {
 			free(((team_t *)item)->recentClues[i]);
@@ -274,6 +286,7 @@ team_t * newTeam(void){
   	team->krags = set_new();
   	team->clues = set_new();
   	team->numPlayers = 0;
+  	team->FAPebbleIds = set_new();
 
   	for (int i =0; i<2; i++) {
 		team->recentClues[i] = NULL;
