@@ -316,6 +316,7 @@ char * input_I(void){
 	//erase previous input
 	werase(inputWin);
 	box(inputWin, 0 , 0);
+	wprintw(inputWin, "INPUT");
 
 	int c; //the character
 	char * string = malloc(141);  //the hint
