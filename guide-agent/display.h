@@ -47,7 +47,7 @@ void initializeWindows_I(void);
 * This function displays the campus map with the name of the players and their locatins on the map
 * with different colors.  
 */
-void updateMap_I(set_t * fieldagents);
+void updateMap_I(set_t * fieldagents, set_t * krags);
 
 /*
 * This function adds the field agents name on the top left corner of the mpa window, and their 
@@ -56,6 +56,11 @@ void updateMap_I(set_t * fieldagents);
 * colors available
 */
 void addPlayers_I(set_t * fieldagents);
+
+/*
+*
+*/
+void addKrags_I(set_t * krags);
 
 /*
 * This function displays the current revealed string of the team to the string window

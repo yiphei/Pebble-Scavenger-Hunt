@@ -116,21 +116,20 @@ void initializeWindows_I(void){
 }
 
 
-void updateMap_I(set_t * fieldagents){
+void updateMap_I(set_t * fieldagents, set_t * krags){
 	//erase window
 	werase(mapWin);
 	box(mapWin, 0 , 0);
 
-	//display players and their locations
+	//display the map
 	FILE * fp = fopen("campusmap", "r");
 	char **board1 = new_board();
-
 	load_board(board1, fp);
 	display_board(board1);
-
 	fclose(fp);
 
-	addPlayers_I(fieldagents);  
+	addPlayers_I(fieldagents);  //display the agents
+	addKrags_I(krags);  //displat the krags
 
 }
 
@@ -165,15 +164,38 @@ void addPlayers_I(set_t * fieldagents){
 
 	int y = 1; //y coordinate where the agent name is displayed
 
-		//initialize color pairs for the different field agents
-	 init_pair(1,COLOR_RED, COLOR_BLACK); 
-	 init_pair(2,COLOR_BLUE, COLOR_BLACK);
-	 init_pair(3,COLOR_GREEN, COLOR_BLACK);
-	 init_pair(4,COLOR_YELLOW, COLOR_BLACK);
-	 init_pair(5,COLOR_MAGENTA, COLOR_BLACK);
-	 init_pair(6,COLOR_CYAN, COLOR_BLACK);
-	 init_pair(7,COLOR_WHITE, COLOR_BLACK);
+	//initialize color pairs for the different field agents
+	init_pair(1,COLOR_RED, COLOR_BLACK); 
+	init_pair(2,COLOR_BLUE, COLOR_BLACK);
+	init_pair(3,COLOR_GREEN, COLOR_BLACK);
+	init_pair(4,COLOR_YELLOW, COLOR_BLACK);
+	init_pair(5,COLOR_MAGENTA, COLOR_BLACK);
+	init_pair(6,COLOR_CYAN, COLOR_BLACK);
+	init_pair(7,COLOR_WHITE, COLOR_BLACK);
 	set_iterate(fieldagents, &y, displayAgents);   //display field agents and their locations with different colors
+}
+
+//helper function to display the krags on the map
+static void displayKrags(void *arg, const char *key, void *item){
+
+	int * color = (int *)arg;
+	attron(COLOR_PAIR(* color)); //initialize color
+
+	krag_t * krag = item;
+	double longitude = krag->longitude;
+  	double latitude = krag->latitude;
+
+	mvprintw(latitude, longitude, "krag");
+	refresh();
+	attroff(COLOR_PAIR(* color));  //turn off color
+
+}
+
+
+void addKrags_I(set_t * krags){
+	int y = 8; //number of the color
+	init_pair(y,COLOR_WHITE, COLOR_YELLOW);  //initialize color
+	set_iterate(krags, &y, displayKrags); 
 }
 
 

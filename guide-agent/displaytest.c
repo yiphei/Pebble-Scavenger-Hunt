@@ -10,6 +10,7 @@
 #include "../libcs50/set.h"
 #include "display.h"
 #include "../common/team.h"
+#include "../common/krag.h"
 
 
 int
@@ -42,7 +43,18 @@ main(int argc, char *argv[])
 
   updateLocation("mark", "one", 30.6, 38.7, teamhash);
 
-  updateMap_I(set);
+
+
+  krag_t * k1 = kragNew(20.6, 35.2);
+  krag_t * k2 = kragNew(10, 10.2);
+
+  set_t * kragset = set_new();
+
+  set_insert(kragset, "AA", k1);
+  set_insert(kragset, "BB", k2);
+
+
+  updateMap_I(set, kragset);
   
   set_t * clues = set_new();
 
