@@ -67,7 +67,6 @@ int addGuideAgent(char * guideID, char * teamname, char * name, char * gameID, c
 	team_t * newteam = hashtable_find(teamhash, teamname);
 	guideAgent_t * newGA = newGuideAgent(guideID, name , gameID, conn);
 	newteam->guideAgent = newGA;
-
 	newteam->numPlayers = newteam->numPlayers + 1;
 
 	return 0;
@@ -216,10 +215,20 @@ static void deleteTeam(void *item)
 
   	if (((team_t *)item)->guideAgent != NULL){
 
-	  	free((((team_t *)item)->guideAgent)->guideID);
-	  	free((((team_t *)item)->guideAgent)->name);
-	  	free((((team_t *)item)->guideAgent)->gameID);
-	  	deleteConnection((((team_t *)item)->guideAgent)->conn);
+  		if ((((team_t *)item)->guideAgent)->guideID != NULL){
+	  		free((((team_t *)item)->guideAgent)->guideID);
+	  	}
+	  	if ((((team_t *)item)->guideAgent)->name != NULL){
+	  		free((((team_t *)item)->guideAgent)->name);
+	  	}
+
+	  	if ((((team_t *)item)->guideAgent)->gameID != NULL){
+	  		free((((team_t *)item)->guideAgent)->gameID);
+		}
+	  	if ((((team_t *)item)->guideAgent)->conn != NULL){
+	  		deleteConnection((((team_t *)item)->guideAgent)->conn);
+	  	}
+
   		free(((team_t *)item)->guideAgent);
   	}
 
@@ -253,7 +262,13 @@ fieldAgent_t * newFieldAgent(char * gameID, char * pebbleID, connection_t * conn
   	fa->gameID = malloc(strlen(gameID)+1);
   	strcpy(fa->gameID,gameID);
   	strcpy(fa->pebbleID,pebbleID);
-  	fa->conn = newConnection(conn->socket, conn->address);
+
+  	if (conn != NULL){
+  		fa->conn = newConnection(conn->socket, conn->address); // copy connection
+  	}
+  	else{
+  		fa->conn = NULL;
+  	}
   	fa->lastContact = 0;
     return fa;
  }
@@ -273,7 +288,13 @@ guideAgent_t * newGuideAgent(char * guideID, char * name, char * gameID, connect
   	strcpy(ga->name,name);
   	strcpy(ga->guideID,guideID);
   	strcpy(ga->gameID,gameID);
-  	ga->conn = newConnection(conn->socket, conn->address); // copy connection
+
+  	if (conn != NULL){
+  		ga->conn = newConnection(conn->socket, conn->address); // copy connection
+  	}
+  	else{
+  		ga->conn = NULL;
+  	}
 
     return ga;
  }
