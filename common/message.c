@@ -20,6 +20,10 @@ message_t *newMessage()
 {
 	message_t *parsedMessage = malloc(sizeof(message_t));
 
+	if (parsedMessage == NULL) {
+		return NULL;
+	}
+
 	parsedMessage->opCode = NULL;
 	parsedMessage->respCode = NULL;
 	parsedMessage->kragId = NULL;
@@ -33,6 +37,15 @@ message_t *newMessage()
 	parsedMessage->secret = NULL;
 	parsedMessage->text = NULL;
 
+	// arbitrary value assignments to check for duplicate fields later
+	parsedMessage->lastContact = -600;
+	parsedMessage->latitude = -600;
+	parsedMessage->longitude = -600;
+	parsedMessage->numPlayers = -600;
+	parsedMessage->numClaimed = -600;
+	parsedMessage->numKrags = -600;
+	parsedMessage->statusReq = -600;
+
 	return parsedMessage;
 }
 
@@ -40,6 +53,10 @@ message_t *newMessage()
 message_t * parseMessage(char *message)
 {
 	message_t *parsedMessage = newMessage();
+
+	if (parsedMessage == NULL) {
+		return NULL;
+	}
 
 	int errorCode = parseHelper(message, parsedMessage);
 
@@ -60,135 +77,196 @@ the message syntax.
 1: duplicate field
 2: invalid fieldName
 3: invalid message (types do not match)
+4: given field is not the correct length
+5: invalid latitude/longitude (too big or too small)
  */
 int parseHelper(char *message, message_t *parsedMessage)
 {
 	char *field;
 	char *delim = "|";
 
-	// arbitrary value assignments to check for duplicate fields later
-	parsedMessage->lastContact = -600;
-	parsedMessage->latitude = -600;
-	parsedMessage->longitude = -600;
-	parsedMessage->numPlayers = -600;
-	parsedMessage->numClaimed = -600;
-	parsedMessage->numKrags = -600;
-	parsedMessage->statusReq = -600;
+	char *messageModifier = malloc(strlen(message) + 1);
+	strcpy(messageModifier, message);
+	strcat(messageModifier, "\0");
 
-	field = strtok(message, delim);
+	field = strtok(messageModifier, delim);
 
 	// assign instances of the struct to the different types
 	while (field != NULL) {
 		if (strncmp(field, "opCode=", 7) == 0) {
 			if (parsedMessage->opCode != NULL) {
+				free(messageModifier);
 				return 1;
 			}
 
-			parsedMessage->opCode = malloc(strlen(field) - 7);
+			parsedMessage->opCode = malloc(strlen(field) - 6);
 			strcpy(parsedMessage->opCode, field + 7);
+			strcat(parsedMessage->opCode, "\0");
 		}
 
 		else if (strncmp(field, "respCode=", 9) == 0) {
 			if (parsedMessage->respCode != NULL) {
+				free(messageModifier);
 				return 1;
 			}
 
-			parsedMessage->respCode = malloc(strlen(field) - 9);
+			parsedMessage->respCode = malloc(strlen(field) - 8);
 			strcpy(parsedMessage->respCode, field + 9);
+			strcat(parsedMessage->respCode, "\0");
 		}
 
 		else if (strncmp(field, "kragId=", 7) == 0) {
 			if (parsedMessage->kragId != NULL) {
+				free(messageModifier);
 				return 1;
 			}
 
-			parsedMessage->kragId = malloc(strlen(field) - 7);
+			parsedMessage->kragId = malloc(strlen(field) - 6);
 			strcpy(parsedMessage->kragId, field + 7);
+			strcat(parsedMessage->kragId, "\0");
+
+			if (strlen(parsedMessage->kragId) > 4) {
+				return 4;
+			}
 		}
 
 		else if (strncmp(field, "gameId=", 7) == 0) {
 			if (parsedMessage->gameId != NULL) {
+				free(messageModifier);
 				return 1;
 			}
 
-			parsedMessage->gameId = malloc(strlen(field) - 7);
+			parsedMessage->gameId = malloc(strlen(field) - 6);
 			strcpy(parsedMessage->gameId, field + 7);
+			strcat(parsedMessage->gameId, "\0");
+
+			if (strlen(parsedMessage->gameId) > 8) {
+				return 4;
+			}
 		}
 
 		else if (strncmp(field, "guideId=", 8) == 0) {
 			if (parsedMessage->guideId != NULL) {
+				free(messageModifier);
 				return 1;
 			}
 
-			parsedMessage->guideId = malloc(strlen(field) - 8);
+			parsedMessage->guideId = malloc(strlen(field) - 7);
 			strcpy(parsedMessage->guideId, field + 8);
+			strcat(parsedMessage->guideId, "\0");
+
+			if (strlen(parsedMessage->guideId) > 8) {
+				return 4;
+			}
 		}
 
 		else if (strncmp(field, "pebbleId=", 9) == 0) {
 			if (parsedMessage->pebbleId != NULL) {
+				free(messageModifier);
 				return 1;
 			}
 
-			parsedMessage->pebbleId = malloc(strlen(field) - 9);
+			parsedMessage->pebbleId = malloc(strlen(field) - 8);
 			strcpy(parsedMessage->pebbleId, field + 9);
+			strcat(parsedMessage->pebbleId, "\0");
+
+			if (strlen(parsedMessage->pebbleId) != 8) {
+				return 4;
+			}
 		}
 
 		else if (strncmp(field, "player=", 7) == 0) {
 			if (parsedMessage->player != NULL) {
+				free(messageModifier);
 				return 1;
 			}
 
-			parsedMessage->player = malloc(strlen(field) - 7);
+			parsedMessage->player = malloc(strlen(field) - 6);
 			strcpy(parsedMessage->player, field + 7);
+			strcat(parsedMessage->player, "\0");
+
+			if (strlen(parsedMessage->player) > 10) {
+				return 4;
+			}
 		}
 
 		else if (strncmp(field, "team=", 5) == 0) {
 			if (parsedMessage->team != NULL) {
+				free(messageModifier);
 				return 1;
 			}
 
-			parsedMessage->team = malloc(strlen(field) - 5);
+			parsedMessage->team = malloc(strlen(field) - 4);
 			strcpy(parsedMessage->team, field + 5);
+			strcat(parsedMessage->team, "\0");
+
+			if (strlen(parsedMessage->team) > 10) {
+				return 4;
+			}
 		}
 
 		else if (strncmp(field, "hint=", 5) == 0) {
 			if (parsedMessage->hint != NULL) {
+				free(messageModifier);
 				return 1;
 			}
 
-			parsedMessage->hint = malloc(strlen(field) - 5);
+			parsedMessage->hint = malloc(strlen(field) - 4);
 			strcpy(parsedMessage->hint, field + 5);
+			strcat(parsedMessage->hint, "\0");
+
+			if (strlen(parsedMessage->hint) > 140) {
+				return 4;
+			}
 		}
 
 		else if (strncmp(field, "clue=", 5) == 0) {
 			if (parsedMessage->clue != NULL) {
+				free(messageModifier);
 				return 1;
 			}
 
-			parsedMessage->clue = malloc(strlen(field) - 5);
+			parsedMessage->clue = malloc(strlen(field) - 4);
 			strcpy(parsedMessage->clue, field + 5);
+			strcat(parsedMessage->clue, "\0");
+
+			if (strlen(parsedMessage->clue) > 140) {
+				return 4;
+			}
 		}
 
 		else if (strncmp(field, "secret=", 7) == 0) {
 			if (parsedMessage->secret != NULL) {
+				free(messageModifier);
 				return 1;
 			}
 
 			parsedMessage->secret = malloc(strlen(field) - 7);
 			strcpy(parsedMessage->secret, field + 7);
+
+			if (strlen(parsedMessage->secret) > 140) {
+				return 4;
+			}
 		}
 
 		else if (strncmp(field, "text=", 5) == 0) {
 			if (parsedMessage->text != NULL) {
+				free(messageModifier);
 				return 1;
 			}
 
-			parsedMessage->text = malloc(strlen(field) - 5);
+			parsedMessage->text = malloc(strlen(field) - 4);
 			strcpy(parsedMessage->text, field + 5);
+			strcat(parsedMessage->text, "\0");
+
+			if (strlen(parsedMessage->text) > 140) {
+				return 4;
+			}
 		}
 
 		else if (strncmp(field, "lastContact=", 12) == 0) {
 			if (parsedMessage->lastContact != -600) {
+				free(messageModifier);
 				return 1;
 			}
 
@@ -198,6 +276,8 @@ int parseHelper(char *message, message_t *parsedMessage)
 			int lastContact;
 
 			if (sscanf(lastContactTemp, "%d", &lastContact) != 1) {
+				free(messageModifier);
+				free(lastContactTemp);
 				return 3;
 			}
 
@@ -209,6 +289,7 @@ int parseHelper(char *message, message_t *parsedMessage)
 
 		else if (strncmp(field, "latitude=", 9) == 0) {
 			if (parsedMessage->latitude != -600) {
+				free(messageModifier);
 				return 1;
 			}
 
@@ -218,6 +299,8 @@ int parseHelper(char *message, message_t *parsedMessage)
 			double latitude;
 
 			if (sscanf(latitudeTemp, "%lf", &latitude) != 1) {
+				free(messageModifier);
+				free(latitudeTemp);
 				return 3;
 			}
 
@@ -225,10 +308,15 @@ int parseHelper(char *message, message_t *parsedMessage)
 
 			free(latitudeTemp);
 			latitudeTemp = NULL;
+
+			if (parsedMessage->latitude > 90.0 || parsedMessage->latitude < -90.0) {
+				return 5;
+			}
 		}
 
 		else if (strncmp(field, "longitude=", 10) == 0) {
 			if (parsedMessage->longitude != -600) {
+				free(messageModifier);
 				return 1;
 			}
 
@@ -238,6 +326,8 @@ int parseHelper(char *message, message_t *parsedMessage)
 			double longitude;
 
 			if (sscanf(longitudeTemp, "%lf", &longitude) != 1) {
+				free(messageModifier);
+				free(longitudeTemp);
 				return 3;
 			}
 
@@ -245,10 +335,15 @@ int parseHelper(char *message, message_t *parsedMessage)
 
 			free(longitudeTemp);
 			longitudeTemp = NULL;
+
+			if (parsedMessage->longitude > 180.0 || parsedMessage->longitude < -180.0) {
+				return 5;
+			}
 		}
 
 		else if (strncmp(field, "numPlayers=", 11) == 0) {
 			if (parsedMessage->numPlayers != -600) {
+				free(messageModifier);
 				return 1;
 			}
 
@@ -257,6 +352,8 @@ int parseHelper(char *message, message_t *parsedMessage)
 
 			int numPlayers;
 			if (sscanf(numPlayersTemp, "%d", &numPlayers) != 1) {
+				free(messageModifier);
+				free(numPlayersTemp);
 				return 3;
 			}
 			parsedMessage->numPlayers = numPlayers;
@@ -267,6 +364,7 @@ int parseHelper(char *message, message_t *parsedMessage)
 
 		else if (strncmp(field, "numClaimed=", 11) == 0) {
 			if (parsedMessage->numClaimed != -600) {
+				free(messageModifier);
 				return 1;
 			}
 
@@ -276,6 +374,8 @@ int parseHelper(char *message, message_t *parsedMessage)
 			int numClaimed;
 
 			if (sscanf(numClaimedTemp, "%d", &numClaimed) != 1) {
+				free(messageModifier);
+				free(numClaimedTemp);
 				return 3;
 			}
 
@@ -287,6 +387,7 @@ int parseHelper(char *message, message_t *parsedMessage)
 
 		else if (strncmp(field, "numKrags=", 9) == 0) {
 			if (parsedMessage->numKrags != -600) {
+				free(messageModifier);
 				return 1;
 			}
 
@@ -296,6 +397,8 @@ int parseHelper(char *message, message_t *parsedMessage)
 			int numKrags;
 
 			if(sscanf(numKragsTemp, "%d", &numKrags) != 1) {
+				free(messageModifier);
+				free(numKragsTemp);
 				return 3;
 
 			}
@@ -308,6 +411,7 @@ int parseHelper(char *message, message_t *parsedMessage)
 
 		else if (strncmp(field, "statusReq=", 10) == 0) {
 			if (parsedMessage->statusReq != -600) {
+				free(messageModifier);
 				return 1;
 			}
 
@@ -317,6 +421,8 @@ int parseHelper(char *message, message_t *parsedMessage)
 			int statusReq;
 
 			if (sscanf(statusReqTemp, "%d", &statusReq) != 1) {
+				free(messageModifier);
+				free(statusReqTemp);
 				return 3;
 			}
 
@@ -327,11 +433,14 @@ int parseHelper(char *message, message_t *parsedMessage)
 		}
 
 		else {
+			free(messageModifier);
 			return 2;
 		}
 
 		field = strtok(NULL, delim);
 	}
+
+	free(messageModifier);
 
 	return 0;
 }
