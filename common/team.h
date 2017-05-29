@@ -163,6 +163,9 @@ int getTime(char * name, char * teamname, hashtable_t * teamhash);
 */
 void deleteTeamHash(hashtable_t * teamhash);
 
+
+void deleteTeamHashGA(hashtable_t * teamhash);
+
 /*
 * This function creates a new field agent.
 */

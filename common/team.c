@@ -185,14 +185,12 @@ static void deleteFA(void * item){
 
 //helper functino to free krags
 static void deleteKrags(void * item){
-
 	if (item){
 	}
 }
 
 //helper functino to free clues
 static void deleteClues(void * item){
-
 	if (item){
 	}
 }
@@ -250,6 +248,92 @@ static void deleteTeam(void *item)
 void deleteTeamHash(hashtable_t * teamhash){
 	if (teamhash != NULL){
 		hashtable_delete(teamhash, deleteTeam);
+	}
+}
+
+
+
+//Helper function to free field agents
+static void deleteFAGA(void * item){
+	if (item){
+		free(((fieldAgent_t *) item)->gameID);
+		deleteConnection(((fieldAgent_t *) item)->conn);
+		free((fieldAgent_t *) item);
+	}
+}
+
+//helper functino to free krags
+static void deleteKragsGA(void * item){
+
+	krag_t * k = item;
+	if (item){
+		free(k);
+	}
+}
+
+//helper functino to free clues
+static void deleteCluesGA(void * item){
+
+	char * s = item;
+	if (item){
+		free(s);
+	}
+}
+
+//helper functino to free pebble ids
+static void deletePebbleGA(void * item){
+	char * s = item;
+	if (item){
+		free(s);
+	}
+}
+
+//helper function to free team struct
+static void deleteTeamGA(void *item)
+{
+  if ((team_t *)item != NULL) {
+
+  	if (((team_t *)item)->revealedString != NULL){
+  		free(((team_t *)item)->revealedString);
+  	}
+
+  	if (((team_t *)item)->guideAgent != NULL){
+
+  		if ((((team_t *)item)->guideAgent)->guideID != NULL){
+	  		free((((team_t *)item)->guideAgent)->guideID);
+	  	}
+	  	if ((((team_t *)item)->guideAgent)->name != NULL){
+	  		free((((team_t *)item)->guideAgent)->name);
+	  	}
+
+	  	if ((((team_t *)item)->guideAgent)->gameID != NULL){
+	  		free((((team_t *)item)->guideAgent)->gameID);
+		}
+	  	if ((((team_t *)item)->guideAgent)->conn != NULL){
+	  		deleteConnection((((team_t *)item)->guideAgent)->conn);
+	  	}
+
+  		free(((team_t *)item)->guideAgent);
+  	}
+
+  	set_delete(((team_t *)item)->FAset, deleteFAGA);
+  	set_delete(((team_t *)item)->krags, deleteKragsGA);
+  	set_delete(((team_t *)item)->clues, deleteCluesGA);
+  	set_delete(((team_t *)item)->FAPebbleIds, deletePebbleGA);
+
+  	//free the array
+	for (int i=0; i<2; i++) {
+		if (((team_t *)item)->recentClues[i] != NULL) {
+			free(((team_t *)item)->recentClues[i]);
+		}
+	}
+  	free((team_t *)item);
+  }
+}
+
+void deleteTeamHashGA(hashtable_t * teamhash){
+	if (teamhash != NULL){
+		hashtable_delete(teamhash, deleteTeamGA);
 	}
 }
 
