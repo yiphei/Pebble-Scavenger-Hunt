@@ -31,14 +31,27 @@ typedef struct message
 	
 } message_t;
 
-/* parses messages with the help of a helper function, that will check 
+/*
+Initializes a new message struct with all string fields set to null
+for easier memory management later on
+*/
+
+/* 
+Parses messages with the help of a helper function, that will check 
 each message field for its type and assign the rest of the message field 
-to a specific variable inside of the message struct to be returned */
+to a specific variable inside of the message struct to be returned 
+*/
 message_t * parseMessage(char *message);
 
-/* goes through every possible allocated space of a specific message,
+/* 
+Goes through every possible allocated space of a specific message,
 specifically all message types, and frees those that are not NULL, 
-then frees the message struct itself */
+then frees the message struct itself 
+*/
 void deleteMessage(message_t *message);
-
+/*
+Helper function to do the brute force work of parseMessage by 
+comparing specific fields of the message to known field names and 
+error checking based on the requirement spec
+*/
 int parseHelper(char *message, message_t *parsedMessage);

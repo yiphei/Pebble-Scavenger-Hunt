@@ -16,14 +16,32 @@
 int parseHelper(char *message, message_t *parsedMessage);
 /******** function definition *********/
 
-// parses message into a message struct using helper function to factor
-message_t * parseMessage(char *message)
+message_t *newMessage() 
 {
 	message_t *parsedMessage = malloc(sizeof(message_t));
 
-	int errorCode;
+	parsedMessage->opCode = NULL;
+	parsedMessage->respCode = NULL;
+	parsedMessage->kragId = NULL;
+	parsedMessage->gameId = NULL;
+	parsedMessage->guideId = NULL;
+	parsedMessage->pebbleId = NULL;
+	parsedMessage->player = NULL;
+	parsedMessage->team = NULL;
+	parsedMessage->hint = NULL;
+	parsedMessage->clue = NULL;
+	parsedMessage->secret = NULL;
+	parsedMessage->text = NULL;
 
-	errorCode = parseHelper(message, parsedMessage);
+	return parsedMessage;
+}
+
+// parses message into a message struct using helper function to factor
+message_t * parseMessage(char *message)
+{
+	message_t *parsedMessage = newMessage();
+
+	int errorCode = parseHelper(message, parsedMessage);
 
 	parsedMessage->errorCode = errorCode;
 
