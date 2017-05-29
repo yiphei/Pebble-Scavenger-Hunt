@@ -212,12 +212,14 @@ static void deleteTeam(void *item)
 
   	if (((team_t *)item)->revealedString != NULL){
   		free(((team_t *)item)->revealedString);
-
   	}
 
-  	free((((team_t *)item)->guideAgent)->guideID);
-  	free((((team_t *)item)->guideAgent)->name);
-  	free((((team_t *)item)->guideAgent)->gameID);
+  	if ((((team_t *)item)->guideAgent)->gameID != NULL){
+
+	  	free((((team_t *)item)->guideAgent)->guideID);
+	  	free((((team_t *)item)->guideAgent)->name);
+	  	free((((team_t *)item)->guideAgent)->gameID);
+  	}
   	deleteConnection((((team_t *)item)->guideAgent)->conn);
   	free(((team_t *)item)->guideAgent);
   	set_delete(((team_t *)item)->FAset, deleteFA);
@@ -291,6 +293,7 @@ team_t * newTeam(void){
   	team->clues = set_new();
   	team->numPlayers = 0;
   	team->FAPebbleIds = set_new();
+  	team->guideAgent = NULL;
 
   	for (int i =0; i<2; i++) {
 		team->recentClues[i] = NULL;
