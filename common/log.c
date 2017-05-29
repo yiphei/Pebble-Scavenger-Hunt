@@ -21,7 +21,7 @@ void logMessage(char *filePath, char *message, char *direction, connection_t *co
 {
 	FILE *log = fopen(filePath, "a");
 
-	char* messageNew = malloc(sizeof(char)*strlen(message));
+	char* messageNew = calloc(strlen(message) + 1, 1);
 	strcpy(messageNew, message);
 
 	// couldn't open log file

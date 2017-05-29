@@ -18,7 +18,7 @@ int parseHelper(char *message, message_t *parsedMessage);
 
 message_t *newMessage() 
 {
-	message_t *parsedMessage = malloc(sizeof(message_t));
+	message_t *parsedMessage = calloc(sizeof(message_t), 1);
 
 	if (parsedMessage == NULL) {
 		return NULL;
@@ -85,7 +85,7 @@ int parseHelper(char *message, message_t *parsedMessage)
 	char *field;
 	char *delim = "|";
 
-	char *messageModifier = malloc(strlen(message) + 1);
+	char *messageModifier = calloc(strlen(message) + 1, 1);
 	strcpy(messageModifier, message);
 	strcat(messageModifier, "\0");
 
@@ -99,7 +99,7 @@ int parseHelper(char *message, message_t *parsedMessage)
 				return 1;
 			}
 
-			parsedMessage->opCode = malloc(strlen(field) - 6);
+			parsedMessage->opCode = calloc(strlen(field) - 6, 1);
 			strcpy(parsedMessage->opCode, field + 7);
 			strcat(parsedMessage->opCode, "\0");
 		}
@@ -110,7 +110,7 @@ int parseHelper(char *message, message_t *parsedMessage)
 				return 1;
 			}
 
-			parsedMessage->respCode = malloc(strlen(field) - 8);
+			parsedMessage->respCode = calloc(strlen(field) - 8, 1);
 			strcpy(parsedMessage->respCode, field + 9);
 			strcat(parsedMessage->respCode, "\0");
 		}
@@ -121,7 +121,7 @@ int parseHelper(char *message, message_t *parsedMessage)
 				return 1;
 			}
 
-			parsedMessage->kragId = malloc(strlen(field) - 6);
+			parsedMessage->kragId = calloc(strlen(field) - 6, 1);
 			strcpy(parsedMessage->kragId, field + 7);
 			strcat(parsedMessage->kragId, "\0");
 
@@ -136,7 +136,7 @@ int parseHelper(char *message, message_t *parsedMessage)
 				return 1;
 			}
 
-			parsedMessage->gameId = malloc(strlen(field) - 6);
+			parsedMessage->gameId = calloc(strlen(field) - 6, 1);
 			strcpy(parsedMessage->gameId, field + 7);
 			strcat(parsedMessage->gameId, "\0");
 
@@ -151,7 +151,7 @@ int parseHelper(char *message, message_t *parsedMessage)
 				return 1;
 			}
 
-			parsedMessage->guideId = malloc(strlen(field) - 7);
+			parsedMessage->guideId = calloc(strlen(field) - 7, 1);
 			strcpy(parsedMessage->guideId, field + 8);
 			strcat(parsedMessage->guideId, "\0");
 
@@ -166,7 +166,7 @@ int parseHelper(char *message, message_t *parsedMessage)
 				return 1;
 			}
 
-			parsedMessage->pebbleId = malloc(strlen(field) - 8);
+			parsedMessage->pebbleId = calloc(strlen(field) - 8, 1);
 			strcpy(parsedMessage->pebbleId, field + 9);
 			strcat(parsedMessage->pebbleId, "\0");
 
@@ -181,7 +181,7 @@ int parseHelper(char *message, message_t *parsedMessage)
 				return 1;
 			}
 
-			parsedMessage->player = malloc(strlen(field) - 6);
+			parsedMessage->player = calloc(strlen(field) - 6, 1);
 			strcpy(parsedMessage->player, field + 7);
 			strcat(parsedMessage->player, "\0");
 
@@ -196,7 +196,7 @@ int parseHelper(char *message, message_t *parsedMessage)
 				return 1;
 			}
 
-			parsedMessage->team = malloc(strlen(field) - 4);
+			parsedMessage->team = calloc(strlen(field) - 4, 1);
 			strcpy(parsedMessage->team, field + 5);
 			strcat(parsedMessage->team, "\0");
 
@@ -211,7 +211,7 @@ int parseHelper(char *message, message_t *parsedMessage)
 				return 1;
 			}
 
-			parsedMessage->hint = malloc(strlen(field) - 4);
+			parsedMessage->hint = calloc(strlen(field) - 4, 1);
 			strcpy(parsedMessage->hint, field + 5);
 			strcat(parsedMessage->hint, "\0");
 
@@ -226,7 +226,7 @@ int parseHelper(char *message, message_t *parsedMessage)
 				return 1;
 			}
 
-			parsedMessage->clue = malloc(strlen(field) - 4);
+			parsedMessage->clue = calloc(strlen(field) - 4, 1);
 			strcpy(parsedMessage->clue, field + 5);
 			strcat(parsedMessage->clue, "\0");
 
@@ -241,7 +241,7 @@ int parseHelper(char *message, message_t *parsedMessage)
 				return 1;
 			}
 
-			parsedMessage->secret = malloc(strlen(field) - 7);
+			parsedMessage->secret = calloc(strlen(field) - 7, 1);
 			strcpy(parsedMessage->secret, field + 7);
 
 			if (strlen(parsedMessage->secret) > 140) {
@@ -255,7 +255,7 @@ int parseHelper(char *message, message_t *parsedMessage)
 				return 1;
 			}
 
-			parsedMessage->text = malloc(strlen(field) - 4);
+			parsedMessage->text = calloc(strlen(field) - 4, 1);
 			strcpy(parsedMessage->text, field + 5);
 			strcat(parsedMessage->text, "\0");
 
@@ -270,7 +270,7 @@ int parseHelper(char *message, message_t *parsedMessage)
 				return 1;
 			}
 
-			char *lastContactTemp = malloc(strlen(field) - 12);
+			char *lastContactTemp = calloc(strlen(field) - 12, 1);
 			strcpy(lastContactTemp, field + 12);
 
 			int lastContact;
@@ -293,7 +293,7 @@ int parseHelper(char *message, message_t *parsedMessage)
 				return 1;
 			}
 
-			char *latitudeTemp = malloc(strlen(field) - 9);
+			char *latitudeTemp = calloc(strlen(field) - 9, 1);
 			strcpy(latitudeTemp, field + 9);
 
 			double latitude;
@@ -320,7 +320,7 @@ int parseHelper(char *message, message_t *parsedMessage)
 				return 1;
 			}
 
-			char *longitudeTemp = malloc(strlen(field) - 10);
+			char *longitudeTemp = calloc(strlen(field) - 10, 1);
 			strcpy(longitudeTemp, field + 10);
 
 			double longitude;
@@ -347,7 +347,7 @@ int parseHelper(char *message, message_t *parsedMessage)
 				return 1;
 			}
 
-			char *numPlayersTemp = malloc(strlen(field) - 11);
+			char *numPlayersTemp = calloc(strlen(field) - 11, 1);
 			strcpy(numPlayersTemp, field + 11);
 
 			int numPlayers;
@@ -368,7 +368,7 @@ int parseHelper(char *message, message_t *parsedMessage)
 				return 1;
 			}
 
-			char *numClaimedTemp = malloc(strlen(field) - 11);
+			char *numClaimedTemp = calloc(strlen(field) - 11, 1);
 			strcpy(numClaimedTemp, field + 11);
 
 			int numClaimed;
@@ -391,7 +391,7 @@ int parseHelper(char *message, message_t *parsedMessage)
 				return 1;
 			}
 
-			char *numKragsTemp = malloc(strlen(field) - 9);
+			char *numKragsTemp = calloc(strlen(field) - 9, 1);
 			strcpy(numKragsTemp, field + 9);
 
 			int numKrags;
@@ -415,7 +415,7 @@ int parseHelper(char *message, message_t *parsedMessage)
 				return 1;
 			}
 
-			char *statusReqTemp = malloc(strlen(field) - 10);
+			char *statusReqTemp = calloc(strlen(field) - 10, 1);
 			strcpy(statusReqTemp, field + 10);
 
 			int statusReq;

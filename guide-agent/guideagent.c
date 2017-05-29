@@ -170,7 +170,7 @@ int main(int argc, char **argv)
 	}
 
 	// parse arguments for their substrings (past the = statements)
-	char *guideId = malloc(strlen(guideIdTemp) - 7);
+	char *guideId = calloc(strlen(guideIdTemp) - 7, 1);
 	strcpy(guideId, guideIdTemp + 8);
 	strcat(guideId, "\0");
 
@@ -186,7 +186,7 @@ int main(int argc, char **argv)
 		exit(4);
 	}
 
-	char *team = malloc(strlen(teamTemp) - 4);
+	char *team = calloc(strlen(teamTemp) - 4, 1);
 	team = strcpy(team, teamTemp + 5);
 	strcat(team, "\0");
 
@@ -196,7 +196,7 @@ int main(int argc, char **argv)
 		exit(4);
 	}
 
-	char *player = malloc(strlen(playerTemp) - 6);
+	char *player = calloc(strlen(playerTemp) - 6, 1);
 	player = strcpy(player, playerTemp + 7);
 	strcat(player, "\0");
 
@@ -206,11 +206,11 @@ int main(int argc, char **argv)
 		exit(4);
 	}
 
-	char *host = malloc(strlen(hostTemp) - 4);
+	char *host = calloc(strlen(hostTemp) - 4, 1);
 	host = strcpy(host, hostTemp + 5);
 	strcat(host, "\0");
 
-	char *portTemp2 = malloc(strlen(portTemp) - 5);
+	char *portTemp2 = calloc(strlen(portTemp) - 4, 1);
 	portTemp2 = strcpy(portTemp2, portTemp + 5);
 	// check to see if port is an integer
 	for (int i = 0; i < strlen(portTemp2); i++) {
@@ -354,6 +354,7 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 					messagep = NULL;
 
 				}
+			
 			}
 
 		}
@@ -402,7 +403,7 @@ int handleMessage(char *messagep, team_t *teamp, connection_t *connection, char 
 void handleHint(char *gameId, char *guideId, char *team, char *player, char *hint, connection_t *connection, char *filePath, team_t *teamp)
 {
 	if (gameId != NULL) {
-		char *name = malloc(140);
+		char *name = calloc(140, 1);
 
 		sscanf(hint, "%s", name);
 
@@ -439,7 +440,7 @@ void handleHint(char *gameId, char *guideId, char *team, char *player, char *hin
 bool sendGA_STATUS(char *gameId, char *guideId, char *team, char *player, char *statusReq, connection_t *connection, char *filePath)
 {
 	// allocate 8k buffer to the message
-	char *messagep = malloc(400);
+	char *messagep = calloc(400, 1);
 
 	if (messagep == NULL) {
 		return false;
@@ -473,7 +474,7 @@ bool sendGA_STATUS(char *gameId, char *guideId, char *team, char *player, char *
 /********** sendGA_Hint **********/
 bool sendGA_HINT(char *gameId, char *guideId, char *team, char *player, char *pebbleId, char *hint, connection_t *connection, char *filePath)
 {
-	char *messagep = malloc(400);
+	char *messagep = calloc(400, 1);
 
 	if (messagep == NULL) {
 		return false;
@@ -519,11 +520,11 @@ static void gameStatusHandler(char *messagep, message_t *message, team_t *teamp,
 {
 	if (gameStatusValidate(message, teamp)) {
 
-		char *gameId = malloc(strlen(message->gameId) + 1);
+		char *gameId = calloc(strlen(message->gameId) + 1, 1);
 
 		strcpy(gameId, message->gameId);
 
-		teamp->guideAgent->gameID = malloc(strlen(gameId) + 1);
+		teamp->guideAgent->gameID = calloc(strlen(gameId) + 1, 1);
 
 		strcpy(teamp->guideAgent->gameID, gameId);
 
@@ -546,7 +547,7 @@ static void GSAgentHandler(char *messagep, message_t *message, team_t *teamp, co
 {
 	if (GSAgentValidate(message)) {
 
-		char *player = malloc(strlen(message->player) + 1);
+		char *player = calloc(strlen(message->player) + 1, 1);
 		strcpy(player, message->player);
 		double latitude = message->latitude;
 		double longitude = message->longitude;
@@ -582,11 +583,18 @@ static void GSClueHandler(char *messagep, message_t *message, team_t *teamp, con
 		// only add clue if krag hasn't been found (error check)
 		if (set_find(teamp->krags, message->kragId) == NULL) {
 			// add the clue to the set
-			char *key = malloc(strlen(message->kragId) + 1);
+			char *key = calloc(strlen(message->kragId) + 1, 1);
 			strcpy(key, message->kragId);
 
-			char *clue = malloc(strlen(message->clue) + 1);
+			char *clue = calloc(strlen(message->clue) + 2, 1);
 			strcpy(clue, message->clue);
+
+			int length = strlen(clue);
+
+			if (!isalpha(clue[length])) {
+				clue[length + 1] = ' ';
+				clue[length + 2] = '\0';
+			}
 
 			set_t *clues = teamp->clues;
 
@@ -608,7 +616,7 @@ static void GSClaimedHandler(char *messagep, message_t *message, team_t *teamp, 
 		// display the new krag
 		krag_t *new = kragNew(message->latitude, message->longitude);
 
-		char *kragId = malloc(strlen(message->kragId) + 1);
+		char *kragId = calloc(strlen(message->kragId) + 1, 1);
 		strcpy(kragId, message->kragId);
 		strcat(kragId, "\0");
 
@@ -634,7 +642,7 @@ static void GSSecretHandler(char *messagep, message_t *message, team_t *teamp, c
 	if (GSSecretValidate(message)) {
 
 		// copy message's secret to be the team's secret
-		char *revealedString = malloc(141);
+		char *revealedString = calloc(141, 1);
 
 		strcpy(revealedString, message->secret);
 
