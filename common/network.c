@@ -94,7 +94,7 @@ char* receiveMessage(connection_t* connection)
 	
 	// if messages are received, return them
 	if(messageLen > 0){
-		char* messagep = malloc(messageLen); // allocate space for return pointer
+		char* messagep = calloc(messageLen+1,sizeof(char)); // allocate space for return pointer
 		buf[messageLen] = '\0'; // add a null terminator to shorten the buffer
 		strcpy(messagep, (char *)buf); // copy into a character pointer
 		return messagep; // return the message
