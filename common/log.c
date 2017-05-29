@@ -41,7 +41,13 @@ void logMessage(char *filePath, char *message, char *direction, connection_t *co
 	// get port number
 	int port = connect->socket;
 
-	fprintf(log, "%s %s %s@%d: %s \n", timestamp, direction, ip, port, message);
+	if (ip != NULL && port != 0) {
+		fprintf(log, "%s %s %s@%d: %s \n", timestamp, direction, ip, port, message);
+	}
+
+	else {
+		fprintf(log, "%s (error retrieving connection data) %s\n", timestamp, message);
+	}
 
 	fclose(log);
 }
