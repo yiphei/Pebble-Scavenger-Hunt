@@ -267,16 +267,19 @@ static void printClues(void *arg, const char *key, void *item){
 	int *ly = (int *)arg;  ////y coordinate where the clues is displayed
 	char * clue = item;
 
- 	int x, y;
-	getbegyx(cluesWin, y, x);
-	int max = y + (map_uy - stats_uy - string_uy) - 3;  //max y before exiting the clues window
+	if (clue != NULL){
 
-	//make sure clues dont go out the window boundaries
-	if ( *ly < max){
-		mvprintw( *ly + 2, x + 1,  "%s\n", clue);  //print the clue
-		refresh();
+	 	int x, y;
+		getbegyx(cluesWin, y, x);
+		int max = y + (map_uy - stats_uy - string_uy) - 3;  //max y before exiting the clues window
+
+		//make sure clues dont go out the window boundaries
+		if ( *ly < max){
+			mvprintw( *ly + 2, x + 1,  "%s\n", clue);  //print the clue
+			refresh();
+		}
+		(*ly)++;  //increment y coordinate
 	}
-	(*ly)++;  //increment y coordinate
 }
 
 void updateClues_I(set_t * clues){
