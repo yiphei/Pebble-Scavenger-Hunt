@@ -2,8 +2,8 @@
 # GREP, CS50, May 2017
 
 PROG = gameserver
-OBJS = gameserver.o ../common/network.o ../common/message.o ../common/log.o ../common/team.o display.o ../common/krag.o ../common/word.o
-OBJS2 = ../common/network.o ../common/message.o ../common/log.o ../common/team.o display.o displaytest.o ../common/krag.o
+OBJS = gameserver.o ../common/network.o ../common/message.o ../common/log.o ../common/team.o  ../common/krag.o ../common/word.o
+OBJS2 = ../common/network.o ../common/message.o ../common/log.o ../common/team.o ../common/krag.o
 LIBS = -lm
 LLIBS = ../libcs50/libcs50.a-Linux
 
@@ -24,6 +24,13 @@ team.o: ../common/team.h ../common/network.h ../libcs50/hashtable.h ../libcs50/s
 krag.o: ../common/krag.h ../common/team.h
 word.o: ../common/word.h
 
+.PHONY: all test valgrind clean 
+
+test:
+	gameserver gameId=FEED kff=testKFF sf=testSF port=36587
+
+valgrind:
+	valgrind --leak-check=full --show-leak-kinds=all gameserver gameId=FEED kff=testKFF sf=testSF port=36587
 
 clean:
 	rm -f gameserver

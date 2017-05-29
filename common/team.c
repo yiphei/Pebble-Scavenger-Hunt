@@ -263,7 +263,7 @@ fieldAgent_t * newFieldAgent(char * gameID, char * pebbleID, connection_t * conn
   	fa->gameID = malloc(strlen(gameID)+1);
   	strcpy(fa->gameID,gameID);
   	strcpy(fa->pebbleID,pebbleID);
-  	fa->conn = conn;
+  	fa->conn = newConnection(conn->socket, conn->address);
   	fa->lastContact = 0;
     return fa;
  }
@@ -283,7 +283,7 @@ guideAgent_t * newGuideAgent(char * guideID, char * name, char * gameID, connect
   	strcpy(ga->name,name);
   	strcpy(ga->guideID,guideID);
   	strcpy(ga->gameID,gameID);
-  	ga->conn = conn;
+  	ga->conn = newConnection(conn->socket, conn->address); // copy connection
 
     return ga;
  }

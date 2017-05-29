@@ -16,3 +16,4 @@ guide-agent/server
 guide-agent/servertest.c
 logs/guideagent.log
 guide-agent/servertest2.c
+guide-agent/server.c

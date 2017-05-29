@@ -19,7 +19,7 @@ connection_t* startServer(int port){
 	// Create the socket
 	int comm = socket(AF_INET, SOCK_DGRAM,0);
 	if(comm < 0){
-		fprintf(stderr , "Unable to create datagram socket\n");
+		fprintf(stderr , "Network: Unable to create datagram socket\n");
 		return NULL;
 	}
 
@@ -31,7 +31,7 @@ connection_t* startServer(int port){
 
 	// bind the socket
 	if(bind(comm, (struct sockaddr *)&myaddr, sizeof(myaddr))<0){
-		fprintf(stderr, "Unable to bind socket\n");
+		fprintf(stderr, "Network: Unable to bind socket\n");
 		return NULL;
 	}
 
@@ -51,7 +51,7 @@ connection_t* openSocket(int port, char* host){
 
 	// check for valid host/successful host search
 	if (hostp == NULL) {
-		fprintf(stderr, "unknown host name: %s\n", host);
+		fprintf(stderr, "Network: unknown host name: %s\n", host);
 		return NULL;
 	}
 
@@ -64,7 +64,7 @@ connection_t* openSocket(int port, char* host){
 	  // Create socket
   	int comm = socket(AF_INET, SOCK_DGRAM, 0);
   	if (comm < 0) {
-    	fprintf(stderr,"Unable to open socket\n");
+    	fprintf(stderr,"Network: Unable to open socket\n");
     	return NULL;
   	}
   	struct sockaddr* newaddrp = (struct sockaddr *) &server;
@@ -88,12 +88,13 @@ char* receiveMessage(connection_t* connection)
 	// get struct variables
 	socklen_t remoteLen = sizeof(remote);
 	int comm = connection->socket;
+
 	// receive messages
 	int messageLen = recvfrom(comm, buf, BUFSIZE-1, 0, &remote, &remoteLen);
 	
 	// if messages are received, return them
 	if(messageLen > 0){
-		char* messagep = malloc(messageLen); // allocate space for return pointer
+		char* messagep = calloc(messageLen+1,sizeof(char)); // allocate space for return pointer
 		buf[messageLen] = '\0'; // add a null terminator to shorten the buffer
 		strcpy(messagep, (char *)buf); // copy into a character pointer
 		return messagep; // return the message
@@ -106,14 +107,18 @@ bool sendMessage(char* message, connection_t* connection)
 {
 	// check for null parameters
 	if(connection == NULL || message == NULL){
+		fprintf(stderr, "Network: Unable to send message, connection or message is NULL\n");
 		return false;
 	}
-	struct sockaddr remote = connection->address;
 
+	// get the address and socket
+	struct sockaddr remote = connection->address;
 	socklen_t remoteLen = sizeof(remote);
 	int comm = connection->socket;
+
+	// send message
 	if(sendto(comm, message, strlen(message), 0, &remote, remoteLen) < 0){
-		fprintf(stderr, "Unable to send message: %s\n",message);
+		fprintf(stderr, "Network: Unable to send message: %s\n",message);
 		return false;
 	}
 	return true;
@@ -125,7 +130,7 @@ connection_t* newConnection(int socket, struct sockaddr address)
 	// allocate space
 	connection_t* conn = malloc(sizeof(connection_t));
 	if(conn == NULL){
-		fprintf(stderr, "Unable to create connection struct\n");
+		fprintf(stderr, "Network: Unable to create connection struct\n");
 		return NULL;
 	}
 	conn->socket = socket;
