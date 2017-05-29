@@ -82,7 +82,7 @@ void printKrags(hashtable_t * kraghash);
 * collected all clues, then this function shall not be called because it will get
 * stuck in an infinite loop.
 */
-krag_t * randomClue(char * teamname, hashtable_t * kraghash, hashtable_t * teamhash);
+char * randomClue(char * teamname, hashtable_t * kraghash, hashtable_t * teamhash);
 
 
 #endif // __KRAG_H

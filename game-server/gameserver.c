@@ -55,6 +55,7 @@ static bool sendClue(char* gameId, char* guideId, char* clue, double latitude, d
 static bool sendSecret(char* gameId, char* guideId, char* secret, connection_t* connection, char* log);
 static bool sendGameOver(char* gameId, hashtable_t* teams, char* secret, char* log);
 static bool sendTeamRecord(char* gameId, hashtable_t* teams, char* log);
+static bool sendGSClaimed(char* gameId,char* guideId, char* pebbleId, char* kragId, double latitude, double longitude, connection_t* connection, char* log);
 static bool sendResponse(char* gameId, char* respCode, char* text, connection_t* connection, char* log);
 static void sendToAllFA(char* messagep, team_t* team);
 static void sendToALLFAHelper(void* arg, const char* key, void* item);
@@ -79,6 +80,7 @@ static const struct {
 	{"GS_CLUE", badOpCodeHandler},
 	{"GS_SECRET", badOpCodeHandler},
 	{"GS_RESPONSE", badOpCodeHandler},
+	{"GS_CLAIMED", badOpCodeHandler},
 	{"TEAM_RECORD", badOpCodeHandler},
 	{"GAME_OVER", badOpCodeHandler},
 	{NULL, NULL}
@@ -907,6 +909,61 @@ static bool sendTeamRecord(char* gameId, hashtable_t* teams, char* log)
 	return true;
 }
 
+
+/*
+* Sends a GS_CLAIMED message to the GA
+*
+*
+*/
+static bool sendGSClaimed(char* gameId,char* guideId, char* pebbleId, char* kragId, double latitude, double longitude, connection_t* connection, char* log)
+{
+	// allocate full space needed for the  message
+	char *messagep = calloc(MAXOUTMESSAGELENGTH,sizeof(char)); // need to use calloc to clear memory
+
+	if (messagep == NULL) {
+		return false;
+	}
+
+	// convert latitude to a string
+	int latitudeDigits = (int)((ceil(log10(latitude))+1)); // get the length of the string
+	char* latitudeStr = calloc(latitudeDigits,sizeof(char));
+	sprintf(latitudeStr, "%9.6f", latitude);
+
+	// convert longitude to a string
+	int longitudeDigits = (int)((ceil(log10(latitude))+1)); // get the length of the string
+	char* longitudeStr = calloc(longitudeDigits,sizeof(char));
+	sprintf(longitudeStr, "%9.6f", longitude);
+
+
+	// construct message inductively
+	strcat(messagep, "opCode=GS_CLAIMED|gameId=");
+	strcat(messagep, gameId);
+	strcat(messagep, "|guideId=");
+	strcat(messagep, guideId);
+	strcat(messagep, "|pebbleId=");
+	strcat(messagep, pebbleId);
+	strcat(messagep, "|kragId=");
+	strcat(messagep, kragId);
+	strcat(messagep, "|latitude=");
+	strcat(messagep, latitudeStr);
+	strcat(messagep, "longitude=");
+	strcat(messagep, longitudeStr);
+
+
+	// send the message
+	if (!sendMessage(messagep, connection)){
+		free(messagep);
+		return false;
+	}
+
+	// log the message
+	logMessage(log, messagep, "TO", connection);
+
+	// free the message
+	free(messagep);
+	return true;
+}
+
 /*
 * Sends a response code and message
 * Returns true on success
@@ -929,7 +986,6 @@ static bool sendResponse(char* gameId, char* respCode, char* text, connection_t*
 	strcat(messagep, "|text=");
 	strcat(messagep, text);
 
-	printf("Debug: About to try sending: %s\n",messagep);
 
 	// send the message
 	if (!sendMessage(messagep, connection)){
@@ -939,8 +995,6 @@ static bool sendResponse(char* gameId, char* respCode, char* text, connection_t*
 
 	// log the message
 	logMessage(log, messagep, "TO", connection);
-
-	printf("Debug: Just logged message: %s\n", messagep);
 
 	// free the message
 	free(messagep);
