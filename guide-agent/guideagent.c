@@ -361,6 +361,8 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 
 	}
 
+	hashtable_insert(teams, "this", teamp);
+
 	deleteConnection(connection);
 	deleteTeamHash(teams);
 
@@ -775,7 +777,7 @@ static bool GSClueValidate(message_t *message)
 		return false;
 	}
 
-	if (message->gameId == NULL || message->guideId == NULL || message->clue == NULL) {
+	if (message->gameId == NULL || message->guideId == NULL || message->clue == NULL || message->kragId == NULL ) {
 		return false;
 	}
 
@@ -787,6 +789,11 @@ static bool GSClueValidate(message_t *message)
 
 	unsigned int guideIdFormat;
 	if (sscanf(message->guideId, "%x", &guideIdFormat) != 1) {
+		return false;
+	}
+
+	unsigned int kragIdFormat;
+	if (sscanf(message->kragId, "%x", &kragIdFormat) != 1) {
 		return false;
 	}
 
