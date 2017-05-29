@@ -206,11 +206,16 @@ int main(int argc, char* argv[])
         }
     }
     int port = atoi(portTemp2);
+    free(portTemp2);
 
 
     printf("Debug: About to start game\n");
 	// Run the server and store the exit code
 	int result = gameserver(gameId, kff, sf, port);
+
+	free(kff);
+	free(sf);
+	free(gameId);
 
 	exit(result); // exit with the correct exit code
 }
