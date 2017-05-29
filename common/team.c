@@ -210,7 +210,11 @@ static void deleteTeam(void *item)
 {
   if ((team_t *)item != NULL) {
 
-  	free(((team_t *)item)->revealedString);
+  	if (((team_t *)item)->revealedString != NULL){
+  		free(((team_t *)item)->revealedString);
+
+  	}
+
   	free((((team_t *)item)->guideAgent)->guideID);
   	free((((team_t *)item)->guideAgent)->name);
   	free((((team_t *)item)->guideAgent)->gameID);
