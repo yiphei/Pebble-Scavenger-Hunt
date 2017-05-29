@@ -367,7 +367,7 @@ static void FAClaimHandler(char* gameId, char *messagep, message_t *message, has
 			// get random clue
 			krag = randomClue(message->team, krags, teams);
 			//sendClue
-			sendClue(gameId, message->guideId, krag->clue, krag->latitude, krag->longitude, connection, log);
+			sendClue(gameId, message->guideId, krag->clue, krag->kragId, connection, log);
 		}
 	}
 }
@@ -455,7 +455,7 @@ static void GAHintHandler(char* gameId, char *messagep, message_t *message, hash
 	}
 
 	// validate message structure
-	if(strcmp(gameId, "0")==0 && !validateGA(gameId, message, teams, krags)){
+	if(!validateGA(gameId, message, teams, krags)){
 		sendResponse(gameId, "SH_ERROR_INVALID_PLAYERNAME", message->player, connection, log);
 		return;
 	}
@@ -774,7 +774,7 @@ static bool sendAllGSAgents(char* gameId, char* team, hashtable_t* teams, connec
 * Returns true on sent
 *
 */
-static bool sendClue(char* gameId, char* guideId, char* clue, double latitude, double longitude, connection_t* connection, char* log)
+static bool sendClue(char* gameId, char* guideId, char* clue, char* kragId, connection_t* connection, char* log)
 {
 	// allocate enough space needed for the  message 
 	char *messagep = calloc(sizeof(char), MAXOUTMESSAGELENGTH);
@@ -783,25 +783,14 @@ static bool sendClue(char* gameId, char* guideId, char* clue, double latitude, d
 		return false;
 	}
 
-	// convert latitude to a string
-	int latitudeDigits = (int)((ceil(log10(latitude))+1)); // get the length of the string
-	char* latitudeStr = malloc(latitudeDigits*sizeof(char));
-	sprintf(latitudeStr, "%9.6f", latitude);
-
-	// convert longitude to a string
-	int longitudeDigits = (int)((ceil(log10(latitude))+1)); // get the length of the string
-	char* longitudeStr = malloc(longitudeDigits*sizeof(char));
-	sprintf(longitudeStr, "%9.6f", longitude);
 
 	// construct message inductively
 	strcat(messagep, "opCode=GS_CLUE|gameId=");
 	strcat(messagep, gameId);
 	strcat(messagep, "|guideId=");
 	strcat(messagep, guideId);
-	strcat(messagep, "|latitude=");
-	strcat(messagep, latitudeStr);
-	strcat(messagep, "|longitude=");
-	strcat(messagep, longitudeStr);
+	strcat(messagep, "|kragId=");
+	strcat(messagep, kragId);
 	strcat(messagep, "|clue=");
 	strcat(messagep, clue);
 
