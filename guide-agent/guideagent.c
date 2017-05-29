@@ -30,6 +30,7 @@ static void badOpCodeHandler(char *messagep, message_t *message, team_t *teamp, 
 static void gameStatusHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, char *filePath, hashtable_t *teams);
 static void GSAgentHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, char *filePath, hashtable_t *teams);
 static void GSClueHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, char *filePath, hashtable_t *teams);
+static void GSClaimedHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, char *filePath, hashtable_t *teams);
 static void GSSecretHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, char *filePath, hashtable_t *teams);
 static void GSResponseHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, char *filePath, hashtable_t *teams);
 static void teamRecordHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, char *filePath, hashtable_t *teams);
@@ -39,6 +40,7 @@ static void gameOverHandler(char *messagep, message_t *message, team_t *teamp, c
 static bool gameStatusValidate(message_t *message, team_t *teamp);
 static bool GSAgentValidate(message_t *message);
 static bool GSClueValidate(message_t *message);
+static bool GSClaimedValidate(message_t *message);
 static bool GSSecretValidate(message_t *message);
 static bool GSResponseValidate(message_t *message);
 
@@ -59,6 +61,7 @@ static const struct {
 	{"GAME_STATUS", gameStatusHandler},
 	{"GS_AGENT", GSAgentHandler},
 	{"GS_CLUE", GSClueHandler},
+	{"GS_CLAIMED", GSClaimedHandler},
 	{"GS_SECRET", GSSecretHandler},
 	{"GS_RESPONSE", GSResponseHandler},
 	{"TEAM_RECORD", teamRecordHandler},
@@ -310,6 +313,9 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 					handleHint(gameId, guideId, team, player, hint, connection, filePath, teamp);
 				}
 
+				free(hint);
+				hint = NULL;
+
 			}
 
 			// message handling
@@ -347,6 +353,8 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 						statusReq++;
 					}
 
+					messagep = NULL;
+
 				}
 			}
 
@@ -380,13 +388,14 @@ int handleMessage(char *messagep, team_t *teamp, connection_t *connection, char 
 
 		if (strcmp(message->opCode, "GAME_OVER") == 0) {
 			deleteMessage(message);
+			message = NULL;
 			return 1;
 		}
 
-		deleteMessage(message);
-		message = NULL;
-
 	}
+
+	deleteMessage(message);
+	message = NULL;
 
 	return 0;
 }
@@ -394,30 +403,31 @@ int handleMessage(char *messagep, team_t *teamp, connection_t *connection, char 
 /******** handleHint ********/
 void handleHint(char *gameId, char *guideId, char *team, char *player, char *hint, connection_t *connection, char *filePath, team_t *teamp)
 {
+	if (gameId != NULL) {
+		// allocate enough space for maximum length name (10 chars)
+		char *name = malloc(11);
 
-	// allocate enough space for maximum length name (10 chars)
-	char *name = malloc(11);
+		sscanf(hint, "%s", name);
 
-	sscanf(hint, "%s", name);
+		NormalizeWord(name);
 
-	NormalizeWord(name);
+		fieldAgent_t *current = set_find(teamp->FAset, name);
 
-	fieldAgent_t *current = set_find(teamp->FAset, name);
+		if (current != NULL) {
 
-	if (current != NULL) {
+			sendGA_HINT(gameId, guideId, team, player, current->pebbleID, hint, connection, filePath);
 
-		sendGA_HINT(gameId, guideId, team, player, current->pebbleID, hint, connection, filePath);
+		}
 
+		else {
+
+			sendGA_HINT(gameId, guideId, team, player, "*", hint, connection, filePath);
+
+		}
+
+		free(name);
+		name = NULL;
 	}
-
-	else {
-
-		sendGA_HINT(gameId, guideId, team, player, "*", hint, connection, filePath);
-
-	}
-
-	free(name);
-	name = NULL;
 
 }
 
@@ -554,7 +564,7 @@ static void GSAgentHandler(char *messagep, message_t *message, team_t *teamp, co
 			set_insert(teamp->FAset, player, FA);
 		}
 
-		updateMap_I(teamp->FAset);
+		updateMap_I(teamp->FAset, teamp->krags);
 
 		logMessage(filePath, messagep, "FROM", connection);
 
@@ -584,17 +594,46 @@ static void GSClueHandler(char *messagep, message_t *message, team_t *teamp, con
 	}
 }
 
+static void GSClaimedHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, char *filePath, hashtable_t *teams)
+{
+	if (GSClaimedValidate(message)) {
+
+		// check if the kragId was already inserted to the clues (error check)
+		if(set_find(teamp->clues, message->kragId) != NULL) {
+
+			char *clue = set_find(teamp->clues, message->kragId);
+			clue = NULL;
+
+			krag_t *new = kragNew(message->latitude, message->longitude);
+
+			char *kragId = malloc(strlen(message->kragId));
+			strcpy(kragId, message->kragId);
+			strcat(kragId, "\0");
+
+			set_insert(teamp->krags, kragId, new);
+
+			updateClues_I(teamp->clues);
+			updateMap_I(teamp->FAset, teamp->krags);
+		}
+	}
+}
+
 static void GSSecretHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, char *filePath, hashtable_t *teams)
 {
 	if (GSSecretValidate(message)) {
 
 		// copy message's secret to be the team's secret
-		strcpy(teamp->revealedString, message->secret);
+		char *revealedString = malloc(141);
+
+		strcpy(revealedString, message->secret);
 
 		// update GUI with newly revealed secret
-		updateString_I(teamp->revealedString);
+		updateString_I(revealedString);
 
 		logMessage(filePath, messagep, "FROM", connection);
+
+		free(revealedString);
+		revealedString = NULL;
 
 	}
 }
@@ -613,8 +652,19 @@ static void teamRecordHandler(char *messagep, message_t *message, team_t *teamp,
 	// store each team's record, preparing to show their stats at GAME_OVER
 	team_t *new = newTeam();
 
+	// assign the necessary values from the message values
 	new->claimed = message->numClaimed;
 	new->numPlayers = message->numPlayers;
+
+	// set other values to null for easier handling when deleting
+	new->guideAgent = NULL;
+	new->FAset = NULL;
+	new->FAPebbleIds = NULL;
+	new->revealedString = NULL;
+	new->krags = NULL;
+	new->recentClues[0] = NULL;
+	new->recentClues[1] = NULL;
+	new->clues = NULL;
 
 	hashtable_insert(teams, message->team, new);
 
@@ -718,6 +768,51 @@ static bool GSClueValidate(message_t *message)
 
 	unsigned int guideIdFormat;
 	if (sscanf(message->guideId, "%x", &guideIdFormat) != 1) {
+		return false;
+	}
+
+	return true;
+}
+
+static bool GSClaimedValidate(message_t *message) 
+{
+	// missing opCode
+	if (message->opCode == NULL) {
+		return false;
+	}
+
+	// other missing strings
+	if (message->gameId == NULL || message->guideId == NULL) {
+		return false;
+	}
+
+	if (message->pebbleId == NULL || message->kragId == NULL) {
+		return false;
+	}
+
+	// missing latitude or longitude
+	if (message->latitude == -600 || message->longitude == -600) {
+		return false;
+	}
+
+	// hexidecimal format checks
+	unsigned int gameIdFormat;
+	if (sscanf(message->gameId, "%x", &gameIdFormat) != 1) {
+		return false;
+	}
+
+	unsigned int guideIdFormat;
+	if (sscanf(message->guideId, "%x", &guideIdFormat) != 1) {
+		return false;
+	}
+
+	unsigned int pebbleIdFormat;
+	if (sscanf(message->pebbleId, "%x", &pebbleIdFormat) != 1) {
+		return false;
+	}
+
+	unsigned int kragIdFormat;
+	if (sscanf(message->kragId, "%x", &kragIdFormat) != 1) {
 		return false;
 	}
 
