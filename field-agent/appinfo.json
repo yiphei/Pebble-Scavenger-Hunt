@@ -23,8 +23,8 @@
   }, 
   "capabilities": [ "location" ], 
   "appjsDebug": "false", 
-  "proxyWSSServerURL": "flume.cs.dartmouth.edu", 
+  "proxyWSSServerURL": "moose.cs.dartmouth.edu", 
   "proxyWSSServerPort": 54087, 
-  "targetServerURL": "flume.cs.dartmouth.edu", 
+  "targetServerURL": "moose.cs.dartmouth.edu", 
   "targetServerPort": 36587
 }

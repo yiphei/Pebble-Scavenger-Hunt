@@ -21,8 +21,12 @@ void logMessage(char *filePath, char *message, char *direction, connection_t *co
 {
 	FILE *log = fopen(filePath, "a");
 
+	char* messageNew = malloc(sizeof(char)*strlen(message));
+	strcpy(messageNew, message);
+
 	// couldn't open log file
 	if (log == NULL) {
+		free(messageNew);
 		return;
 	}
 
@@ -42,12 +46,13 @@ void logMessage(char *filePath, char *message, char *direction, connection_t *co
 	int port = connect->socket;
 
 	if (ip != NULL && port != 0) {
-		fprintf(log, "%s %s %s@%d: %s \n", timestamp, direction, ip, port, message);
+		fprintf(log, "%s %s %s@%d: %s \n", timestamp, direction, ip, port, messageNew);
 	}
 
 	else {
-		fprintf(log, "%s (error retrieving connection data) %s\n", timestamp, message);
+		fprintf(log, "%s (error retrieving connection data) %s\n", timestamp, messageNew);
 	}
 
+	free(messageNew);
 	fclose(log);
 }

@@ -25,8 +25,8 @@
 
 
 /******** globals *******/
-bool gameInProgress;
-int MAXOUTMESSAGELENGTH = 8191; // used for mallocing out-messages
+static bool gameInProgress;
+static int MAXOUTMESSAGELENGTH = 8191; // used for mallocing out-messages
 
 /******* functions *******/
 int gameserver(char* gameId, char* kff, char* sf, int port);
@@ -208,7 +208,7 @@ int main(int argc, char* argv[])
     int port = atoi(portTemp2);
 
 
-
+    printf("Debug: About to start game\n");
 	// Run the server and store the exit code
 	int result = gameserver(gameId, kff, sf, port);
 
@@ -248,14 +248,19 @@ int gameserver(char* gameId, char* kff, char* sf, int port)
 		return 7;
 	}
 
+	printf("Debug: Loaded krags\n");
+
 	// load the secret string
 	secret = getSecretString(sf);
 
+	printf("Debug: Secret string is: %s\n",secret);
+
 	// while the game hasn't ended
 	while(gameInProgress){
-		
+		printf("Debug: Game loop\n");
 		// initialize a return connection to receive from
 		struct sockaddr rAddr;
+		rAddr.sa_family = AF_INET;
 		connection_t* rconn = newConnection(socket, rAddr);
 		if(rconn == NULL){
 			continue; // skip message if connection is NULL
@@ -267,13 +272,17 @@ int gameserver(char* gameId, char* kff, char* sf, int port)
 			deleteConnection(rconn);
 			continue; // skip message if NULL
 		}
+		printf("Debug: Received message: %s\n",messageString);
 		message_t* message = parseMessage(messageString);
 
 		// check that message parsed correctly
 		if(!validateMessageParse(gameId, message, rconn, log)){
 			deleteConnection(rconn);
+			fprintf(stderr,"Message parse failed for message: %s\n", messageString);
 			continue; // skip to next iteration
 		}
+
+		printf("Debug: Parsed message with opCode: %s\n",message->opCode);
 
 		// call function from function table to handle messages
 		for (int fn = 0; opCodes[fn].opCode != NULL; fn++) {
@@ -311,6 +320,13 @@ static void FAClaimHandler(char* gameId, char *messagep, message_t *message, has
 
 	logMessage(log, messagep, "FROM", connection); // log message
 	
+	// validate gameId
+	if(strcmp(gameId, message->gameId) !=0){
+		// send response
+		sendResponse(gameId, "SH_ERROR_INVALID_GAME_ID", message->gameId,connection, log);
+		return;
+	}
+
 	// validate team and player
 	if(!validateFA(gameId, message, teams, krags)){
 		return;
@@ -370,6 +386,13 @@ static void GAStatusHandler(char* gameId, char *messagep, message_t *message, ha
 
 	logMessage(log, messagep, "FROM", connection); // log message
 
+	// validate gameId
+	if(strcmp(gameId, message->gameId) !=0){
+		// send response
+		sendResponse(gameId, "SH_ERROR_INVALID_GAME_ID", message->gameId,connection, log);
+		return;
+	}
+
 	// validate the team and player
 	if(!validateGA(gameId, message, teams, krags)){
 		return;
@@ -417,6 +440,13 @@ static void GAHintHandler(char* gameId, char *messagep, message_t *message, hash
 
 	logMessage(log, messagep, "FROM", connection); // log message
 
+	// validate gameId
+	if(strcmp(gameId, message->gameId) !=0){
+		// send response
+		sendResponse(gameId, "SH_ERROR_INVALID_GAME_ID", message->gameId,connection, log);
+		return;
+	}
+
 	// validate message structure
 	if(!validateGA(gameId, message, teams, krags)){
 		return;
@@ -445,8 +475,15 @@ static void GAHintHandler(char* gameId, char *messagep, message_t *message, hash
 */
 static void FALocationHandler(char* gameId, char *messagep, message_t *message, hashtable_t* teams, hashtable_t* krags, connection_t *connection, char* log)
 {
-
+	printf("Debug: Handling FA Location\n");
 	logMessage(log, messagep, "FROM", connection); // log message
+
+	// validate gameId
+	if(strcmp(gameId, message->gameId) != 0 || strcmp(message->gameId,"0") != 0){
+		// send response
+		sendResponse(gameId, "SH_ERROR_INVALID_GAME_ID", message->gameId,connection, log);
+		return;
+	}
 
 	// validate the Field Agent fields
 	if(!validateFA(gameId, message, teams, krags)){
@@ -455,6 +492,8 @@ static void FALocationHandler(char* gameId, char *messagep, message_t *message, 
 
 	// add new field agent if it doesn't exist
 	int returnVal = addFieldAgent(message->player, message->pebbleId, message->team, gameId, connection, teams);
+
+	printf("Debug: Called addFieldAgent with returnVal: %d\n", returnVal);
 
 	// update the field agent struct with the new location
 	updateLocation(message->player, message->team, message->longitude, message->latitude, teams);
@@ -498,19 +537,20 @@ static void badOpCodeHandler(char* gameId, char *messagep, message_t *message, h
 *
 */
 static bool validateMessageParse(char* gameId, message_t* message, connection_t* connection, char* log){
+	printf("Debug: Validating parse, error code is: %d\n",message->errorCode);
 	// check if there was an error parsing message
 	if(message->errorCode == 0){
 		return true;
 	}
 	else if(message->errorCode == 1){
 		// send message
-	if(!sendResponse(message->gameId, "SH_ERROR_DUPLICATE_FIELD", message->opCode, connection, log)){
-		fprintf(stderr, "Unable to send duplicate field message\n");
+		if(!sendResponse(gameId, "SH_ERROR_DUPLICATE_FIELD", "Check fields again", connection, log)){
+			fprintf(stderr, "Unable to send duplicate field message\n");
+		}
 	}
-	}
-	else if(message->errorCode == 2 || message->errorCode == 3){
+	else if(message->errorCode == 2 || message->errorCode == 3 || message->errorCode == 4 || message->errorCode == 5){
 		// send message
-		if(!sendResponse(message->gameId, "SH_ERROR_INVALID_FIELD", message->opCode, connection, log)){
+		if(!sendResponse(gameId, "SH_ERROR_INVALID_FIELD", "Unable to validate field", connection, log)){
 			fprintf(stderr, "Unable to send invalid field message\n");
 		}
 	}
@@ -888,7 +928,7 @@ static bool sendResponse(char* gameId, char* respCode, char* text, connection_t*
 	}
 
 	// construct message inductively
-	strcat(messagep, "opCode=GA_STATUS|gameId=");
+	strcat(messagep, "opCode=GS_RESPONSE|gameId=");
 	strcat(messagep, gameId);
 	strcat(messagep, "|respCode=");
 	strcat(messagep, respCode);

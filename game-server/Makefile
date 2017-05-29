@@ -27,7 +27,7 @@ word.o: ../common/word.h
 .PHONY: all test clean
 
 test:
-	gameserver gameId=12BC kff=testKFF sf=testSF port=36587
+	gameserver gameId=FEED kff=testKFF sf=testSF port=36587
 
 clean:
 	rm -f gameserver
