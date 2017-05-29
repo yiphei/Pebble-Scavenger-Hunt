@@ -12,8 +12,11 @@ to a logfile for the duration of the game.
 
 ### Compiling
 
+To compile, just input `make`.
+To clean, `make clean`.
 
-Exit Status: 
+Exit Status:
+
 * 0: success
 * 1: invalid argument count
 * 2: duplicate argument
@@ -27,10 +30,12 @@ Exit Status:
 ### Functions
 
 ##### main
+
 Parses and validates all parameters and passes the parameters to the guide agent
 if there are no errors.
 
 ##### game
+
 Connects to the server using the network module functions, creates the set of 
 field agents to keep track of its team, and starts to receive messages.
 Will parse messages using the message.[ch] files and taking advantage of the
@@ -39,13 +44,36 @@ opCodes, and periodically send messages using the network module as well
 (specifically GA_STATUS and requests for the GS_STATUS).
 
 ##### sendGA_STATUS
+
 Given the components of a GA\_STATUS message, this function will send a 
 GA\_STATUS to the Game Server and log the message using the common
 logMessage function from log.h. This is called every 30 second the Guide Agent has 
 been running in the game and immediately after the Guide Agent joins the game.
 
 ##### sendGA_HINT
+
 Given the components of a GA_HINT message, this function will send a GA\_HINT
 to the Game Server and log the message using the common _logMessage_ function
 from `log.h`. This is called whenever the Guide Agent user inputs a custom
 textual hint to their interface.
+
+##### handleMessage
+
+Handles a message input from the Game Server based on the given opCode. Uses
+the function dispatch table implemented to handle different types of messages.
+
+##### handleHint
+
+Handles parsing and sending user input as hints to the guide agent when there
+is pending input at stdin.
+
+### Assumptions
+
+* The messages received will contain the message fields in the requirement spec
+	or else will be ignored.
+* The user will input teams and players that correspond to those coded for the 
+	Pebble.
+
+### Limitations
+
+* Implementation with ncurses causes still reachable memory.
