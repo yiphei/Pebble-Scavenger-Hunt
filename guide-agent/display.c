@@ -130,7 +130,7 @@ void updateMap_I(set_t * fieldagents){
 
 	fclose(fp);
 
-	//addPlayers_I(fieldagents);  
+	addPlayers_I(fieldagents);  
 
 }
 
@@ -142,20 +142,20 @@ static void displayAgents(void *arg, const char *key, void *item)
 
 	//if y > 7, then no more colors avaible, so restart from color 1
 	if ( *y > 7){
-		wattron(mapWin, COLOR_PAIR(*y - 7));  //turn the color on
+		attron(COLOR_PAIR(*y - 7));  //turn the color on
 	}
 	else{
-		wattron(mapWin, COLOR_PAIR(*y));   //turn the color on
+		attron(COLOR_PAIR(*y));   //turn the color on
 	}
   	fieldAgent_t * fa = item;
   	double longitude = fa->longitude;
   	double latitude = fa->latitude;
 
- 	mvwprintw(mapWin, *y, 1,  "%s\n", key);  //print agent name
- 	mvwprintw(mapWin, latitude, longitude,  "*", key);   //print agent lcoation
-	wrefresh(mapWin);
+ 	mvprintw( *y, 1,  "%s", key);  //print agent name
+ 	mvprintw( latitude, longitude,  "*", key);   //print agent lcoation
+	refresh();
 
-	wattroff(mapWin, COLOR_PAIR(*y));  //turn the color off
+	attroff( COLOR_PAIR(*y));  //turn the color off
 	(*y)++;
 
 }
