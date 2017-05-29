@@ -214,14 +214,15 @@ static void deleteTeam(void *item)
   		free(((team_t *)item)->revealedString);
   	}
 
-  	if ((((team_t *)item)->guideAgent)->gameID != NULL){
+  	if (((team_t *)item)->guideAgent != NULL){
 
 	  	free((((team_t *)item)->guideAgent)->guideID);
 	  	free((((team_t *)item)->guideAgent)->name);
 	  	free((((team_t *)item)->guideAgent)->gameID);
+	  	deleteConnection((((team_t *)item)->guideAgent)->conn);
+  		free(((team_t *)item)->guideAgent);
   	}
-  	deleteConnection((((team_t *)item)->guideAgent)->conn);
-  	free(((team_t *)item)->guideAgent);
+
   	set_delete(((team_t *)item)->FAset, deleteFA);
   	set_delete(((team_t *)item)->krags, deleteKrags);
   	set_delete(((team_t *)item)->clues, deleteClues);
