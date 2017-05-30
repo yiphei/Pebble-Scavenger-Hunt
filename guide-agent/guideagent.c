@@ -364,7 +364,7 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 	hashtable_insert(teams, "this", teamp);
 
 	deleteConnection(connection);
-	deleteTeamHash(teams);
+	deleteTeamHashGA(teams);
 
 	return 0;
 }
@@ -522,15 +522,21 @@ static void gameStatusHandler(char *messagep, message_t *message, team_t *teamp,
 {
 	if (gameStatusValidate(message, teamp)) {
 
-		char *gameId = calloc(strlen(message->gameId) + 1, 1);
+		// first game status received
+		if (strcmp(teamp->guideAgent->gameID, "0") == 0) {
+			char *gameId = calloc(strlen(message->gameId) + 1, 1);
 
-		strcpy(gameId, message->gameId);
+			strcpy(gameId, message->gameId);
 
-		teamp->guideAgent->gameID = calloc(strlen(gameId) + 1, 1);
+			free(teamp->guideAgent->gameID);
 
-		strcpy(teamp->guideAgent->gameID, gameId);
+			teamp->guideAgent->gameID = calloc(strlen(gameId) + 1, 1);
 
-		free(gameId);
+			strcpy(teamp->guideAgent->gameID, gameId);
+			strcat(teamp->guideAgent->gameID, "\0");
+
+			free(gameId);
+		}
 
 		// update the GUI with new (or not new) info
 		teamp->claimed = message->numClaimed;
@@ -549,12 +555,10 @@ static void GSAgentHandler(char *messagep, message_t *message, team_t *teamp, co
 {
 	if (GSAgentValidate(message)) {
 
-		char *player = calloc(strlen(message->player) + 1, 1);
-		strcpy(player, message->player);
 		double latitude = message->latitude;
 		double longitude = message->longitude;
 
-		fieldAgent_t *FA = set_find(teamp->FAset, player);
+		fieldAgent_t *FA = set_find(teamp->FAset, message->player);
 
 		// if the field agent is already in the game, just update position
 		if (FA != NULL) {
@@ -568,7 +572,7 @@ static void GSAgentHandler(char *messagep, message_t *message, team_t *teamp, co
 			FA->latitude = latitude;
 			FA->longitude = longitude;
 
-			set_insert(teamp->FAset, player, FA);
+			set_insert(teamp->FAset, message->player, FA);
 		}
 
 		updateMap_I(teamp->FAset, teamp->krags);
@@ -585,8 +589,6 @@ static void GSClueHandler(char *messagep, message_t *message, team_t *teamp, con
 		// only add clue if krag hasn't been found (error check)
 		if (set_find(teamp->krags, message->kragId) == NULL) {
 			// add the clue to the set
-			char *key = calloc(strlen(message->kragId) + 1, 1);
-			strcpy(key, message->kragId);
 
 			char *clue = calloc(strlen(message->clue) + 2, 1);
 			strcpy(clue, message->clue);
@@ -600,7 +602,7 @@ static void GSClueHandler(char *messagep, message_t *message, team_t *teamp, con
 
 			set_t *clues = teamp->clues;
 
-			set_insert(clues, key, clue);
+			set_insert(clues, message->kragId, clue);
 
 			// update GUI with new clue
 			updateClues_I(clues);
@@ -618,11 +620,7 @@ static void GSClaimedHandler(char *messagep, message_t *message, team_t *teamp, 
 		// display the new krag
 		krag_t *new = kragNew(message->latitude, message->longitude);
 
-		char *kragId = calloc(strlen(message->kragId) + 1, 1);
-		strcpy(kragId, message->kragId);
-		strcat(kragId, "\0");
-
-		set_insert(teamp->krags, kragId, new);
+		set_insert(teamp->krags, message->kragId, new);
 		updateMap_I(teamp->FAset, teamp->krags);
 
 		// check if the kragId was already inserted to the clues (to remove)
@@ -630,7 +628,7 @@ static void GSClaimedHandler(char *messagep, message_t *message, team_t *teamp, 
 
 			char *clue;
 
-			if ((clue = set_find(teamp->clues, kragId)) != NULL) {
+			if ((clue = set_find(teamp->clues, message->kragId)) != NULL) {
 				clue[0] = '\0';
 			}
 
@@ -676,16 +674,6 @@ static void teamRecordHandler(char *messagep, message_t *message, team_t *teamp,
 	// assign the necessary values from the message values
 	new->claimed = message->numClaimed;
 	new->numPlayers = message->numPlayers;
-
-	// set other values to null for easier handling when deleting
-	new->guideAgent = NULL;
-	new->FAset = NULL;
-	new->FAPebbleIds = NULL;
-	new->revealedString = NULL;
-	new->krags = NULL;
-	new->recentClues[0] = NULL;
-	new->recentClues[1] = NULL;
-	new->clues = NULL;
 
 	hashtable_insert(teams, message->team, new);
 

@@ -29,6 +29,8 @@ static char **new_board(void);
 static void load_board(char **board, FILE *fp);
 static void display_board(char **board);
 
+char *contents;
+
 
 int map_uy = 46;  //map height
 int map_ux = 90;  //map width
@@ -62,7 +64,7 @@ void initialize_curses()
 }
 
 
-//source  http://www.tldp.org/HOWTO/NCURSES-Programming-HOWTO/windows.html
+//from source  http://www.tldp.org/HOWTO/NCURSES-Programming-HOWTO/windows.html
 WINDOW * createWin_I(int height, int width, int starty, int startx)
 {	
 	WINDOW *local_win;
@@ -73,18 +75,18 @@ WINDOW * createWin_I(int height, int width, int starty, int startx)
 }
 
 
-
 void initializeWindows_I(void){
 	int x,y;
 	mapWin =createWin_I(map_uy, map_ux, 0, 0);  //create map window
+
 	FILE * fp = fopen("campusmap", "r");
 	char **board1 = new_board();
-
 	load_board(board1, fp);
 	display_board(board1);
-
 	fclose(fp);
 
+	free(board1);
+	free(contents);
 
 	//create game stats window
 	statsWin =  createWin_I(stats_uy, stats_ux, 0, map_ux);  
@@ -130,6 +132,9 @@ void updateMap_I(set_t * fieldagents, set_t * krags){
 
 	addPlayers_I(fieldagents);  //display the agents
 	addKrags_I(krags);  //displat the krags
+
+	free(board1);
+	free(contents);
 
 }
 
@@ -198,7 +203,7 @@ void addKrags_I(set_t * krags){
 	set_iterate(krags, &y, displayKrags); 
 }
 
-
+//from life.c of David Kotz
 static char**
 new_board(void)
 {
@@ -207,7 +212,7 @@ new_board(void)
 
   // allocate a 2-dimensional array of NROWS x NCOLS
   char **board = calloc(map_uy, sizeof(char*));
-  char *contents = calloc(map_uy * map_ux, sizeof(char));
+  contents = calloc(map_uy * map_ux, sizeof(char));
   if (board == NULL || contents == NULL) {
     fprintf(stderr, "cannot allocate memory for board\r\n");
     exit(1);
@@ -224,11 +229,11 @@ new_board(void)
       board[y][x] = DEADCELL;
     }
   }
+
   return board;
 }
 
-
-
+//from life.c of David Kotz
 static void
 load_board(char **board, FILE *fp)
 {
@@ -256,6 +261,7 @@ load_board(char **board, FILE *fp)
   }
 }
 
+//from life.c of David Kotz
 static void
 display_board(char **board)
 {
@@ -322,7 +328,7 @@ void updateClues_I(set_t * clues){
 void updateTotalKrags_I(int totalKrags){
 
 	//display total krags
-	mvwprintw(statsWin, 2, 1,  "Total krags in game: %d\n", totalKrags);
+	mvwprintw(statsWin, 2, 1,  "Total krags in game: %d", totalKrags);
 	wrefresh(statsWin);
 }
 
@@ -330,7 +336,7 @@ void updateTotalKrags_I(int totalKrags){
 void updateKragsClaimed_I(int claimed){
 
 	//display krags claimed
-	mvwprintw(statsWin, 3, 1,  "Total krags claimed: %d\n", claimed);
+	mvwprintw(statsWin, 3, 1,  "Total krags claimed: %d", claimed);
 	wrefresh(statsWin);
 }
 
