@@ -32,10 +32,10 @@ static void display_board(char **board);
 
 char *contents;
 
-double longitudeTopLeft = 43.706948;
-double latitudeTopLeft = -72.285469;
+double latitudeTopLeft = 43.706948;
+double longitudeTopLeft = -72.293108;
 
-double longitudeDiff = -.007639;
+double longitudeDiff = .007639;
 double latitudeDiff = .004367;
 
 int map_uy = 46;  //map height
@@ -57,7 +57,6 @@ WINDOW * inputWin;   //window where the input box is displayed
 static double scaleX(double x)
 {
 	double x2 = (x - longitudeTopLeft) / longitudeDiff * map_ux;
-	printf("%f\n", x2);
 	return x2;
 }
 
@@ -65,7 +64,6 @@ static double scaleX(double x)
 static double scaleY(double y)
 {
 	double y2 = (latitudeTopLeft - y) / latitudeDiff * map_uy;
-	printf("%f\n", y2);
 	return y2;
 }
 
@@ -319,7 +317,7 @@ static void printClues(void *arg, const char *key, void *item){
 	int *ly = (int *)arg;  ////y coordinate where the clues is displayed
 	char * clue = item;
 
-	if (clue != NULL){
+	if (clue[0] != '\0'){
 
 	 	int x, y;
 		getbegyx(cluesWin, y, x);

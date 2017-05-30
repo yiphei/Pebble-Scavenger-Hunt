@@ -333,11 +333,12 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 
 					// GAME_OVER opCode received and handled
 					if (statusCheck == 1) {
+						free(timeout);
 						break;
 					}
 
 					// assign gameId when first GAME_STATUS is received for later use
-					if (gameId == NULL) {
+					if (strcmp(gameId, "0") == 0) {
 						gameId = teamp->guideAgent->gameID;
 					}
 
@@ -600,9 +601,9 @@ static void GSClueHandler(char *messagep, message_t *message, team_t *teamp, con
 
 			int length = strlen(clue);
 
-			if (!isalpha(clue[length])) {
-				clue[length + 1] = ' ';
-				clue[length + 2] = '\0';
+			if (!isalpha(clue[length - 2])) {
+				clue[length - 1] = ' ';
+				clue[length] = '\0';
 			}
 
 			set_t *clues = teamp->clues;
@@ -627,7 +628,7 @@ static void GSClaimedHandler(char *messagep, message_t *message, team_t *teamp, 
 	if (GSClaimedValidate(message)) {
 
 		// display the new krag
-		krag_t *new = kragNew(message->latitude, message->longitude);
+		krag_t *new = kragNew(message->longitude, message->latitude);
 
 		set_insert(teamp->krags, message->kragId, new);
 		updateMap_I(teamp->FAset, teamp->krags);

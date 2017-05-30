@@ -364,13 +364,14 @@ fieldAgent_t * newFieldAgent(char * gameID, char * pebbleID, connection_t * conn
 
   	if (conn != NULL){
   		fa->conn = newConnection(conn->socket, conn->address); // copy connection
+  		fa->lastContact = 0;
+  		fa->lastContactTime = malloc(sizeof(time_t));
+  		time(fa->lastContactTime);
   	}
   	else{
   		fa->conn = NULL;
+  		fa->lastContactTime = NULL;
   	}
-  	fa->lastContact = 0;
-  	fa->lastContactTime = malloc(sizeof(time_t));
-  	time(fa->lastContactTime);
     return fa;
  }
 }
