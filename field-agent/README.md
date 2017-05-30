@@ -24,6 +24,7 @@ First, make sure tha the game server is up and running.  Then build and install 
 ### Assumptions:
 - The physical pebble is paired to a Smartphone that has Bluetooth turned on.
 - The Game Server an the proxy are up and running before the "Join Game" option is selected from the initial menu.
+- There are fewer than 10 krags for the game over screen (otherwise the winning team will not be determined properly).
 
 ### Limitations:
 - If the physical pebble is not paried to a Smartphone that does not have Bluetooth, then the game can not be played in its entirety.  
