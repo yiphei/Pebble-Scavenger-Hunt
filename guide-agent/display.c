@@ -32,12 +32,11 @@ static void display_board(char **board);
 
 char *contents;
 
+double longitudeTopLeft = 43.706948;
+double latitudeTopLeft = -72.285469;
 
-double longitude_x = -0.008275;
-double latitude_y = 0.004371;
-
-double longitude_max = -72.285408;
-double latitude_max = 43.706861;
+double longitudeDiff = -.007639;
+double latitudeDiff = .004367;
 
 int map_uy = 46;  //map height
 int map_ux = 90;  //map width
@@ -55,17 +54,18 @@ WINDOW * inputWin;   //window where the input box is displayed
 
 
 
-static double scaleX(double x){
-	//double x2 = (x * map_ux) / longitude_x;
-	double x2 = fabs(((longitude_max - x) * map_ux) / longitude_x);
+static double scaleX(double x)
+{
+	double x2 = (x - longitudeTopLeft) / longitudeDiff * map_ux;
+	printf("%f\n", x2);
 	return x2;
 }
 
 
-static double scaleY(double y){
-	//double y2 = map_uy - ((y * map_uy) / latitude_y);
-
-	double y2 = map_uy - ((latitude_max - y) * map_uy) / latitude_y;
+static double scaleY(double y)
+{
+	double y2 = (latitudeTopLeft - y) / latitudeDiff * map_uy;
+	printf("%f\n", y2);
 	return y2;
 }
 

@@ -279,7 +279,7 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 
 	// declare message types needed
 	char *messagep = NULL;
-	char *gameId = NULL;
+	char *gameId = "0";
 
 	int statusReq = 0;
 
