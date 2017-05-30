@@ -10,14 +10,14 @@ MAKE = make
 all: 
 	@echo "Making everything..."
 	$(MAKE) -C field-agent
-	$(MAKE) -C guide_agent
-	$(MAKE) -C game_server
+	$(MAKE) -C guide-agent
+	$(MAKE) -C game-server
 
 ########################### proxy ###########################
 
 # Start the proxy running - add flags as desired. Options: -all, -fa2gs, -gs2fa
 start-proxy: proxy/proxy
-	@cd proxy; node proxy
+	@cd proxy; node proxy -all
 
 # Kill any running instances of the proxy.
 stop-proxy:
@@ -31,7 +31,7 @@ install-proxy-deps:
 
 clean:
 	@echo "Cleaning everything..."
-	$(MAKE) -C field_agent clean
-	$(MAKE) -C guide_agent clean
-	$(MAKE) -C game_server clean
+	$(MAKE) -C field-agent clean
+	$(MAKE) -C guide-agent clean
+	$(MAKE) -C game-server clean
 	rm -f *~ *.o
