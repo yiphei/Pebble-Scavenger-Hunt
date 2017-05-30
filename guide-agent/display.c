@@ -14,6 +14,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include "display.h"
+#include <math.h>
 
 static int NROWS;
 static int NCOLS;
@@ -32,6 +33,12 @@ static void display_board(char **board);
 char *contents;
 
 
+double longitude_x = -0.008275;
+double latitude_y = 0.004371;
+
+double longitude_max = -72.285408;
+double latitude_max = 43.706861;
+
 int map_uy = 46;  //map height
 int map_ux = 90;  //map width
 int map_ly = 0;   //y-coordinate of map
@@ -45,6 +52,23 @@ WINDOW * stringWin;  //window where the current revealed string of the team is d
 WINDOW * statsWin;   //window where game stats are displayed
 WINDOW * cluesWin;   //window where all avaible clues are displayed
 WINDOW * inputWin;   //window where the input box is displayed
+
+
+
+static double scaleX(double x){
+	//double x2 = (x * map_ux) / longitude_x;
+	double x2 = fabs(((longitude_max - x) * map_ux) / longitude_x);
+	return x2;
+}
+
+
+static double scaleY(double y){
+	//double y2 = map_uy - ((y * map_uy) / latitude_y);
+
+	double y2 = map_uy - ((latitude_max - y) * map_uy) / latitude_y;
+	return y2;
+}
+
 
 //from life.c of David Kotz
 void initialize_curses()
@@ -156,7 +180,7 @@ static void displayAgents(void *arg, const char *key, void *item)
   	double latitude = fa->latitude;
 
  	mvprintw( *y, 1,  "%s", key);  //print agent name
- 	mvprintw( latitude, longitude,  "*", key);   //print agent lcoation
+ 	mvprintw( scaleY(latitude), scaleX(longitude),  "*", key);   //print agent lcoation
 	refresh();
 
 	attroff( COLOR_PAIR(*y));  //turn the color off
@@ -190,7 +214,7 @@ static void displayKrags(void *arg, const char *key, void *item){
 	double longitude = krag->longitude;
   	double latitude = krag->latitude;
 
-	mvprintw(latitude, longitude, "krag");
+	mvprintw(scaleY(latitude), scaleX(longitude), "krag");
 	refresh();
 	attroff(COLOR_PAIR(* color));  //turn off color
 
@@ -303,7 +327,7 @@ static void printClues(void *arg, const char *key, void *item){
 
 		//make sure clues dont go out the window boundaries
 		if ( *ly < max){
-			mvprintw( *ly + 2, x + 1,  "%s\n", clue);  //print the clue
+			mvprintw( *ly + 2, x + 1,  "%s", clue);  //print the clue
 			refresh();
 		}
 		(*ly)++;  //increment y coordinate
