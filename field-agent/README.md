@@ -1,11 +1,11 @@
 # Readme for Field Agent
 ## Paolo Takagi-Atilano, May 2017
 ### Compiling:
-- `make all` (default): builds the Field Agent agg
+- `make all` (default): builds the Field Agent app
 - `make install-emulator`: Installs the app on the basalt emulator
 - `make kill`: Kills all running emulator istances
 - `make clean`: Cleans everything
-- `pebble install --phone X` (where x is the ip address of the phone that is paired via Bluetooth to the pebble): install onto the corresponding physical pebble
+- `pebble install --phone X` (where x is the ip address of the phone that is paired via Bluetooth to the pebble): install onto the corresponding physical pebble. The pebble and computer must be on the same network in order for this to work.
 
 ### Output:
 - `APP_LOG_LEVEL_INFO`: messages that are displayed onto the terminal to say what is going on
@@ -24,6 +24,8 @@ First, make sure tha the game server is up and running.  Then build and install 
 ### Assumptions:
 - The physical pebble is paired to a Smartphone that has Bluetooth turned on.
 - The Game Server an the proxy are up and running before the "Join Game" option is selected from the initial menu.
+- There are fewer than 10 krags for the game over screen (otherwise the winning team will not be determined properly).
+- Hints do not have the '~' character in them.
 
 ### Limitations:
 - If the physical pebble is not paried to a Smartphone that does not have Bluetooth, then the game can not be played in its entirety.  

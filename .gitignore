@@ -16,3 +16,4 @@ guide-agent/server.c
 guide-agent/memorytest
 logs/
 testing/server
+testing/pebble
