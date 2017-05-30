@@ -64,7 +64,7 @@ void initialize_curses()
 }
 
 
-//source  http://www.tldp.org/HOWTO/NCURSES-Programming-HOWTO/windows.html
+//from source  http://www.tldp.org/HOWTO/NCURSES-Programming-HOWTO/windows.html
 WINDOW * createWin_I(int height, int width, int starty, int startx)
 {	
 	WINDOW *local_win;
@@ -73,7 +73,6 @@ WINDOW * createWin_I(int height, int width, int starty, int startx)
 	wrefresh(local_win);	
 	return local_win;
 }
-
 
 
 void initializeWindows_I(void){
@@ -125,6 +124,10 @@ void updateMap_I(set_t * fieldagents, set_t * krags){
 	addPlayers_I(fieldagents);  //display the agents
 	addKrags_I(krags);  //displat the krags
 
+ 	// for (int y = 0; y < map_uy; y++) {
+  //   	free(board1[y]);
+  //   	board1[y] = NULL;
+  // 	}
 	free(board1);
 	free(contents);
 
@@ -195,7 +198,7 @@ void addKrags_I(set_t * krags){
 	set_iterate(krags, &y, displayKrags); 
 }
 
-
+//from life.c of David Kotz
 static char**
 new_board(void)
 {
@@ -225,8 +228,7 @@ new_board(void)
   return board;
 }
 
-
-
+//from life.c of David Kotz
 static void
 load_board(char **board, FILE *fp)
 {
@@ -254,6 +256,7 @@ load_board(char **board, FILE *fp)
   }
 }
 
+//from life.c of David Kotz
 static void
 display_board(char **board)
 {
