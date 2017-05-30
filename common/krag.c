@@ -41,7 +41,7 @@ hashtable_t * readKrag(char * filename){
 	FILE *fp;
  	fp = fopen(filename, "r");
  	if (fp == NULL){
- 		return;
+ 		return NULL;
  	}
  	
  	hashtable_t * kraghash = hashtable_new(50);
@@ -99,6 +99,9 @@ char * getSecretString(char * filename){
 
 	FILE *fp;
  	fp = fopen(filename, "r");
+ 	if(fp == NULL){
+ 		return NULL;
+ 	}
 
  	char * secret = readlinep(fp);
  	fclose(fp);
