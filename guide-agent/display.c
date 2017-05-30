@@ -318,14 +318,16 @@ static void printClues(void *arg, const char *key, void *item){
 
  	int x, y;
 	getbegyx(cluesWin, y, x);
-	int max = y + (map_uy - stats_uy - string_uy) - 4;  //max y before exiting the clues window
-
+	int max = y + (map_uy - stats_uy - string_uy) -1;  //max y before exiting the clues window
+	int increase = strlen(clue) / 35; //the n of times the ly has to increase depending on the lenght of the clue
 	//make sure clues dont go out the window boundaries
 	if ( *ly < max){
-		(*ly)++;  //increment y coordinate
-		mvprintw(*ly, x + 1,  "- %s", clue);  //print the clue
-
-		refresh();
+		mvwprintw(cluesWin,*ly - 11, x - 88,  "- %s", clue);  //print the clue
+		
+		for (int i = 0; i <= increase; i++){
+			(*ly)++;  //increment y coordinate
+		}
+		wrefresh(cluesWin);
 	}
 }
 
@@ -338,6 +340,7 @@ void updateClues_I(set_t * clues){
 
 	int lx, ly;
 	getbegyx(cluesWin, ly, lx);  //get upper left coordinates
+	ly++;
 	set_iterate(clues, &ly, printClues);  //print all clues
 
 	lx++; //not needed, but just used to get rid of compiler warning
