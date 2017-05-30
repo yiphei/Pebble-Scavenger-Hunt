@@ -16,6 +16,12 @@
 #include "team.h"
 
 char * getRevealedString(char * teamname, hashtable_t * teamhash){
+
+	if(teamhash == NULL){
+		fprintf(stderr, "Error: teamhash is NULL\n");
+		return NULL;
+	}
+
 	team_t * team = hashtable_find(teamhash, teamname); 
 	return team->revealedString;
 }
@@ -27,6 +33,10 @@ hashtable_t * initHash(void){
 
 int addFieldAgent(char * name, char * pebbleID, char * teamname, char * gameID, connection_t * conn, hashtable_t * teamhash){
 
+	if (teamhash == NULL || name == NULL || pebbleID == NULL || teamname == NULL || gameID == NULL){
+		fprintf(stderr, "Error: at least one parameter is NULL\n");
+		return 2;
+	}
 	//create the team if it does not exist
 	if (hashtable_find(teamhash, teamname) == NULL){
 		team_t * newteam = newTeam();
@@ -52,6 +62,11 @@ int addFieldAgent(char * name, char * pebbleID, char * teamname, char * gameID, 
 
 int addGuideAgent(char * guideID, char * teamname, char * name, char * gameID, connection_t * conn, hashtable_t * teamhash){
 
+	if (teamhash == NULL || guideID == NULL || teamname == NULL || name == NULL || gameID == NULL){
+		fprintf(stderr, "Error: at least one parameter is NULL\n");
+		return 2;
+	}
+
 	//create the team if it does not exists
 	if (hashtable_find(teamhash, teamname) == NULL){
 		team_t * newteam = newTeam();
@@ -74,6 +89,11 @@ int addGuideAgent(char * guideID, char * teamname, char * name, char * gameID, c
 
 int addKrag(char * teamname, char * kragID, hashtable_t * kraghash, hashtable_t * teamhash ){
 
+	if (teamhash == NULL || kraghash == NULL || kragID == NULL || teamname == NULL){
+		fprintf(stderr, "Error: at least one parameter is NULL\n");
+		return 2;
+	}
+
 	team_t * team = hashtable_find(teamhash, teamname);
 	krag_t * krag = hashtable_find(kraghash, kragID);
 
@@ -88,23 +108,42 @@ int addKrag(char * teamname, char * kragID, hashtable_t * kraghash, hashtable_t 
 
 guideAgent_t * getGuideAgent(char * teamname, hashtable_t * teamhash){
 
+	if (teamhash == NULL || teamname == NULL){
+		fprintf(stderr, "Error: at least one parameter is NULL\n");
+		return NULL;
+	}
+
 	team_t * team = hashtable_find(teamhash, teamname);
 	return team->guideAgent;
 }
 
 fieldAgent_t * getFieldAgent(char * name, char * teamname, hashtable_t * teamhash){
 
+	if (teamhash == NULL || teamname == NULL || name == NULL){
+		fprintf(stderr, "Error: at least one parameter is NULL\n");
+		return NULL;
+	}
 	team_t * team = hashtable_find(teamhash, teamname);
 	return set_find(team->FAset, name);
 }
 
 set_t * getAllFieldAgents(char * teamname, hashtable_t * teamhash){
 
+	if (teamhash == NULL || teamname == NULL){
+		fprintf(stderr, "Error: at least one parameter is NULL\n");
+		return NULL;
+	}
+
 	team_t * team = hashtable_find(teamhash, teamname);
 	return team->FAset;
 }
 
 char * getGameIDFieldA(char * name, char * teamname, hashtable_t * teamhash){
+
+	if (teamhash == NULL || teamname == NULL || name == NULL){
+		fprintf(stderr, "Error: at least one parameter is NULL\n");
+		return NULL;
+	}
 
 	team_t * team = hashtable_find(teamhash, teamname);
 	fieldAgent_t * fa =  set_find(team->FAset, name);
@@ -113,11 +152,21 @@ char * getGameIDFieldA(char * name, char * teamname, hashtable_t * teamhash){
 
 char * getGameIDGuidedA( char * teamname, hashtable_t * teamhash){
 
+	if (teamhash == NULL || teamname == NULL){
+		fprintf(stderr, "Error: at least one parameter is NULL\n");
+		return NULL;
+	}
+
 	team_t * team = hashtable_find(teamhash, teamname);
 	return (team->guideAgent)->gameID;
 }
 
 int getKragsClaimed ( char * teamname, hashtable_t * teamhash){
+
+	if (teamhash == NULL || teamname == NULL){
+		fprintf(stderr, "Error: at least one parameter is NULL\n");
+		return -1;
+	}
 
 	team_t * team = hashtable_find(teamhash, teamname);
 	return team->claimed;
@@ -125,11 +174,22 @@ int getKragsClaimed ( char * teamname, hashtable_t * teamhash){
 
 set_t * getKrags(char * teamname, hashtable_t * teamhash){
 
+
+	if (teamhash == NULL || teamname == NULL){
+		fprintf(stderr, "Error: at least one parameter is NULL\n");
+		return NULL;
+	}
+
 	team_t * team = hashtable_find(teamhash, teamname);
 	return team->krags;
 }
 
 set_t * getClues(char * teamname, hashtable_t * teamhash){
+
+	if (teamhash == NULL || teamname == NULL){
+		fprintf(stderr, "Error: at least one parameter is NULL\n");
+		return NULL;
+	}
 
 	team_t * team = hashtable_find(teamhash, teamname);
 	return team->clues;
@@ -150,6 +210,11 @@ char * getClueTwo(char * teamname, hashtable_t * teamhash){
 
 void updateLocation(char * name, char * teamname, double longitude, double latitude, hashtable_t * teamhash){
 
+	if (name == NULL || teamname == NULL || teamhash == NULL){
+		fprintf(stderr, "Error: at least one parameter is NULL\n");
+		return;
+	}
+
 	team_t * team = hashtable_find(teamhash, teamname);
 	//process only if team and field agent exist
 	if (team != NULL && set_find(team->FAset, name) != NULL){
@@ -162,6 +227,11 @@ void updateLocation(char * name, char * teamname, double longitude, double latit
 
 void incrementTime(fieldAgent_t* fa){
 
+	if (fa == NULL){
+		fprintf(stderr, "Error: field agents is NULL\n");
+		return;	
+	}
+
 	time_t* endtime = malloc(sizeof(time_t));
 	time(endtime);
 	double seconds = difftime(*endtime,*(fa->lastContactTime));
@@ -170,6 +240,11 @@ void incrementTime(fieldAgent_t* fa){
 }
 
 void resetTime(char* name, char* teamname, hashtable_t * teamhash){
+
+	if (name == NULL || teamname == NULL || teamhash == NULL){
+		fprintf(stderr, "Error: at least one parameters is NULL\n");
+		return;
+	}
 	team_t * team = hashtable_find(teamhash, teamname);
 	fieldAgent_t * fa = set_find(team->FAset, name);
 	time(fa->lastContactTime);
@@ -178,6 +253,11 @@ void resetTime(char* name, char* teamname, hashtable_t * teamhash){
 
 
 int getTime(char * name, char * teamname, hashtable_t * teamhash){
+
+	if (name == NULL || teamname == NULL || teamhash == NULL){
+		fprintf(stderr, "Error: at least one parameters is NULL\n");
+		return -1;
+	}
 
 	team_t * team = hashtable_find(teamhash, teamname);
 	fieldAgent_t * fa = set_find(team->FAset, name);
@@ -358,22 +438,22 @@ fieldAgent_t * newFieldAgent(char * gameID, char * pebbleID, connection_t * conn
     	return NULL; // error allocating field agent
   	} 
   	else {
-  	fa->gameID = malloc(strlen(gameID)+1);
-  	strcpy(fa->gameID,gameID);
-  	strcpy(fa->pebbleID,pebbleID);
+	  	fa->gameID = malloc(strlen(gameID)+1);
+	  	strcpy(fa->gameID,gameID);
+	  	strcpy(fa->pebbleID,pebbleID);
 
-  	if (conn != NULL){
-  		fa->conn = newConnection(conn->socket, conn->address); // copy connection
-  		fa->lastContact = 0;
-  		fa->lastContactTime = malloc(sizeof(time_t));
-  		time(fa->lastContactTime);
-  	}
-  	else{
-  		fa->conn = NULL;
-  		fa->lastContactTime = NULL;
-  	}
-    return fa;
- }
+	  	if (conn != NULL){
+	  		fa->conn = newConnection(conn->socket, conn->address); // copy connection
+	  		fa->lastContact = 0;
+	  		fa->lastContactTime = malloc(sizeof(time_t));
+	  		time(fa->lastContactTime);
+	  	}
+	  	else{
+	  		fa->conn = NULL;
+	  		fa->lastContactTime = NULL;
+	  	}
+	    return fa;
+ 	}
 }
 
 guideAgent_t * newGuideAgent(char * guideID, char * name, char * gameID, connection_t * conn){
@@ -432,7 +512,8 @@ static void FAPrint(FILE *fp, const char *key, void *item)
 {
   fieldAgent_t * fa = item;
   if (fa != NULL){
-    fprintf(fp, "Name: %s\n", key);
+    fprintf(fp, "Name: %s  pebbleID: %s\n", key, fa->pebbleID);
+
    	}
 }
 
