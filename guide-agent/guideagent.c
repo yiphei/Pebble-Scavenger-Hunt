@@ -572,6 +572,8 @@ static void GSAgentHandler(char *messagep, message_t *message, team_t *teamp, co
 			FA->latitude = latitude;
 			FA->longitude = longitude;
 
+			NormalizeWord(message->player);
+
 			set_insert(teamp->FAset, message->player, FA);
 		}
 
@@ -579,6 +581,10 @@ static void GSAgentHandler(char *messagep, message_t *message, team_t *teamp, co
 
 		logMessage(filePath, messagep, "FROM", connection);
 
+	}
+
+	else {
+		fprintf(stderr, "GSAgent not valid\n");
 	}
 }
 
@@ -611,6 +617,10 @@ static void GSClueHandler(char *messagep, message_t *message, team_t *teamp, con
 		}
 
 	}
+
+	else {
+		printf("GSClue not valid\n");
+	}
 }
 
 static void GSClaimedHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, char *filePath, hashtable_t *teams)
@@ -623,6 +633,8 @@ static void GSClaimedHandler(char *messagep, message_t *message, team_t *teamp, 
 		set_insert(teamp->krags, message->kragId, new);
 		updateMap_I(teamp->FAset, teamp->krags);
 
+		updateKragsClaimed_I(++teamp->claimed);
+
 		// check if the kragId was already inserted to the clues (to remove)
 		if(set_find(teamp->clues, message->kragId) != NULL) {
 
@@ -634,6 +646,10 @@ static void GSClaimedHandler(char *messagep, message_t *message, team_t *teamp, 
 
 			updateClues_I(teamp->clues);
 		}
+	}
+
+	else {
+		printf("GSClaimed not valid\n");
 	}
 }
 
@@ -654,6 +670,10 @@ static void GSSecretHandler(char *messagep, message_t *message, team_t *teamp, c
 		free(revealedString);
 		revealedString = NULL;
 
+	}
+
+	else {
+		printf("GSSecret not valid\n");
 	}
 }
 
