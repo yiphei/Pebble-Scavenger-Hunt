@@ -31,6 +31,10 @@ team.o: ../common/team.h ../common/network.h ../libcs50/hashtable.h ../libcs50/s
 krag.o: ../common/krag.h ../common/team.h
 word.o: ../common/word.h
 
+.PHONY: all clean display test
+
+test:
+	guideagent guideId=9876 player=Tony team=One host=moose.cs.dartmouth.edu port=36587
 
 display: $(DISPLAY)
 	./$(DISPLAY)
