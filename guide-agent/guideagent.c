@@ -352,12 +352,13 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 
 		statusReq++;
 
-		if (statusReq == 3) {
+		// send a GA_STATUS every 3 times through the loop, asking for a GAME_STATUS every 7 times
+		if (statusReq == 7) {
 			sendGA_STATUS(gameId, guideId, team, player, "1", connection, filePath);
 			statusReq = 0;
 		}
 
-		else {
+		else if (statusReq % 3 == 0) {
 			sendGA_STATUS(gameId, guideId, team, player, "0", connection, filePath);
 		}
 
@@ -641,7 +642,12 @@ static void GSClaimedHandler(char *messagep, message_t *message, team_t *teamp, 
 			char *clue;
 
 			if ((clue = set_find(teamp->clues, message->kragId)) != NULL) {
-				clue[0] = '\0';
+				int length = strlen(clue);
+
+				// make the entire clue white space to make it "disappear"
+				for (int i = 0; i < length; i++) {
+					clue[i] = ' ';
+				}
 			}
 
 			updateClues_I(teamp->clues);

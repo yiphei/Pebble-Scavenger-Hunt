@@ -314,21 +314,19 @@ void updateString_I(char * revealedString){
 //helper function to print out all the clues
 static void printClues(void *arg, const char *key, void *item){
 
-	int *ly = (int *)arg;  ////y coordinate where the clues is displayed
+	int *ly = (int *)arg;  //// y coordinate where the clues is displayed
 	char * clue = item;
 
-	if (clue[0] != '\0'){
+ 	int x, y;
+	getbegyx(cluesWin, y, x);
+	int max = y + (map_uy - stats_uy - string_uy) - 3;  //max y before exiting the clues window
 
-	 	int x, y;
-		getbegyx(cluesWin, y, x);
-		int max = y + (map_uy - stats_uy - string_uy) - 3;  //max y before exiting the clues window
-
-		//make sure clues dont go out the window boundaries
-		if ( *ly < max){
-			mvprintw( *ly + 2, x + 1,  "%s", clue);  //print the clue
-			refresh();
-		}
+	//make sure clues dont go out the window boundaries
+	if ( *ly < max){
 		(*ly)++;  //increment y coordinate
+		mvprintw(*ly + 2, x + 1,  "%s", clue);  //print the clue
+
+		refresh();
 	}
 }
 
