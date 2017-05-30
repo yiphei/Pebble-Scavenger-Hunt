@@ -363,6 +363,7 @@ fieldAgent_t * newFieldAgent(char * gameID, char * pebbleID, connection_t * conn
   		fa->conn = NULL;
   	}
   	fa->lastContact = 0;
+  	fa->lastContactTime = malloc(sizeof(time_t));
   	time(fa->lastContactTime);
     return fa;
  }
