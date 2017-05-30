@@ -50,7 +50,7 @@ static bool validateMessageParse(char* gameId, message_t* message, connection_t*
 static int validateKrag(char* gameId, char* kragId, double latitude, double longitude, char* team, hashtable_t* teams, hashtable_t* krags);
 static bool validateFA(char* gameId, message_t* message, hashtable_t* teams, hashtable_t* krags, connection_t* connection, char* log);
 static bool validateGA(char* gameId, message_t* message, hashtable_t* teams, hashtable_t* krags, connection_t* connection, char* log);
-static bool validatePebbleId(char* pebbleId, char* team, hashtable_t* teams);
+static bool validatePebbleId(char* pebbleId, char* player, char* team, hashtable_t* teams, bool testPlayer);
 
 // message sending functions
 static bool sendGameStatus(char* gameId, char* guideId, int numClaimed, int numKrags, connection_t* connection, char* log);
@@ -472,7 +472,7 @@ static void GAHintHandler(char* gameId, char *messagep, message_t *message, hash
 		return;
 	}
 
-	if(!validatePebbleId(message->pebbleId, message->team, teams)){
+	if(!validatePebbleId(message->pebbleId, message->player, message->team, teams, false)){
 		sendResponse(gameId, "SH_ERROR_INVALID_ID", message->player, connection, log);
 		return;
 	}
@@ -631,7 +631,7 @@ static bool validateFA(char* gameId, message_t* message, hashtable_t* teams, has
 	}
 
 	// check that the pebble Id is valid
-	if(!validatePebbleId(message->pebbleId, message->team, teams)){
+	if(!validatePebbleId(message->pebbleId, message->player, message->team, teams, true)){
 		return false;
 	}
 
@@ -672,7 +672,7 @@ static bool validateGA(char* gameId, message_t* message, hashtable_t* teams, has
 *
 *
 */
-static bool validatePebbleId(char* pebbleId, char* team, hashtable_t* teams)
+static bool validatePebbleId(char* pebbleId, char* player, char* team, hashtable_t* teams, bool testPlayer)
 {
 	printf("Debug: Validating pebbleId: '%s'\n",pebbleId);
 	// check pebble Id for all character
@@ -681,9 +681,14 @@ static bool validatePebbleId(char* pebbleId, char* team, hashtable_t* teams)
 	}
 	// check for player
 	team_t* teamObj = hashtable_find(teams, team); // get the team
-	char* player = set_find(teamObj->FAPebbleIds, pebbleId); // search for the pebble Id
-	if(player == NULL){
+	char* teamPlayer = set_find(teamObj->FAPebbleIds, pebbleId); // search for the pebble Id
+	if(teamPlayer == NULL){
 		return false; // return false
+	}
+	if(testPlayer){
+		if(strcmp(player, teamPlayer) != 0){
+			return false; // make sure name and pebbleId match
+		}
 	}
 	return true; // return true
 }
