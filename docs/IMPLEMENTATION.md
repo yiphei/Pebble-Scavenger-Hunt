@@ -160,32 +160,30 @@ entries.
 	the game information onto _game_.
 2. Open the socket to connect to the server and stores the socket
 	and connection address information in a _connection_ struct.
-3. Open the log file and saves the pointer to the file for future use.
-4. Store the start time to use for future log entries.
+3. Open the log file and check if it is writable, saving the filePath.
 5. A _team_ struct is created and the Guide Agent and its known information
 	is stored as the _team_'s guideAgent.
 6. The Guide Agent sends its first GA\_STATUS to the Game Server with a "0"
 	gameId to announce its presence in the game via )_sendGA\_STATUS_.
-7. Wait and listen for the server to respond with a GAME\_STATUS
-	to initialize the game stats and update the gameId, using _receiveMessage_.
-8. While the game is not over:
-	1. Listen for a message.
+7. While the game is not over:
+	1. Listen for a message using select, with a timeout of 5 seconds.
 	2. If a message is received from the Game Server,
-		1. Use _parseMessage_ to parse the message into a _message_ struct
-			and store all of its respective fields in the struct.
+		1. Parse the message into a _message_ struct and store all of its 
+			respective fields in the struct.
 		2. Loop over the function dispatch table to find the right function
 			based on the message's opCode.
 		3. If the opCode does not exist in the function dispatch table, print
 			an "unknown opCode" message and ignore the message.
 		4. If the opCode is "GAME\_OVER", break the while loop.
-	3. Calculate the time since the beginning of the game.
-	4. If that time is divisible by 30 (more or less every 30 seconds),
-		send a GA\_STATUS message to the Game Server.
-		1. If the time is divisible by 60 (more or less every minute), send the
-			GA\_STATUS with a statusReq of 1, asking for a GAME\_STATUS update
-			in return.
-9. Free memory allocated by _game_ and return to _main_.
-10. Free memory allocated in _main_ and exit with exit status returned by
+		5. Else, handle the message accordingly.
+	3. If the input is from stdin (the user),
+		1. Use _handleHint_ to parse the message for a specified recipient and
+			use _send\_GAHINT_ to send that hint to the Game Server and the
+			specified recipient(s).
+	4. Every 3 times through the loop, send a GA\_STATUS message to the Game
+		Server. Every 7 times, do it with a statusReq of 1.
+8. Free memory allocated by _game_ and return to _main_.
+9. Free memory allocated in _main_ and exit with exit status returned by
 	_game_.
 
 ##### Modularity
