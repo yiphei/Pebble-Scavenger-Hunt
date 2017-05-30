@@ -11,7 +11,8 @@
 #include <pebble.h>
 
 // See link
+//#define TYPE_MESSAGE_WINDOW_MARGIN 5
 #define DIALOG_MESSAGE_WINDOW_MARGIN 10
 
-void my_dialog_window_push(char *type, char *text);
+void my_dialog_window_push(/*char *type, */char *text);
 void my_dialog_window_pop(); // need this because main won't have access to the pointer
