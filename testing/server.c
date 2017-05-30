@@ -5,6 +5,8 @@
  * read messages from stdin and send them back to client.
  * Use select() so we don't block on either stdin or the socket.
  * 
+ * compiling: mygcc server.c ../common/file.c -o server
+ *
  * usage: ./chatserver2
  *  and ctrl-D to exit from a prompt, or ctrl-C if necessary.
  *
