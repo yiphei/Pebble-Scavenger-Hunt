@@ -198,6 +198,7 @@ int parseHelper(char *message, message_t *parsedMessage)
 			}
 
 			parsedMessage->team = calloc(strlen(field) - 4, 1);
+			NormalizeWord(field);
 			strcpy(parsedMessage->team, field + 5);
 			strcat(parsedMessage->team, "\0");
 
