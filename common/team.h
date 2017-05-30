@@ -15,6 +15,7 @@
 #define __TEAM_H
 #include <stdio.h>
 #include <stdbool.h>
+#include <time.h>
 #include "../libcs50/hashtable.h"
 #include "krag.h"
 #include "network.h"
@@ -52,6 +53,7 @@ typedef struct fieldAgent {
 	char pebbleID[9]; 
 	connection_t * conn;  //conection struct form network module
 	int lastContact;  //number of seconds since guide agent last heard from field agent
+  time_t* lastContactTime;
 } fieldAgent_t;
 /**************** functions ****************/
 
@@ -151,7 +153,12 @@ void updateLocation(char * name, char * teamname, double longitude, double latit
 /*
 * This function increments time since guide agent last heard from a field agent
 */
-void incrementTime(char * name, char * teamname, hashtable_t * teamhash);
+void incrementTime(fieldAgent_t* fa);
+
+/*
+* Resets time to zero and resets timer
+*/
+void resetTime(char* name, char* teamname, hashtable_t * teamhash);
 
 /*
 * This fucntions returns the time since guide agent last heard from a field agent
