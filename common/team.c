@@ -189,7 +189,9 @@ static void deleteFA(void * item){
 	if (item){
 		free(((fieldAgent_t *) item)->gameID);
 		deleteConnection(((fieldAgent_t *) item)->conn);
+		free(((fieldAgent_t*) item)->lastContactTime);
 		free((fieldAgent_t *) item);
+
 	}
 }
 
