@@ -278,22 +278,23 @@ static void deleteFA(void * item){
 //helper functino to free krags
 static void deleteKrags(void * item){
 	if (item){
-		free(item);
+		//free(item);
 	}
 }
 
 //helper functino to free clues
 static void deleteClues(void * item){
+
 	if (item){
-		free(item);
 	}
 }
 
 //helper functino to free pebble ids
 static void deletePebble(void * item){
 
+	//char * s = item;
 	if (item){
-		free(item);
+		//free(s);
 	}
 }
 
