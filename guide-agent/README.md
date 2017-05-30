@@ -102,3 +102,6 @@ spec in terms of a message.
 ### Limitations
 
 * Implementation with ncurses causes still reachable memory.
+* The clues will disappear but at time the whole clue will not be overwritten,
+	or a clue will overwrite part of another clue due to the way ncurses 
+	handles displaying these strings.
