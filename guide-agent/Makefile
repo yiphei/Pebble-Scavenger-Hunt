@@ -13,10 +13,10 @@ CFLAGS = -Wall -pedantic -std=c11 -ggdb -I../common/ -I../libcs50/
 CC = gcc
 MAKE = make
 
-#all: $(PROG) $(DISPLAY)
+all: $(PROG) $(DISPLAY)
 
-#$(PROG): $(OBJS) $(LLIBS)
-#	$(CC) $(CFLAGS) $^ $(LLIBS) $(LIBS) -o $@
+$(PROG): $(OBJS) $(LLIBS)
+	$(CC) $(CFLAGS) $^ $(LLIBS) $(LIBS) -o $@
 
 $(DISPLAY): $(OBJS2) $(LLIBS)
 	$(CC) $(CFLAGS) $^ $(LLIBS) $(LIBS) -o $@
