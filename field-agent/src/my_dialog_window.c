@@ -7,20 +7,20 @@
  * Paolo Takagi-Atilano
  */
 
-// figure out "type" TextLayer for title purposes
-// may have fixed the memory leaks, check out later
+// macros
+#define MESSAGE_LENGTH 8191
 
+// includes
 #include <pebble.h>
 #include "my_dialog_window.h"
+
 
 // windows and layers
 static Window *my_dialog_window;
 static TextLayer *my_dialog_text_layer;
-//static TextLayer *my_dialog_type_layer;
 static Layer *s_background_layer;
 
 // text and type strings
-//static char *type;
 static char *text;
 
 // See link
@@ -49,14 +49,6 @@ static void window_load(Window *window)
   layer_set_update_proc(s_background_layer, background_update_proc);
   layer_add_child(window_layer, s_background_layer);
 
-  // type layer
-  /*my_dialog_type_layer = text_layer_create(GRect(TYPE_MESSAGE_WINDOW_MARGIN, bounds.size.h + TYPE_MESSAGE_WINDOW_MARGIN, bounds.size.w - (2 * TYPE_MESSAGE_WINDOW_MARGIN), bounds.size.h));
-  text_layer_set_text(my_dialog_type_layer, type);
-  text_layer_set_background_color(my_dialog_type_layer, GColorClear);
-  text_layer_set_text_alignment(my_dialog_type_layer, PBL_IF_ROUND_ELSE(GTextAlignmentCenter, GTextAlignmentLeft));
-  text_layer_set_font(my_dialog_type_layer, fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD));
-  layer_add_child(window_layer, text_layer_get_layer(my_dialog_type_layer));*/
-
   // text layer
   my_dialog_text_layer = text_layer_create(GRect(DIALOG_MESSAGE_WINDOW_MARGIN, bounds.size.h + DIALOG_MESSAGE_WINDOW_MARGIN, bounds.size.w - (2 * DIALOG_MESSAGE_WINDOW_MARGIN), bounds.size.h));
   text_layer_set_text(my_dialog_text_layer, text);
@@ -75,13 +67,9 @@ static void window_unload(Window *window)
   window_destroy(window);
   my_dialog_window = NULL;
 
-  //free(type);
   if (text) {
     free(text);
   }
-  //free(text);
-  //type = NULL;
-  //text = NULL;
 }
 
 // See link
@@ -115,17 +103,16 @@ static void window_appear(Window *window)
   animation_schedule(s_appear_anim);
 }
 
-void my_dialog_window_push(/*char *p_type, */char *p_text)
+// see link, addid p_text parameter
+void my_dialog_window_push(char *p_text)
 {
-  // only pushes window if p_type and p_text are not null
-  if (/*p_type != NULL && */p_text != NULL) {
-    //type = calloc(sizeof(p_type), strlen(p_type));
-    text = calloc(sizeof(p_text), strlen(p_text));
-    if (/*type == NULL || */text == NULL) {
+  if (p_text != NULL) {
+    text = calloc(1, MESSAGE_LENGTH);
+    strcpy(text, p_text);
+    if (text == NULL) {
       APP_LOG(APP_LOG_LEVEL_ERROR, "Malloc error");
       return;
     }
-    //strcpy(type, p_type);
     strcpy(text, p_text);
 
     if(!my_dialog_window) {
@@ -141,8 +128,8 @@ void my_dialog_window_push(/*char *p_type, */char *p_text)
   }
 }
 
+// pops window from stack
 void my_dialog_window_pop()
 {
-  //window_unload(my_dialog_window);
   window_stack_pop(my_dialog_window);
 }

@@ -14,5 +14,8 @@
 //#define TYPE_MESSAGE_WINDOW_MARGIN 5
 #define DIALOG_MESSAGE_WINDOW_MARGIN 10
 
-void my_dialog_window_push(/*char *type, */char *text);
+// pushes dialog window onto window stack
+void my_dialog_window_push(char *text);
+
+//pops dialog window from window stack
 void my_dialog_window_pop(); // need this because main won't have access to the pointer

@@ -1,6 +1,7 @@
 /*
  * p_message.c - see p_message.h for more info
  *
+ * thi
  *
  * Paolo Takagi-Atilano, May 2017
  */
@@ -23,6 +24,7 @@ p_message_t * parse_message(char *message)
 {
 	p_message_t *tempmsg = new_message();
 
+	// ignore messages that are send by this pebble (have ACK or NACK at the beginning)
 	char *temp = malloc(strlen(message)+1);
 	strcpy(temp, message);
 	if (strncmp(temp, "ACK", 3) == 0 || strncmp(temp, "NACK", 4) == 0) {
@@ -30,11 +32,8 @@ p_message_t * parse_message(char *message)
 		return NULL;
 	}
 	free(temp);
-	//p_message_t *parsed_message = malloc(sizeof(p_message_t));
 
 	int error_code;
-
-	APP_LOG(APP_LOG_LEVEL_INFO,"msg--: %s", message);
 
 	error_code = parse_helper(message, tempmsg);
 
@@ -43,6 +42,7 @@ p_message_t * parse_message(char *message)
 	return tempmsg;
 }
 
+// getting started, 
 static p_message_t *new_message() 
 {
 p_message_t *parsedMessage = calloc(sizeof(p_message_t), 1);
@@ -110,7 +110,6 @@ static int parse_helper(char *message, p_message_t *parsed_message)
 
 			strcpy(parsed_message->op_code, field + 7);
 			strcat(parsed_message->op_code, "\0");
-			APP_LOG(APP_LOG_LEVEL_ERROR, "***opcode: %s", parsed_message->op_code);
 		}
 
 		else if (strncmp(field, "respCode=", 9) == 0) {

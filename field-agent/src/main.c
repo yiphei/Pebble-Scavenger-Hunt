@@ -1,7 +1,9 @@
-/*****************************************************************/
-/* This program demonstrates how to configure AppMessage handler */
-/* functions and use them to send and receive messages.          */
-/*****************************************************************/
+/*
+ * main module for field agent pebble app
+ * See ../README.md for more information
+ *
+ * Paolo Takagi-Atilano, GREP, May 2017
+ */
 #include <pebble.h>
 #include "my_dialog_window.h"
 #include "key_assembly.h"
@@ -14,7 +16,6 @@
 #define SELECT_PLAYER_NUM_ROWS           4
 #define SELECT_TEAM_NUM_ROWS             4
 #define IN_GAME_NUM_ROWS                 3
-#define HINTS_LOG_NUM_ROWS               5
 #define CLAIM_KRAG_NUM_ROWS              16
 
 #define MESSAGE_LENGTH 8191
@@ -26,14 +27,12 @@ static Window *join_game_window;
 static Window *select_player_window;
 static Window *select_team_window;
 static Window *in_game_window;
-static Window *hints_log_window;
 
 static MenuLayer *claim_krag_layer;
 static MenuLayer *join_game_layer;
 static MenuLayer *select_player_layer;
 static MenuLayer *select_team_layer;
 static MenuLayer *in_game_layer;
-static MenuLayer *hints_log_layer;
 
 static char *hex_digits_str[16] = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F"};
 static char hex_digits[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
@@ -52,17 +51,17 @@ static char *latitude;
 static char *longitude;
 static char *curr_msg_str;
 static char *guide_id;
-
-static char **hints_log;
+static char *hints_log_rec;
 
 static p_message_t *curr_msg;
 
-static int hints_log_count = 0;
 static int claim_krag_count = 0;
 static int s_current_selection = -1;
 static int tick_count = 0;
+static int end_of_game_tick = 0;
 static bool js_running = false; // default assume smartphone JS proxy is not running
-
+static bool end_of_game = false; // default game is not over
+static bool u_proxy_up = false; // default assume unix proxy is not running
 
 // static function defintions
 static void init();
@@ -92,13 +91,6 @@ static uint16_t in_game_get_num_rows_callback(MenuLayer *menu_layer, uint16_t se
 static void in_game_draw_row_callback(GContext *ctx, const Layer *cell_layer, MenuIndex *cell_index, void *context);
 static int16_t in_game_get_cell_height_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *context);
 static void in_game_select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *callback_context);
-static void hints_log_window_load(Window *window);
-static void hints_log_window_unload(Window *window);
-static void hints_log_draw_row_callback(GContext *ctx, const Layer *cell_layer, MenuIndex *cell_index, void *context);
-static void hints_log_select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *callback_context);
-static uint16_t hints_log_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *context);
-static int16_t hints_log_get_cell_height_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *context);
-static void hints_select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *callback_context);
 
 static void claim_krag_window_load(Window *window);
 static void claim_krag_window_unload(Window *window);
@@ -119,11 +111,7 @@ static void set_game_id(char *info);
 static void set_guide_id(char *info);
 static void set_curr_msg_str(char *info);
 static void set_opcode(char *info);
-
-static void hints_log_add();
-
-static void delete_hints_log();
-char *mystrdup(char *str);
+static void set_hints_log_rec(char *info);
 
 // AppMessage functions
 static void inbox_received_callback(DictionaryIterator *iterator, void *context);
@@ -143,8 +131,8 @@ static void send_message(char *message);
 static void init() 
 {
   set_game_id("0");
-  //hints_log = NULL;
-  // join game screen
+
+   // join game screen
   join_game_window = window_create();
   WindowHandlers join_game_window_handlers = {
     .load = join_game_window_load,
@@ -176,15 +164,6 @@ static void init()
   };
   window_set_window_handlers(in_game_window, (WindowHandlers)in_game_window_handlers);
 
-  // hints log screen
-  hints_log_window = window_create();
-  APP_LOG(APP_LOG_LEVEL_INFO, "created hints_log_window");
-  WindowHandlers hints_log_window_handlers = {
-    .load = hints_log_window_load,
-    .unload = hints_log_window_unload
-  };
-  window_set_window_handlers(hints_log_window, (WindowHandlers)hints_log_window_handlers);
-
   // claim krag screen
   claim_krag_window = window_create();
   APP_LOG(APP_LOG_LEVEL_INFO, "created claim_krag_window");
@@ -195,18 +174,18 @@ static void init()
   window_set_window_handlers(claim_krag_window, (WindowHandlers)claim_krag_window_handlers);
   
 
-  /* Show the Window on the watch, with animated=true. */
+  // Show the Window on the watch, with animated=true.
   window_stack_push(join_game_window, true);
 
-  /* Set the handlers for AppMessage inbox/outbox events. Set these    *
-   *    handlers BEFORE calling open, otherwise you might miss a message. */
+  // Set the handlers for AppMessage inbox/outbox events. Set these  
+  //  handlers BEFORE calling open, otherwise you might miss a message.
   app_message_register_inbox_received(inbox_received_callback);
   app_message_register_outbox_sent(outbox_sent_callback);
   app_message_register_inbox_dropped(inbox_dropped_callback);
   app_message_register_outbox_failed(outbox_failed_callback);
 
-  /* 7. open the app message communication protocol. Request as much space *
-   *    as possible, because our messages can be quite large at times.     */
+  // 7. open the app message communication protocol. Request as much space
+  //    as possible, because our messages can be quite large at times.     
   app_message_open(app_message_inbox_size_maximum(), app_message_outbox_size_maximum());
 }
 
@@ -220,7 +199,7 @@ int main(void) {
 // deinit
 static void deinit() 
 {
-  /* 1. Destroy all the windows! */
+  // Destroy all the windows!
   if (join_game_window) {
     window_destroy(join_game_window);
     join_game_window = NULL;
@@ -237,14 +216,11 @@ static void deinit()
     window_destroy(claim_krag_window);
     claim_krag_window = NULL;
   }
-  if (hints_log_window) {
-    window_destroy(hints_log_window);
-    hints_log_window = NULL;
-  }
 
-  /* 2. Unsubscribe from sensors. */
+  // Unsubscribe from sensors.
   tick_timer_service_unsubscribe();
 
+  // Free allocated static variables and structs
   if (selected_player) {
     free(selected_player);
   }
@@ -272,18 +248,14 @@ static void deinit()
   if (opcode) {
     free(opcode);
   }
-  /*if (curr_msg) {
-    delete_message(curr_msg);
-  }*/
-  if (hints_log) {
-    delete_hints_log();
+  if (hints_log_rec) {
+    free(hints_log_rec);
   }
 }
 
 /* join game window */
 static void join_game_window_load(Window *window)
 {
-  //APP_LOG(APP_LOG_LEVEL_INFO, "WE GOT TO JOINGAMEWINDOWLOAD");
   Layer *window_layer = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(window_layer);
 
@@ -293,7 +265,7 @@ static void join_game_window_load(Window *window)
     .get_num_rows = join_game_get_num_rows_callback,
     .draw_row = join_game_draw_row_callback,
     .get_cell_height = join_game_get_cell_height_callback,
-    .select_click = join_game_select_callback//,
+    .select_click = join_game_select_callback
   });
   layer_add_child(window_layer, menu_layer_get_layer(join_game_layer));
 }
@@ -336,16 +308,16 @@ static void join_game_select_callback(struct MenuLayer *menu_layer, MenuIndex *c
   } else if (cell_index->row == 1) {
     // Select Team chosen
     s_current_selection = -1;
-      window_stack_push(select_team_window, true);
+    window_stack_push(select_team_window, true);
   } else if (cell_index->row == 2) {
     // Join Game chosen
     s_current_selection = -1;
     if (selected_player && selected_team && pebble_id && latitude && longitude && js_running) {
-      //APP_LOG(APP_LOG_LEVEL_INFO, "********%s", game_id);
       APP_LOG(APP_LOG_LEVEL_INFO, "Everything checks out, attempting to connect to server");
-      //send_FA_LOCATION(0);
       tick_timer_service_subscribe(SECOND_UNIT, tick_handler);
       window_stack_push(in_game_window, true);
+    } else {
+      my_dialog_window_push("select team, player, and make sure bluetooth is on");
     }
   }
 }
@@ -562,6 +534,11 @@ static int16_t in_game_get_cell_height_callback(struct MenuLayer *menu_layer, Me
 
 static void in_game_select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *callback_context)
 {
+  if (!u_proxy_up) {
+    window_stack_pop(true);
+    my_dialog_window_push("connection problem, try again");
+    return;
+  }
   if (cell_index->row == 0) {
     // Claim Krag chosen
     window_stack_push(claim_krag_window, true);
@@ -569,12 +546,10 @@ static void in_game_select_callback(struct MenuLayer *menu_layer, MenuIndex *cel
   } else if (cell_index->row == 1) {
     // Hints chosen
     s_current_selection = -1;
-    // ***TODO***
-    if (hints_log_count > 0) {
-      APP_LOG(APP_LOG_LEVEL_INFO, "hint count %d", hints_log_count);
-      window_stack_push(hints_log_window, true);
+    if (hints_log_rec != NULL) {
+      my_dialog_window_push(hints_log_rec);
     } else {
-      my_dialog_window_push("no hints");
+      my_dialog_window_push("no hint");
     }
   } else if (cell_index->row == 2) {
     // Status chosen
@@ -666,7 +641,6 @@ static void claim_krag_select_callback(struct MenuLayer *menu_layer, MenuIndex *
         curr_krag[i] = '-';
       }
     }
-    //for (int i = 0; i < 4)
   } else {
     if (claim_krag_count <= 3) {
       s_current_selection = cell_index->row;
@@ -679,79 +653,19 @@ static void claim_krag_select_callback(struct MenuLayer *menu_layer, MenuIndex *
   }
 }
 
-
-/* Hints Log Menu */
-static void hints_log_window_load(Window *window)
-{
-  Layer *window_layer = window_get_root_layer(window);
-  GRect bounds = layer_get_bounds(window_layer);
-
-  join_game_layer = menu_layer_create(bounds);
-  menu_layer_set_click_config_onto_window(hints_log_layer, window);
-  menu_layer_set_callbacks(hints_log_layer, NULL, (MenuLayerCallbacks) {
-    .get_num_rows = hints_log_get_num_rows_callback,
-    .draw_row = hints_log_draw_row_callback,
-    .get_cell_height = hints_log_get_cell_height_callback,
-    .select_click = hints_log_select_callback//,
-  });
-  layer_add_child(window_layer, menu_layer_get_layer(join_game_layer));
-}
-
-static void hints_log_window_unload(Window *window)
-{
-  menu_layer_destroy(hints_log_layer);
-}
-
-static void hints_log_draw_row_callback(GContext *ctx, const Layer *cell_layer, MenuIndex *cell_index, void *context)
-{
-  APP_LOG(APP_LOG_LEVEL_INFO, "attempting to start the draw row");
-  if (hints_log_count > 0) {
-    APP_LOG(APP_LOG_LEVEL_INFO, "hints_log is null");
-    return;
-  }
-  // finding max value of hints, dont want to draw past that
-  if ((int)cell_index->row < hints_log_count) {
-    menu_cell_basic_draw(ctx, cell_layer, hints_log[(int)cell_index->row], NULL, NULL);
-  }
-}
-
-static uint16_t hints_log_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *context)
-{
-  return HINTS_LOG_NUM_ROWS;
-}
-
-static int16_t hints_log_get_cell_height_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *context)
-{
-  return PBL_IF_ROUND_ELSE(
-    menu_layer_is_index_selected(menu_layer, cell_index) ? 
-      MENU_CELL_ROUND_FOCUSED_SHORT_CELL_HEIGHT : MENU_CELL_ROUND_UNFOCUSED_TALL_CELL_HEIGHT,
-    MENU_CELL_HEIGHT);
-}
-
-static void hints_log_select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *callback_context)
-{
-  if (hints_log == NULL) {
-    return;
-  }
-  int i = 0;
-  while (i < HINTS_LOG_NUM_ROWS && hints_log[i]) {
-    i++;
-  }
-  if (cell_index->row < i) {
-    my_dialog_window_push(hints_log[cell_index->row]);
-  }
-}
-
 // tick_handler
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
-  //APP_LOG(APP_LOG_LEVEL_INFO, "tick %d", tick_count);
+  if (end_of_game) {
+    end_of_game_tick++;
+    if (end_of_game_tick >= 10) { // end of game windows displays for 10 seconds
+      window_stack_pop_all(true);
+    }
+  }
   if (tick_count % 15 == 0) {
     send_FA_LOCATION(0);
   }
   tick_count++;
 }
-
-
 
 // outbox_sent_callback
 static void outbox_sent_callback(DictionaryIterator *iterator, void *context) {
@@ -770,17 +684,17 @@ static void outbox_failed_callback(DictionaryIterator *iter, AppMessageResult re
 
 // request_pebbleId
 static void request_pebbleId() {
-    /* 1. Declare dictionary iterator */
+    // Declare dictionary iterator
     DictionaryIterator *out_iter;
 
-    /* 2. Prepare the outbox */
+    // Prepare the outbox 
     AppMessageResult result = app_message_outbox_begin(&out_iter);
 
-    /* 3. If outbox was prepared, send request. Otherwise, log error. */
+    // If outbox was prepared, send request. Otherwise, log error.
     if (result == APP_MSG_OK) {
         int value = 1;
 
-        /* construct and send message, outgoing value ignored */
+        // construct and send message, outgoing value ignored
         dict_write_int(out_iter, AppKeyPebbleId, &value, sizeof(value), true);
 
         result = app_message_outbox_send();
@@ -796,17 +710,17 @@ static void request_pebbleId() {
 
 // request_location
 static void request_location() {
-    /* 1. Declare dictionary iterator */
+    // Declare dictionary iterator
     DictionaryIterator *out_iter;
 
-    /* 2. Prepare the outbox */
+    // Prepare the outbox
     AppMessageResult result = app_message_outbox_begin(&out_iter);
 
-    /* 3. If outbox was prepared, send request. Otherwise, log error. */
+    // If outbox was prepared, send request. Otherwise, log error.
     if (result == APP_MSG_OK) {
         int value = 1;
 
-        /* construct and send message, outgoing value ignored */
+        // construct and send message, outgoing value ignored 
         dict_write_int(out_iter, AppKeyLocation, &value, sizeof(value), true);
 
         result = app_message_outbox_send();
@@ -822,16 +736,16 @@ static void request_location() {
 
 // send_message
 static void send_message(char *message) {
-    /* 1. Declare dictionary iterator */
+    // Declare dictionary iterator
     DictionaryIterator *out_iter;
 
-    /* 2. Prepare the outbox */
+    // Prepare the outbox
     AppMessageResult result = app_message_outbox_begin(&out_iter);
 
-    /* 3. If outbox was prepared, send message. Otherwise, log error. */
+    // If outbox was prepared, send message. Otherwise, log error.
     if (result == APP_MSG_OK) {
       
-        /* Construct and send the message */
+        // Construct and send the message */
 
         dict_write_cstring(out_iter, AppKeySendMsg, message);
         result = app_message_outbox_send();
@@ -847,10 +761,9 @@ static void send_message(char *message) {
 static void send_FA_LOCATION(int status)
 {
   if (game_id && pebble_id && selected_team && selected_player && latitude && longitude) {
-    char *temp = malloc(MESSAGE_LENGTH);//,1);
+    char *temp = malloc(MESSAGE_LENGTH);
     snprintf(temp, MESSAGE_LENGTH-1, "opCode=FA_LOCATION|gameId=%s|pebbleId=%s|team=%s|player=%s|latitude=%s|longitude=%s|statusReq=%d",
       game_id, pebble_id, selected_team, selected_player, latitude, longitude, status);
-    //APP_LOG(APP_LOG_LEVEL_INFO, "****%s", temp);
     send_message(temp);
     free(temp);
   }
@@ -862,8 +775,8 @@ static void send_FA_CLAIM(char *krag_id)
 {
   if (game_id && pebble_id && selected_team && selected_player && latitude && longitude && krag_id) {
     char *temp = calloc(MESSAGE_LENGTH,1);
-    snprintf(temp, MESSAGE_LENGTH-1, "opCode=FA_CLAIM|gameId=%s|team=%s|player=%s|latitude=%s|longitude=%s|kragId=%s",
-      game_id, selected_team, selected_player, latitude, longitude, krag_id);
+    snprintf(temp, MESSAGE_LENGTH-1, "opCode=FA_CLAIM|gameId=%s|pebbleId=%s|team=%s|player=%s|latitude=%s|longitude=%s|kragId=%s",
+      game_id, pebble_id, selected_team, selected_player, latitude, longitude, krag_id);
 
     send_message(temp);
     free(temp);
@@ -876,12 +789,14 @@ static void send_FA_LOG(char *text)
 {
   if (pebble_id && text) {
     char *temp = calloc(MESSAGE_LENGTH,1);
-    snprintf(temp, MESSAGE_LENGTH-1, "opCode=FA_LOG|pebbleID=%s|text=%s", pebble_id, text);
+    snprintf(temp, MESSAGE_LENGTH-1, "opCode=FA_LOG|pebbleId=%s|text=%s", pebble_id, text);
     send_message(temp);
     free(temp);
   }
 }
 
+/* Setters */
+// sets value of curr_msg_str
 static void set_curr_msg_str(char *info)
 {
   if (curr_msg_str) {
@@ -896,6 +811,7 @@ static void set_curr_msg_str(char *info)
   strcpy(curr_msg_str, my_strtok(info, " "));
 }
 
+// sets value of pebble_id
 static void set_pebble_id(char *info)
 {
   if (pebble_id) {
@@ -910,12 +826,14 @@ static void set_pebble_id(char *info)
   strcpy(pebble_id, my_strtok(info, " "));
 }
 
+// sets value of set_game_id
 static void set_game_id(char *info)
 {
   if (game_id) {
     free(game_id);
     game_id = NULL;
   }
+  APP_LOG(APP_LOG_LEVEL_INFO, "%s", info);
   game_id = calloc(sizeof(info), strlen(info));
   if (game_id == NULL) {
     APP_LOG(APP_LOG_LEVEL_ERROR, "Error: calloc fail");
@@ -924,6 +842,7 @@ static void set_game_id(char *info)
   strcpy(game_id, my_strtok(info, " "));
 }
 
+// sets guide id
 static void set_guide_id(char *info)
 {
   if (guide_id) {
@@ -939,6 +858,23 @@ static void set_guide_id(char *info)
   strcpy(guide_id, my_strtok(info, " "));
 }
 
+// sets hints log rec
+static void set_hints_log_rec(char *info)
+{
+  if (hints_log_rec) {
+    free(hints_log_rec);
+    hints_log_rec = NULL;
+  }
+
+  hints_log_rec = calloc(sizeof(info), strlen(info));
+  if (hints_log_rec == NULL) {
+    APP_LOG(APP_LOG_LEVEL_ERROR, "Error: calloc fail");
+    return;
+  }
+  strcpy(hints_log_rec, my_strtok(info, "~"));
+}
+
+// sets location (latitude and longitude strings)
 static void set_location(char *info)
 {
   // get rid of past location if it exists
@@ -962,6 +898,7 @@ static void set_location(char *info)
   strcpy(longitude, my_strtok(NULL, "|"));
 }
 
+// sets opcode
 static void set_opcode(char *info)
 {
   if (opcode) {
@@ -970,17 +907,6 @@ static void set_opcode(char *info)
   opcode = calloc(sizeof(info), strlen(info));
 
   strcpy(opcode, my_strtok(info, " "));
-}
-
-static void delete_hints_log()
-{
-  if (hints_log != NULL) {
-    for (int i = 0; i < HINTS_LOG_NUM_ROWS; i++) {
-      if (hints_log[i]) {
-        free(hints_log[i]);
-      }
-    }
-  }
 }
 
 // inbox_received_callback
@@ -996,49 +922,40 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     };
     */
 
-    /* 1. Check to see if JS environment ready message received. */
+    // Check to see if JS environment ready message received.
     Tuple *ready_tuple = dict_find(iterator, AppKeyJSReady);
     if(ready_tuple) {
         // Log the value sent as part of the received message.
         js_running = true;
         char *ready_str = ready_tuple->value->cstring;
         set_pebble_id(ready_str);
+
+        // used for emulator:
         set_pebble_id("12345678");
-        //APP_LOG(APP_LOG_LEVEL_INFO, "GOT HERE");
 
         APP_LOG(APP_LOG_LEVEL_INFO, "Got AppKeyJSReady: %s\n", pebble_id);
         request_location();
         
     }
 
-    /* 2. Check to see if an opcode message was received received. */
+    // Check to see if an opcode message was received received.
     Tuple *msg_tuple = dict_find(iterator, AppKeyRecvMsg);
     if(msg_tuple) {
         // Log the value sent as part of the received message.
         char *msg = msg_tuple->value->cstring;
-        APP_LOG(APP_LOG_LEVEL_INFO, "Got AppKeyrecvMsg: %s\n", msg);
-        //APP_LOG(APP_LOG_LEVEL_INFO, "ASDAASDAASDAASDA");
-        //set_curr_msg_str(msg);
-        //char *temp = malloc(MESSAGE_LENGTH);
-        //strcpy(temp, msg);
-        APP_LOG(APP_LOG_LEVEL_INFO, "Got AppKeyrecvMsg: %s\n", msg);
+        APP_LOG(APP_LOG_LEVEL_INFO, "Got AppKeyRecvMsg: %s\n", msg);
         curr_msg = parse_message(msg);
-        //free(temp);
         if (curr_msg == NULL) {
-          //APP_LOG(APP_LOG_LEVEL_ERROR, "NULL parsed message");
           return;
         }
-        //APP_LOG(APP_LOG_LEVEL_INFO, "opcode :%s", curr_msg->game_id);
-        //APP_LOG(APP_LOG_LEVEL_INFO, "curr_msg:%s", curr_msg);
         if (curr_msg->error_code == 0) {
-          //APP_LOG(APP_LOG_LEVEL_INFO, "THIS2");
           handle_message();
         } else {
           APP_LOG(APP_LOG_LEVEL_ERROR, "bad msg");
         }
     }
 
-    /* 3. Check to see if a location message received. */
+    // Check to see if a location message received.
     Tuple *loc_tuple = dict_find(iterator, AppKeyLocation);
     if(loc_tuple) {
         // Log the value sent as part of the received message.
@@ -1047,7 +964,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
         set_location(location);
     }
 
-    /* 4. Check to see if a PebbleId message received. */
+    // Check to see if a PebbleId message received. 
     Tuple *id_tuple = dict_find(iterator, AppKeyPebbleId);
     if(id_tuple) {
         // Log the value sent as part of the received message.
@@ -1056,7 +973,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
         APP_LOG(APP_LOG_LEVEL_INFO, "Got AppKeyPebbleId: %s\n", id_str);
     }
 
-    /* 5. Check to see if an error message was received. */
+    // Check to see if an error message was received.
     Tuple *error_tuple = dict_find(iterator, AppKeyLocation);
     if(error_tuple) {
         // Log the value sent as part of the received message.
@@ -1065,81 +982,91 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     }
 }
 
+// handles message, called by inbox_received_callback for AppKeyrecyMsg
 static void handle_message()
 {
-  APP_LOG(APP_LOG_LEVEL_INFO, "HANDLING MESSAGE");
-  APP_LOG(APP_LOG_LEVEL_INFO, "opcode :%s", curr_msg->op_code);
+  u_proxy_up = true;
+  APP_LOG(APP_LOG_LEVEL_INFO, "HANDLING MESSAGE, opcode: %s", curr_msg->op_code);
   if (curr_msg && curr_msg->error_code == 0) {
     set_opcode(curr_msg->op_code);
-    //strcpy(op_code, curr_msg->op_code);
-    APP_LOG(APP_LOG_LEVEL_INFO, "---%s", opcode);
+
+    // opcode is game status
     if (strcmp(opcode, "GAME_STATUS") == 0) {
-      APP_LOG(APP_LOG_LEVEL_INFO, "GOT GAME STATUS");
       set_game_id(curr_msg->game_id);
       set_guide_id(curr_msg->guide_id);
       char *temp = malloc(MESSAGE_LENGTH);
       snprintf(temp, MESSAGE_LENGTH-1, "you have claimed %s out of %s krags", curr_msg->num_claimed, curr_msg->num_krags);
       my_dialog_window_push(temp);
       free(temp);
+
+    // opcode is ga hint
     } else if (strcmp(opcode, "GA_HINT") == 0) {
         vibes_short_pulse();
         my_dialog_window_push(curr_msg->hint);
-        hints_log_add(curr_msg->hint);
+        set_hints_log_rec(curr_msg->hint);
+
+    // opcode is gs response    
     } else if (strcmp(opcode, "GS_RESPONSE") == 0) {
       char *respcode = curr_msg->resp_code;
+
+      // respcode is sh claimed
       if (strcmp(respcode, "SH_CLAIMED") == 0) {
-        my_dialog_window_push("succesfuly claimed krag!");
+        my_dialog_window_push("succesfully claimed krag!");
+
+      // respcode is sh claimed already
       } else if (strcmp(respcode, "SH_CLAIMED_ALREADY") == 0) {
         my_dialog_window_push("krag already claimed");
+
+      // respcode is sh error invalid message  
       } else if (strcmp(respcode, "SH_ERROR_INVALID_MESSAGE") == 0) {
         send_FA_LOG("got SH_ERROR_INVALID_MESSAGE");
+
+      // respcode is sh error invalid opcode  
       } else if (strcmp(respcode, "SH_ERROR_INVALID_OPCODE") == 0) {
         send_FA_LOG("got SH_ERROR_INVALID_OPCODE");
+
+      // respcode is sh error invalid team name  
       } else if (strcmp(respcode, "SH_ERROR_INVALID_TEAMNAME") == 0) {
+        // take user back to join game menu
         window_stack_pop(true);
         my_dialog_window_push("invalid team name");
+
+      // respcode is sh error duplicate playername  
       } else if (strcmp(respcode, "SH_ERROR_DUPLICATE_PLAYERNAME") == 0) {
+        // take user back to join game menu
         window_stack_pop(true);
         my_dialog_window_push("duplicate player name");
+
+      // respcode is sh error invalid playername  
       } else if (strcmp(respcode, "SH_ERROR_INVALID_PLAYERNAME") == 0) {
+        // take user back to join game menu
         window_stack_pop(true);
         my_dialog_window_push("invalid player name");
-      } else if (strcmp(respcode, "SH_ERROR_INVALID_ID") == 0) {
 
+       // respcode is sh error invalid id 
+      } else if (strcmp(respcode, "SH_ERROR_INVALID_ID") == 0) {
+        APP_LOG(APP_LOG_LEVEL_ERROR, "got SH_ERRPR_INVALID_ID");
       }
 
+     // opcode is game over 
     } else if (strcmp(opcode, "GAME_OVER") == 0) {
-
+      // start end of game sequence
+      end_of_game = true;
+      vibes_short_pulse();
+      my_dialog_window_push("Game Over!");
+      my_dialog_window_push("Game Over!");
+    // opcode is team record  
     } else if (strcmp(opcode, "TEAM_RECORD") == 0) {
-
+      // do nothing, wait for gane over mesasge to start end of game sequence
     } else {
+      // log getting a weird message
       char *temp = malloc(MESSAGE_LENGTH);
       snprintf(temp, MESSAGE_LENGTH-1, "got opcode %s", opcode);
       send_FA_LOG(temp);
       free(temp);
     }       
   } else {
+    // bad message
     APP_LOG(APP_LOG_LEVEL_ERROR, "the error code is not 0");
   }
-}
-
-static void hints_log_add(char *hint)
-{
-  if (hints_log == NULL) {
-    hints_log = calloc(HINTS_LOG_NUM_ROWS, sizeof(char*));
-  }
-  if (hints_log_count < HINTS_LOG_NUM_ROWS) { // can add more hints easy
-    char *temp = malloc(strlen(hint)+1);
-    hints_log[hints_log_count] = temp;
-    hints_log_count++;
-  } else { // hints is already filled up
-    for (int i = 4; i > 0; i--) {
-      free(hints_log[i]);
-      char *temp = malloc(strlen(hints_log[i-1])+1);
-      hints_log[i] = temp;
-    }
-    char *temp2 = malloc(strlen(hint)+1);
-    hints_log[0] = temp2;
-  }
-  
 }
