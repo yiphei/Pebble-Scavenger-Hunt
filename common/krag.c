@@ -204,12 +204,12 @@ void printKrags(hashtable_t * kraghash){
 	hashtable_print(kraghash, stdout, kragPrint);
 }
 
-static krag_t * findClue(char * teamname, hashtable_t * kraghash, hashtable_t * teamhash){
+static char* findClue(char * teamname, hashtable_t * kraghash, hashtable_t * teamhash){
 
 	//printf("AA\n");
 	srand(time(NULL)); 
 	int r = rand() % totalKrags(kraghash);  //random number
-	char kragID[5];
+	char* kragID = calloc(5,1);
 
 	set_t * krags = getKrags(teamname, teamhash);
 	set_t * clues = getClues(teamname, teamhash);
@@ -234,19 +234,19 @@ static krag_t * findClue(char * teamname, hashtable_t * kraghash, hashtable_t * 
 	//inserting clue in the team
 	set_insert(clues, kragID, krag->clue);
 
-	return krag;
+	return kragID;
 }
 
 
-krag_t * randomClue(char * teamname, hashtable_t * kraghash, hashtable_t * teamhash){
+char* randomClue(char * teamname, hashtable_t * kraghash, hashtable_t * teamhash){
 
-	krag_t * krag = NULL;
+	char* kragId = NULL;
 
-	while (krag == NULL){
-		krag = findClue(teamname, kraghash, teamhash);
+	while (kragId == NULL){
+		kragId = findClue(teamname, kraghash, teamhash);
 	}
 
-	return krag;
+	return kragId;
 }
 
 
