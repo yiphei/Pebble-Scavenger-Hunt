@@ -182,6 +182,7 @@ int parseHelper(char *message, message_t *parsedMessage)
 			}
 
 			parsedMessage->player = calloc(strlen(field) - 6, 1);
+			NormalizeWord(field);
 			strcpy(parsedMessage->player, field + 7);
 			strcat(parsedMessage->player, "\0");
 
