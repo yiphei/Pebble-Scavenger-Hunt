@@ -208,7 +208,6 @@ void printKrags(hashtable_t * kraghash){
 
 static char* findClue(char * teamname, hashtable_t * kraghash, hashtable_t * teamhash){
 
-	//printf("AA\n");
 	srand(time(NULL)); 
 	int r = rand() % totalKrags(kraghash);  //random number
 	char* kragID = calloc(5,1);

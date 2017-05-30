@@ -198,12 +198,14 @@ static void deleteFA(void * item){
 //helper functino to free krags
 static void deleteKrags(void * item){
 	if (item){
+		free(item);
 	}
 }
 
 //helper functino to free clues
 static void deleteClues(void * item){
 	if (item){
+		free(item);
 	}
 }
 
@@ -211,6 +213,7 @@ static void deleteClues(void * item){
 static void deletePebble(void * item){
 
 	if (item){
+		free(item);
 	}
 }
 

@@ -233,7 +233,6 @@ int main(int argc, char* argv[])
 	free(kff);
 	free(sf);
 	free(gameId);
-
 	exit(result); // exit with the correct exit code
 }
 
@@ -325,7 +324,9 @@ int gameserver(char* gameId, char* kff, char* sf, int port)
 
 	// clean up
 	deleteKragHash(krags); // delete the krag hashtable
-	deleteTeamHash(teams); // delete the teams hashtable
+	deleteTeamHashGA(teams); // delete the teams hashtable
+	closeSocket(socket); // close the socket
+	deleteConnection(server); // delete the server connection
 	free(secret); // free the secret string
 	return 0; // return 0 for success
 }
@@ -374,18 +375,18 @@ static void FAClaimHandler(char* gameId, char *messagep, message_t *message, has
 
 		// check variables
 		if(ga != NULL && ga->guideID != NULL){
-			// check if the game is over
-			if(revCode == 1){
-				// end the game but update the string
-				gameInProgress = false;
-				sendSecret(gameId, ga->guideID, getRevealedString(message->team,teams), connection,log);
-				printf("Game won!\n");
-				return;
-			}
 			// send claimed
 			sendGSClaimed(gameId, ga->guideID, message->pebbleId, message->kragId, foundKrag->latitude, foundKrag->longitude, ga->conn, log);
 			// send the updated message
 			sendSecret(gameId, ga->guideID, getRevealedString(message->team,teams), ga->conn,log);
+			// check if the game is over
+			if(revCode == 1){
+				// end the game but update the string
+				gameInProgress = false;
+				printf("Game won!\n");
+				return;
+			}
+			
 
 		
 
@@ -461,6 +462,7 @@ static void GAStatusHandler(char* gameId, char *messagep, message_t *message, ha
 		if(returnVal == 0){
 			// initialize the reveal string if the guide agent is new
 			revealCharacters(NULL, message->team, secret, teams, krags);
+			sendSecret(gameId, message->guideId, getRevealedString(message->team,teams), connection, log);
 			// get random clue
 			char* kragId = randomClue(message->team, krags, teams);
 			krag_t* krag = hashtable_find(krags, kragId);
@@ -510,6 +512,7 @@ static void GAHintHandler(char* gameId, char *messagep, message_t *message, hash
 		// check that agent exists
 		if(agent == NULL){
 			sendResponse(gameId, "SH_ERROR_INVALID_ID", message->pebbleId, connection, log);
+			return;
 		}
 		// forward hint
 		if(agent->conn != NULL){
@@ -662,6 +665,11 @@ static bool validateFA(char* gameId, message_t* message, hashtable_t* teams, has
 		return false;
 	}
 
+	if(team->guideAgent != NULL && strcmp(team->guideAgent->name,message->player) == 0){
+		sendResponse(gameId, "SH_ERROR_DUPLICATE_PLAYERNAME", message->player, connection, log);
+		return false;
+	}
+
 	// check that the player exists
 	fieldAgent_t* fa = set_find(team->FAset, message->player);
 	if(fa == NULL){
@@ -704,6 +712,13 @@ static bool validateGA(char* gameId, message_t* message, hashtable_t* teams, has
 	// check message field
 	if(message->player == NULL){
 		sendResponse(gameId, "SH_ERROR_INVALID_PLAYERNAME", "No player", connection, log);
+		return false;
+	}
+
+	// check for double name
+	fieldAgent_t* fa = set_find(team->FAset,message->player);
+	if(fa !=NULL){
+		sendResponse(gameId, "SH_ERROR_DUPLICATE_PLAYERNAME", message->player, connection, log);
 		return false;
 	}
 
@@ -1044,6 +1059,7 @@ static bool sendGameOver(char* gameId, hashtable_t* teams, char* secret, char* l
 	strcat(messagep, gameId);
 	strcat(messagep, "|secret=");
 	strcat(messagep, secret);
+	strcat(messagep, "\0");
 
 
 	// send the message
@@ -1236,7 +1252,7 @@ static void sendToAll(void* arg, const char* key, void* item)
 static void sendTeamRecordToAll(void* arg, const char* key, void* item)
 {
 	char* message = (char*)arg; // cast arg
-	char* newMessage = calloc(sizeof(message)+1,1); // copy the message
+	char* newMessage = calloc(MAXOUTMESSAGELENGTH,1); // copy the message
 	strcpy(newMessage, message);
 	team_t* team = (team_t*)item; // cast item
 
