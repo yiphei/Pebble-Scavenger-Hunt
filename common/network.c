@@ -121,8 +121,6 @@ bool sendMessage(char* message, connection_t* connection)
 		fprintf(stderr, "Network: Unable to send message: %s\n",message);
 		return false;
 	}
-
-	printf("Sent: %s\n",message);
 	return true;
 }
 
