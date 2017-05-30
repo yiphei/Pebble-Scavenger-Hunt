@@ -400,6 +400,7 @@ team_t * newTeam(void){
   	team->numPlayers = 0;
   	team->FAPebbleIds = set_new();
   	team->guideAgent = NULL;
+  	team->claimed = 0;
 
   	for (int i =0; i<2; i++) {
 		team->recentClues[i] = NULL;
