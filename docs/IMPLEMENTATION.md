@@ -69,6 +69,22 @@ message to the Game Server and log the activity to the already opened log file.
 Like _sendGA\_STATUS_, it returns a bool to ensure successful delivery and
 allocation of memory of the string to be sent.
 
+```
+int handleMessage(char *messagep, team_t *teamp, connection_t *connection, char *filePath, hashtable_t *teams);
+```
+_handleMessage_ is called when select reads input from the socket. This function
+just parses the message into a message\_t struct and passes the message and
+other parameters onto the function dispatch table, which handles the message 
+according to its type.
+
+```
+void handleHint(char *gameId, char *guideId, char *team, char *player, char *hint, connection_t *connection, char *filePath, team_t *teamp);
+```
+_handleHint_ is called when select reads input from stdin (the user). This 
+function parses that input to look for a specified recipient (denoted by the
+first word of the message) and uses _sendGAHINT_ to send the user input hint
+to the specified recipient(s).
+
 ##### Data Structures
 
 `Op Code Handler Function Table`
