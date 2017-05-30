@@ -17,3 +17,5 @@ guide-agent/memorytest
 logs/
 testing/server
 testing/pebble
+proxy-log.txt
+testing/.nfs000000000506138e000001a6
