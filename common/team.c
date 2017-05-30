@@ -163,7 +163,7 @@ void incrementTime(fieldAgent_t* fa){
 
 	time_t* endtime = malloc(sizeof(time_t));
 	time(endtime);
-	double seconds = difftime(*(fa->lastContactTime),*endtime);
+	double seconds = difftime(*endtime,*(fa->lastContactTime));
 	fa->lastContact = fa->lastContact + (int)seconds;
 	free(endtime);
 }

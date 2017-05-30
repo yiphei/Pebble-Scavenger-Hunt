@@ -469,10 +469,7 @@ static void GAHintHandler(char* gameId, char *messagep, message_t *message, hash
 	logMessage(log, messagep, "FROM", connection); // log message
 
 	// validate gameId
-	for(int i=0; i<strlen(gameId); i++){
-		printf("gameId[i]: '%c', message->gameId[i]: '%c', the same: %d\n",gameId[i],(message->gameId)[i],gameId[i]==(message->gameId)[i]);
-	}
-	if(strcmp(gameId, message->gameId) !=0){
+	if(strcmp(gameId, message->gameId) !=0 && strcmp(message->gameId, "0") != 0){
 		// send response
 		sendResponse(gameId, "SH_ERROR_INVALID_GAME_ID", message->gameId,connection, log);
 		return;
@@ -864,11 +861,12 @@ static void sendGSAgentIterator(void* arg, const char* key, void* item)
 	strcat(messagep, "|longitude=");
 	strcat(messagep, longitudeStr);
 	strcat(messagep, "|lastContact=");
+	strcat(messagep, lastContactStr);
 
 	sendMessage(messagep, mconn->connection);
 	printf("Sent: %s\n",messagep);
 
-	free(messagep);
+	//free(messagep);
 	free(latitudeStr);
 	free(longitudeStr);
 	free(lastContactStr);
@@ -1191,3 +1189,4 @@ static void sendTeamRecordToAll(void* arg, const char* key, void* item)
 	free(numPlayersStr);
 	free(numClaimedStr);
 }
+
