@@ -100,3 +100,6 @@ spec in terms of a message.
 ### Limitations
 
 * Implementation with ncurses causes still reachable memory.
+* When a krag is found, the clue associated with that krag is overwritten but if
+  there was a previously written clue there that was longer, some of that
+  clue's string may still be left in the clues window
