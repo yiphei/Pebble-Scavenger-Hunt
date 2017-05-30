@@ -5,6 +5,8 @@
  * GREP, CS50, May 2017
  */
 
+#include "word.h"
+
 // message struct allows storage of all message field types
 typedef struct message 
 {
