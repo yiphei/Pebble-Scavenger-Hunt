@@ -227,6 +227,7 @@ static char* findClue(char * teamname, hashtable_t * kraghash, hashtable_t * tea
 
 	//if there was not clue available, return NULL
 	if (i > totalKrags(kraghash)){
+		free(kragID);
 		return NULL;
 	}
 
@@ -244,7 +245,6 @@ char* randomClue(char * teamname, hashtable_t * kraghash, hashtable_t * teamhash
 	char* kragId = NULL;
 
 	while (kragId == NULL){
-		free(kragId);
 		kragId = findClue(teamname, kraghash, teamhash);
 	}
 
