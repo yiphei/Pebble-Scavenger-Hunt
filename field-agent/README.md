@@ -5,7 +5,7 @@
 - `make install-emulator`: Installs the app on the basalt emulator
 - `make kill`: Kills all running emulator istances
 - `make clean`: Cleans everything
-- `pebble install --phone X` (where x is the ip address of the phone that is paired via Bluetooth to the pebble): install onto the corresponding physical pebble
+- `pebble install --phone X` (where x is the ip address of the phone that is paired via Bluetooth to the pebble): install onto the corresponding physical pebble. The pebble and computer must be on the same network in order for this to work.
 
 ### Output:
 - `APP_LOG_LEVEL_INFO`: messages that are displayed onto the terminal to say what is going on
