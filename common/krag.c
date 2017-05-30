@@ -210,7 +210,7 @@ static char* findClue(char * teamname, hashtable_t * kraghash, hashtable_t * tea
 
 	srand(time(NULL)); 
 	int r = rand() % totalKrags(kraghash);  //random number
-	char* kragID = calloc(5,1);
+	char* kragID = malloc(5);
 
 	set_t * krags = getKrags(teamname, teamhash);
 	set_t * clues = getClues(teamname, teamhash);
@@ -244,6 +244,7 @@ char* randomClue(char * teamname, hashtable_t * kraghash, hashtable_t * teamhash
 	char* kragId = NULL;
 
 	while (kragId == NULL){
+		free(kragId);
 		kragId = findClue(teamname, kraghash, teamhash);
 	}
 
