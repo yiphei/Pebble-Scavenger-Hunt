@@ -182,6 +182,7 @@ int parseHelper(char *message, message_t *parsedMessage)
 			}
 
 			parsedMessage->player = calloc(strlen(field) - 6, 1);
+			NormalizeWord(field);
 			strcpy(parsedMessage->player, field + 7);
 			strcat(parsedMessage->player, "\0");
 
@@ -197,6 +198,7 @@ int parseHelper(char *message, message_t *parsedMessage)
 			}
 
 			parsedMessage->team = calloc(strlen(field) - 4, 1);
+			NormalizeWord(field);
 			strcpy(parsedMessage->team, field + 5);
 			strcat(parsedMessage->team, "\0");
 
@@ -241,8 +243,9 @@ int parseHelper(char *message, message_t *parsedMessage)
 				return 1;
 			}
 
-			parsedMessage->secret = calloc(strlen(field) - 7, 1);
+			parsedMessage->secret = calloc(strlen(field) - 6, 1);
 			strcpy(parsedMessage->secret, field + 7);
+			strcat(parsedMessage->secret, "\0");
 
 			if (strlen(parsedMessage->secret) > 140) {
 				return 4;
@@ -270,7 +273,7 @@ int parseHelper(char *message, message_t *parsedMessage)
 				return 1;
 			}
 
-			char *lastContactTemp = calloc(strlen(field) - 12, 1);
+			char *lastContactTemp = calloc(strlen(field) - 11, 1);
 			strcpy(lastContactTemp, field + 12);
 
 			int lastContact;
@@ -293,7 +296,7 @@ int parseHelper(char *message, message_t *parsedMessage)
 				return 1;
 			}
 
-			char *latitudeTemp = calloc(strlen(field) - 9, 1);
+			char *latitudeTemp = calloc(strlen(field) - 8, 1);
 			strcpy(latitudeTemp, field + 9);
 
 			double latitude;
@@ -320,7 +323,7 @@ int parseHelper(char *message, message_t *parsedMessage)
 				return 1;
 			}
 
-			char *longitudeTemp = calloc(strlen(field) - 10, 1);
+			char *longitudeTemp = calloc(strlen(field) - 9, 1);
 			strcpy(longitudeTemp, field + 10);
 
 			double longitude;
@@ -347,7 +350,7 @@ int parseHelper(char *message, message_t *parsedMessage)
 				return 1;
 			}
 
-			char *numPlayersTemp = calloc(strlen(field) - 11, 1);
+			char *numPlayersTemp = calloc(strlen(field) - 10, 1);
 			strcpy(numPlayersTemp, field + 11);
 
 			int numPlayers;
@@ -368,7 +371,7 @@ int parseHelper(char *message, message_t *parsedMessage)
 				return 1;
 			}
 
-			char *numClaimedTemp = calloc(strlen(field) - 11, 1);
+			char *numClaimedTemp = calloc(strlen(field) - 10, 1);
 			strcpy(numClaimedTemp, field + 11);
 
 			int numClaimed;
@@ -391,7 +394,7 @@ int parseHelper(char *message, message_t *parsedMessage)
 				return 1;
 			}
 
-			char *numKragsTemp = calloc(strlen(field) - 9, 1);
+			char *numKragsTemp = calloc(strlen(field) - 8, 1);
 			strcpy(numKragsTemp, field + 9);
 
 			int numKrags;
@@ -415,7 +418,7 @@ int parseHelper(char *message, message_t *parsedMessage)
 				return 1;
 			}
 
-			char *statusReqTemp = calloc(strlen(field) - 10, 1);
+			char *statusReqTemp = calloc(strlen(field) - 9, 1);
 			strcpy(statusReqTemp, field + 10);
 
 			int statusReq;
@@ -498,12 +501,12 @@ void deleteMessage(message_t *message) {
 
 	if (message->secret != NULL) {
 		free(message->secret);
-		message->clue = NULL;
+		message->secret = NULL;
 	}
 
 	if (message->text != NULL) {
-		free(message->secret);
-		message->secret = NULL;
+		free(message->text);
+		message->text = NULL;
 	}
 
 	free(message);

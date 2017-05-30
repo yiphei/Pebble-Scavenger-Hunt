@@ -27,11 +27,19 @@
 typedef struct messageConn {
 	connection_t* connection;
 	char* message;
-} messageConn_t;
+} messageConn_t; // used for iteration to send messages
+
+
+typedef struct pebbleTeam {
+	hashtable_t* teams;
+	char* team;
+	char* pebbleId;
+} pebbleTeam_t; // used to find field agents by pebble ID
 
 
 /******** globals *******/
 static bool gameInProgress;
+static char* secret;
 static int MAXOUTMESSAGELENGTH = 8191; // used for mallocing out-messages
 
 /******* functions *******/
@@ -48,9 +56,9 @@ static void badOpCodeHandler(char* gameId, char *messagep, message_t *message, h
 // validate functions           
 static bool validateMessageParse(char* gameId, message_t* message, connection_t*, char* log);
 static int validateKrag(char* gameId, char* kragId, double latitude, double longitude, char* team, hashtable_t* teams, hashtable_t* krags);
-static bool validateFA(char* gameId, message_t* message, hashtable_t* teams, hashtable_t* krags);
-static bool validateGA(char* gameId, message_t* message, hashtable_t* teams, hashtable_t* krags);
-static bool validatePebbleId(char* pebbleId, char* team, hashtable_t* teams);
+static bool validateFA(char* gameId, message_t* message, hashtable_t* teams, hashtable_t* krags, connection_t* connection, char* log);
+static bool validateGA(char* gameId, message_t* message, hashtable_t* teams, hashtable_t* krags, connection_t* connection, char* log);
+static bool validatePebbleId(char* pebbleId, char* player, char* team, hashtable_t* teams, bool testPlayer);
 
 // message sending functions
 static bool sendGameStatus(char* gameId, char* guideId, int numClaimed, int numKrags, connection_t* connection, char* log);
@@ -219,14 +227,12 @@ int main(int argc, char* argv[])
     free(portTemp2);
 
 
-    printf("Debug: About to start game\n");
 	// Run the server and store the exit code
 	int result = gameserver(gameId, kff, sf, port);
 
 	free(kff);
 	free(sf);
 	free(gameId);
-
 	exit(result); // exit with the correct exit code
 }
 
@@ -244,7 +250,6 @@ int gameserver(char* gameId, char* kff, char* sf, int port)
 	hashtable_t* krags; // all krags
 	hashtable_t* teams = initHash(); // keep track of the teams
 	gameInProgress = true; // boolean for while loop
-	char* secret;
 	char* log = "../logs/gameserver.log"; // log file
 
 
@@ -252,7 +257,7 @@ int gameserver(char* gameId, char* kff, char* sf, int port)
 	server = startServer(port); // open server on correct port
 	if(server == NULL){
 		fprintf(stderr, "Unable to start server\n");
-		return 6;
+		return 5;
 	}
 	socket = server->socket;
 
@@ -260,19 +265,20 @@ int gameserver(char* gameId, char* kff, char* sf, int port)
 	krags = readKrag(kff);
 	if(krags == NULL){
 		fprintf(stderr, "Unable to load krag file\n");
-		return 7;
+		return 6;
 	}
-
-	printf("Debug: Loaded krags\n");
 
 	// load the secret string
 	secret = getSecretString(sf);
 
-	printf("Debug: Secret string is: %s\n",secret);
+	if(secret == NULL){
+		fprintf(stderr, "Unable to load secret file\n");
+		return 7;
+	}
 
 	// while the game hasn't ended
 	while(gameInProgress){
-		printf("Debug: Game loop\n");
+		printf("*******************\nWaiting for input...\n");
 		// initialize a return connection to receive from
 		struct sockaddr rAddr;
 		rAddr.sa_family = AF_INET;
@@ -287,7 +293,7 @@ int gameserver(char* gameId, char* kff, char* sf, int port)
 			deleteConnection(rconn);
 			continue; // skip message if NULL
 		}
-		printf("Debug: Received message: %s\n",messageString);
+		printf("Received: %s\n",messageString);
 		message_t* message = parseMessage(messageString);
 
 		// check that message parsed correctly
@@ -296,8 +302,6 @@ int gameserver(char* gameId, char* kff, char* sf, int port)
 			fprintf(stderr,"Message parse failed for message: %s\n", messageString);
 			continue; // skip to next iteration
 		}
-
-		printf("Debug: Parsed message with opCode: %s\n",message->opCode);
 
 		// call function from function table to handle messages
 		for (int fn = 0; opCodes[fn].opCode != NULL; fn++) {
@@ -320,7 +324,9 @@ int gameserver(char* gameId, char* kff, char* sf, int port)
 
 	// clean up
 	deleteKragHash(krags); // delete the krag hashtable
-	deleteTeamHash(teams); // delete the teams hashtable
+	deleteTeamHashGA(teams); // delete the teams hashtable
+	closeSocket(socket); // close the socket
+	deleteConnection(server); // delete the server connection
 	free(secret); // free the secret string
 	return 0; // return 0 for success
 }
@@ -343,7 +349,7 @@ static void FAClaimHandler(char* gameId, char *messagep, message_t *message, has
 	}
 
 	// validate team and player
-	if(strcmp(gameId, "0")==0 && !validateFA(gameId, message, teams, krags)){
+	if(strcmp(gameId, "0")==0 && !validateFA(gameId, message, teams, krags, connection, log)){
 		sendResponse(gameId, "SH_ERROR_INVALID_PLAYERNAME", message->player, connection, log);
 		return;
 	}
@@ -360,31 +366,41 @@ static void FAClaimHandler(char* gameId, char *messagep, message_t *message, has
 	else if(valCode == 0){
 		// reveal the string if success and send claim message
 		sendResponse(gameId, "SH_CLAIMED", message->kragId, connection, log);
-		int revCode = revealCharacters(message->kragId, message->team, getRevealedString(message->team, teams), teams, krags);
-		if(revCode == 1){
-			// end the game but update the string
-			gameInProgress = false;
-			sendSecret(gameId, message->guideId, getRevealedString(message->team,teams), connection,log);
-			return;
-		}
-
-		// update claimed clues
+		int revCode = revealCharacters(message->kragId, message->team, secret, teams, krags);
+		
+		// get necessary variables
 		krag_t* foundKrag = hashtable_find(krags, message->kragId);
-		sendGSClaimed(gameId, message->guideId, message->pebbleId, message->kragId, foundKrag->latitude, foundKrag->longitude, connection, log);
+		team_t* team = hashtable_find(teams, message->team);
+		guideAgent_t* ga = team->guideAgent;
 
-		// send the updated message
-		sendSecret(gameId, message->guideId, getRevealedString(message->team,teams), connection,log);
+		// check variables
+		if(ga != NULL && ga->guideID != NULL){
+			// send claimed
+			sendGSClaimed(gameId, ga->guideID, message->pebbleId, message->kragId, foundKrag->latitude, foundKrag->longitude, ga->conn, log);
+			// send the updated message
+			sendSecret(gameId, ga->guideID, getRevealedString(message->team,teams), ga->conn,log);
+			// check if the game is over
+			if(revCode == 1){
+				// end the game but update the string
+				gameInProgress = false;
+				printf("Game won!\n");
+				return;
+			}
+			
 
-		char* kragId;
-		krag_t* krag;
-		// add two clues to the team and send them
-		for(int i = 0; i < 2; i++){
-			// get random clue
-			kragId = randomClue(message->team, krags, teams);
-			// get krag
-			krag = hashtable_find(krags, kragId);
-			//sendClue
-			sendClue(gameId, message->guideId, krag->clue, kragId, connection, log);
+		
+
+			char* kragId;
+			krag_t* krag;
+			// add two clues to the team and send them
+			for(int i = 0; i < 2; i++){
+				// get random clue
+				kragId = randomClue(message->team, krags, teams);
+				// get krag
+				krag = hashtable_find(krags, kragId);
+				//sendClue
+				sendClue(gameId, ga->guideID, krag->clue, kragId, connection, log);
+			}
 		}
 	}
 	resetTime(message->player, message->team, teams); // reset last contact time
@@ -398,7 +414,6 @@ static void FAClaimHandler(char* gameId, char *messagep, message_t *message, has
 static void FALogHandler(char* gameId, char *messagep, message_t *message, hashtable_t* teams, hashtable_t* krags, connection_t *connection, char* log)
 {
 	logMessage(log, messagep, "FROM", connection); // log message
-	resetTime(message->player, message->team, teams); // reset last contact time
 }
 
 /*
@@ -408,7 +423,6 @@ static void FALogHandler(char* gameId, char *messagep, message_t *message, hasht
 */
 static void GAStatusHandler(char* gameId, char *messagep, message_t *message, hashtable_t* teams, hashtable_t* krags, connection_t *connection, char* log)
 {
-	printf("Handling GA_STATUS\n");
 	logMessage(log, messagep, "FROM", connection); // log message
 
 	// validate gameId
@@ -419,8 +433,7 @@ static void GAStatusHandler(char* gameId, char *messagep, message_t *message, ha
 	}
 
 	// validate the team and player
-	if(strcmp(gameId, "0")==0 && !validateGA(gameId, message, teams, krags)){
-		sendResponse(gameId, "SH_ERROR_INVALID_PLAYERNAME", message->player, connection, log);
+	if(strcmp(gameId, "0")==0 && !validateGA(gameId, message, teams, krags, connection, log)){
 		return;
 	}
 
@@ -436,26 +449,28 @@ static void GAStatusHandler(char* gameId, char *messagep, message_t *message, ha
 		}
 
 		// respond with GAME_STATUS
-		printf("NumClaimed: %d\n", team->claimed);
 		if(!sendGameStatus(gameId, message->guideId, team->claimed, totalKrags(krags), connection,log)){
 			return;
 		}
 
-		// send GS_AGENT messages
-		sendAllGSAgents(gameId, message->team, teams, connection, log);
-
+		if(team->numPlayers > 1){
+			// send GS_AGENT messages
+			sendAllGSAgents(gameId, message->team, teams, connection, log);
+		}
 
 		// send the guide agent the first clue if they are new to the game
 		if(returnVal == 0){
+			// initialize the reveal string if the guide agent is new
+			revealCharacters(NULL, message->team, secret, teams, krags);
+			sendSecret(gameId, message->guideId, getRevealedString(message->team,teams), connection, log);
 			// get random clue
 			char* kragId = randomClue(message->team, krags, teams);
 			krag_t* krag = hashtable_find(krags, kragId);
 			//sendClue
 			sendClue(gameId, message->guideId, krag->clue, kragId, connection, log);
 		}
-	
+
 	}
-	
 }
 
 /*
@@ -476,12 +491,12 @@ static void GAHintHandler(char* gameId, char *messagep, message_t *message, hash
 	}
 
 	// validate message structure
-	if(!validateGA(gameId, message, teams, krags)){
+	if(!validateGA(gameId, message, teams, krags, connection, log)){
 		sendResponse(gameId, "SH_ERROR_INVALID_PLAYERNAME", message->player, connection, log);
 		return;
 	}
 
-	if(!validatePebbleId(message->pebbleId, message->team, teams)){
+	if(!validatePebbleId(message->pebbleId, message->player, message->team, teams, false)){
 		sendResponse(gameId, "SH_ERROR_INVALID_ID", message->player, connection, log);
 		return;
 	}
@@ -494,7 +509,15 @@ static void GAHintHandler(char* gameId, char *messagep, message_t *message, hash
 		team_t* team = hashtable_find(teams, message->team);
 		char* FAName = set_find(team->FAPebbleIds, message->pebbleId);
 		fieldAgent_t* agent = set_find(team->FAset, FAName);
-		forwardHint(messagep, agent->conn, log);
+		// check that agent exists
+		if(agent == NULL){
+			sendResponse(gameId, "SH_ERROR_INVALID_ID", message->pebbleId, connection, log);
+			return;
+		}
+		// forward hint
+		if(agent->conn != NULL){
+			forwardHint(messagep, agent->conn, log);
+		}
 	}
 }
 
@@ -515,15 +538,13 @@ static void FALocationHandler(char* gameId, char *messagep, message_t *message, 
 	}
 
 	// validate the Field Agent fields
-	if(strcmp(gameId, "0")==0 && !validateFA(gameId, message, teams, krags)){
+	if(strcmp(gameId, "0")==0 && !validateFA(gameId, message, teams, krags, connection, log)){
 		sendResponse(gameId, "SH_ERROR_INVALID_PLAYERNAME", message->player, connection, log);
 		return;
 	}
 
 	// add new field agent if it doesn't exist
 	int returnVal = addFieldAgent(message->player, message->pebbleId, message->team, gameId, connection, teams);
-
-	printf("Debug: Called addFieldAgent with returnVal: %d\n", returnVal);
 
 	// update the field agent struct with the new location
 	updateLocation(message->player, message->team, message->longitude, message->latitude, teams);
@@ -567,7 +588,6 @@ static void badOpCodeHandler(char* gameId, char *messagep, message_t *message, h
 *
 */
 static bool validateMessageParse(char* gameId, message_t* message, connection_t* connection, char* log){
-	printf("Debug: Validating parse, error code is: %d\n",message->errorCode);
 	// check if there was an error parsing message
 	if(message->errorCode == 0){
 		return true;
@@ -626,22 +646,43 @@ static int validateKrag(char* gameId, char* kragId, double latitude, double long
 * Return true if valid
 *
 */
-static bool validateFA(char* gameId, message_t* message, hashtable_t* teams, hashtable_t* krags)
+static bool validateFA(char* gameId, message_t* message, hashtable_t* teams, hashtable_t* krags, connection_t* connection, char* log)
 {
+	// check message fields
+	if(message->team == NULL){
+		sendResponse(gameId, "SH_ERROR_INVALID_TEAMNAME", "No team", connection, log);
+		return false;
+	}
 	// check that the team exists
 	team_t* team = hashtable_find(teams, message->team);
 	if(team == NULL){
+		sendResponse(gameId, "SH_ERROR_INVALID_TEAMNAME", message->team, connection, log);
+		return false;
+	}
+	// check message field
+	if(message->player == NULL){
+		sendResponse(gameId, "SH_ERROR_INVALID_PLAYERNAME", "No player", connection, log);
+		return false;
+	}
+
+	if(team->guideAgent != NULL && strcmp(team->guideAgent->name,message->player) == 0){
+		sendResponse(gameId, "SH_ERROR_DUPLICATE_PLAYERNAME", message->player, connection, log);
 		return false;
 	}
 
 	// check that the player exists
 	fieldAgent_t* fa = set_find(team->FAset, message->player);
 	if(fa == NULL){
+		sendResponse(gameId, "SH_ERROR_INVALID_PLAYERNAME", message->player, connection, log);
 		return false;
 	}
-
+	// check message field
+	if(message->pebbleId == NULL){
+		sendResponse(gameId, "SH_ERROR_INVALID_ID", "No pebbleId", connection, log);
+		return false;
+	}
 	// check that the pebble Id is valid
-	if(!validatePebbleId(message->pebbleId, message->team, teams)){
+	if(!validatePebbleId(message->pebbleId, message->player, message->team, teams, true)){
 		return false;
 	}
 
@@ -653,21 +694,49 @@ static bool validateFA(char* gameId, message_t* message, hashtable_t* teams, has
 * Return true if valid
 *
 */
-static bool validateGA(char* gameId, message_t* message, hashtable_t* teams, hashtable_t* krags)
+static bool validateGA(char* gameId, message_t* message, hashtable_t* teams, hashtable_t* krags, connection_t* connection, char* log)
 {
+	// check message field
+	if(message->team == NULL){
+		sendResponse(gameId, "SH_ERROR_INVALID_TEAMNAME", "No team", connection, log);
+		return false;
+	}
+
 	// check that the team exists
 	team_t* team = hashtable_find(teams, message->team);
 	if(team == NULL){
+		sendResponse(gameId, "SH_ERROR_INVALID_TEAMNAME", message->team, connection, log);
+		return false;
+	}
+
+	// check message field
+	if(message->player == NULL){
+		sendResponse(gameId, "SH_ERROR_INVALID_PLAYERNAME", "No player", connection, log);
+		return false;
+	}
+
+	// check for double name
+	fieldAgent_t* fa = set_find(team->FAset,message->player);
+	if(fa !=NULL){
+		sendResponse(gameId, "SH_ERROR_DUPLICATE_PLAYERNAME", message->player, connection, log);
 		return false;
 	}
 
 	// check that the player exists
 	if(team->guideAgent == NULL){
+		sendResponse(gameId, "SH_ERROR_INVALID_PLAYERNAME", message->player, connection, log);
+		return false;
+	}
+
+	// check message field
+	if(message->guideId == NULL){
+		sendResponse(gameId, "SH_ERROR_INVALID_ID", "No guideId", connection, log);
 		return false;
 	}
 
 	// check that the guideId is correct
 	if(strcmp(team->guideAgent->guideID,message->guideId) != 0){
+		sendResponse(gameId, "SH_ERROR_INVALID_ID", message->guideId, connection, log);
 		return false;
 	}
 
@@ -679,12 +748,23 @@ static bool validateGA(char* gameId, message_t* message, hashtable_t* teams, has
 *
 *
 */
-static bool validatePebbleId(char* pebbleId, char* team, hashtable_t* teams)
+static bool validatePebbleId(char* pebbleId, char* player, char* team, hashtable_t* teams, bool testPlayer)
 {
+	printf("Debug: Validating pebbleId: '%s'\n",pebbleId);
+	// check pebble Id for all character
+	if(strlen(pebbleId) <=2 && pebbleId[0] == '*'){
+		return true;
+	}
+	// check for player
 	team_t* teamObj = hashtable_find(teams, team); // get the team
-	char* player = set_find(teamObj->FAPebbleIds, pebbleId); // search for the pebble Id
-	if(player == NULL){
+	char* teamPlayer = set_find(teamObj->FAPebbleIds, pebbleId); // search for the pebble Id
+	if(teamPlayer == NULL){
 		return false; // return false
+	}
+	if(testPlayer){
+		if(strcmp(player, teamPlayer) != 0){
+			return false; // make sure name and pebbleId match
+		}
 	}
 	return true; // return true
 }
@@ -728,6 +808,7 @@ static bool sendGameStatus(char* gameId, char* guideId, int numClaimed, int numK
 	strcat(messagep, numClaimedStr);
 	strcat(messagep, "|numKrags=");
 	strcat(messagep, numKragsStr);
+	strcat(messagep, "\0");
 
 	// send the message
 	if (!sendMessage(messagep, connection)){
@@ -774,8 +855,11 @@ static bool forwardHintToAll(char* hintMessage, char* team, hashtable_t* teams, 
 {
 	// send the message
 	team_t* teamObj = hashtable_find(teams, team);
+	if(teamObj->numPlayers < 2){
+		return true; // do nothing if only the guide agent is on the team
+	}
 	sendToAllFA(hintMessage, teamObj);
-
+	printf("Sent: %s\n",hintMessage);
 	// log the message
 	logMessage(log, hintMessage, "TO", NULL);
 
@@ -806,7 +890,7 @@ static void sendAllGSAgents(char* gameId, char* team, hashtable_t* teams, connec
 	strcat(messagep, team);
 
 	// create a struct to hold message and connection
-	messageConn_t* mconn = malloc(sizeof(messageConn_t));
+	messageConn_t* mconn = malloc(sizeof(struct messageConn));
 	if(mconn == NULL){
 		return;
 	}
@@ -849,24 +933,29 @@ static void sendGSAgentIterator(void* arg, const char* key, void* item)
 	sprintf(lastContactStr, "%d", agent->lastContact);
 
 	// construct the message
-	char* messagep = malloc(sizeof(mconn->message));
+	char* messagep = calloc(sizeof(char),MAXOUTMESSAGELENGTH);
 	if(messagep == NULL){
 		return;
 	}
 	strcpy(messagep, mconn->message); // copy the message so not to change the parameter
 	strcat(messagep, "|pebbleId=");
 	strcat(messagep, agent->pebbleID);
+	strcat(messagep, "|player=");
+	strcat(messagep, key);
 	strcat(messagep, "|latitude=");
 	strcat(messagep, latitudeStr);
 	strcat(messagep, "|longitude=");
 	strcat(messagep, longitudeStr);
 	strcat(messagep, "|lastContact=");
 	strcat(messagep, lastContactStr);
+	strcat(messagep, "\0");
 
+	// send the message
 	sendMessage(messagep, mconn->connection);
 	printf("Sent: %s\n",messagep);
 
-	//free(messagep);
+	// clean up
+	free(messagep);
 	free(latitudeStr);
 	free(longitudeStr);
 	free(lastContactStr);
@@ -880,7 +969,7 @@ static void sendGSAgentIterator(void* arg, const char* key, void* item)
 static bool sendClue(char* gameId, char* guideId, char* clue, char* kragId, connection_t* connection, char* log)
 {
 	// allocate enough space needed for the  message 
-	char *messagep = calloc(sizeof(char), MAXOUTMESSAGELENGTH);
+	char *messagep = calloc(sizeof(char),MAXOUTMESSAGELENGTH);
 
 	if (messagep == NULL) {
 		return false;
@@ -896,6 +985,7 @@ static bool sendClue(char* gameId, char* guideId, char* clue, char* kragId, conn
 	strcat(messagep, kragId);
 	strcat(messagep, "|clue=");
 	strcat(messagep, clue);
+	strcat(messagep, "\0");
 
 	// send the message
 	if (!sendMessage(messagep, connection)){
@@ -920,7 +1010,7 @@ static bool sendClue(char* gameId, char* guideId, char* clue, char* kragId, conn
 static bool sendSecret(char* gameId, char* guideId, char* secret, connection_t* connection, char* log)
 {
 	// allocate enough space needed for the  message 
-	char *messagep = calloc(sizeof(char), MAXOUTMESSAGELENGTH);
+	char *messagep = calloc(sizeof(char),MAXOUTMESSAGELENGTH);
 
 	if (messagep == NULL) {
 		return false;
@@ -933,6 +1023,7 @@ static bool sendSecret(char* gameId, char* guideId, char* secret, connection_t* 
 	strcat(messagep, guideId);
 	strcat(messagep, "|secret=");
 	strcat(messagep, secret);
+	strcat(messagep, "\0");
 
 	// send the message
 	if (!sendMessage(messagep, connection)){
@@ -957,7 +1048,7 @@ static bool sendSecret(char* gameId, char* guideId, char* secret, connection_t* 
 static bool sendGameOver(char* gameId, hashtable_t* teams, char* secret, char* log)
 {
 	// allocate enough space needed for the  message 
-	char *messagep = calloc(sizeof(char), MAXOUTMESSAGELENGTH);
+	char *messagep = calloc(sizeof(char),MAXOUTMESSAGELENGTH);
 
 	if (messagep == NULL) {
 		return false;
@@ -968,6 +1059,7 @@ static bool sendGameOver(char* gameId, hashtable_t* teams, char* secret, char* l
 	strcat(messagep, gameId);
 	strcat(messagep, "|secret=");
 	strcat(messagep, secret);
+	strcat(messagep, "\0");
 
 
 	// send the message
@@ -990,7 +1082,7 @@ static bool sendGameOver(char* gameId, hashtable_t* teams, char* secret, char* l
 static bool sendTeamRecord(char* gameId, hashtable_t* teams, char* log)
 {
 	// allocate enough space needed for the  message 
-	char *messagep = calloc(sizeof(char), MAXOUTMESSAGELENGTH);
+	char *messagep = calloc(sizeof(char),MAXOUTMESSAGELENGTH);
 
 	if (messagep == NULL) {
 		return false;
@@ -1018,7 +1110,7 @@ static bool sendTeamRecord(char* gameId, hashtable_t* teams, char* log)
 *
 *
 */
-static bool sendGSClaimed(char* gameId,char* guideId, char* pebbleId, char* kragId, double latitude, double longitude, connection_t* connection, char* log)
+static bool sendGSClaimed(char* gameId, char* guideId, char* pebbleId, char* kragId, double latitude, double longitude, connection_t* connection, char* log)
 {
 	// allocate full space needed for the  message
 	char *messagep = calloc(MAXOUTMESSAGELENGTH,sizeof(char)); // need to use calloc to clear memory
@@ -1039,7 +1131,7 @@ static bool sendGSClaimed(char* gameId,char* guideId, char* pebbleId, char* krag
 	// construct message inductively
 	strcat(messagep, "opCode=GS_CLAIMED|gameId=");
 	strcat(messagep, gameId);
-	strcat(messagep, "|guideId=");
+	strcat(messagep, "|guideId=9876");
 	strcat(messagep, guideId);
 	strcat(messagep, "|pebbleId=");
 	strcat(messagep, pebbleId);
@@ -1047,8 +1139,9 @@ static bool sendGSClaimed(char* gameId,char* guideId, char* pebbleId, char* krag
 	strcat(messagep, kragId);
 	strcat(messagep, "|latitude=");
 	strcat(messagep, latitudeStr);
-	strcat(messagep, "longitude=");
+	strcat(messagep, "|longitude=");
 	strcat(messagep, longitudeStr);
+	strcat(messagep, "\0");
 
 
 	// send the message
@@ -1090,7 +1183,7 @@ static bool sendResponse(char* gameId, char* respCode, char* text, connection_t*
 	strcat(messagep, respCode);
 	strcat(messagep, "|text=");
 	strcat(messagep, text);
-
+	strcat(messagep, "\0");
 
 	// send the message
 	if (!sendMessage(messagep, connection)){
@@ -1159,7 +1252,7 @@ static void sendToAll(void* arg, const char* key, void* item)
 static void sendTeamRecordToAll(void* arg, const char* key, void* item)
 {
 	char* message = (char*)arg; // cast arg
-	char* newMessage = malloc(sizeof(message)); // copy the message
+	char* newMessage = calloc(MAXOUTMESSAGELENGTH,1); // copy the message
 	strcpy(newMessage, message);
 	team_t* team = (team_t*)item; // cast item
 
@@ -1178,6 +1271,7 @@ static void sendTeamRecordToAll(void* arg, const char* key, void* item)
 	strcat(newMessage, numPlayersStr);
 	strcat(newMessage, "|numClaimed=");
 	strcat(newMessage, numClaimedStr);
+	strcat(newMessage, "\0");
 
 	// send message to GA
 	sendMessage(newMessage, team->guideAgent->conn);

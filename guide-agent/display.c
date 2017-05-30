@@ -32,12 +32,11 @@ static void display_board(char **board);
 
 char *contents;
 
+double latitudeTopLeft = 43.706948;
+double longitudeTopLeft = -72.293108;
 
-double longitude_x = -0.008275;
-double latitude_y = 0.004371;
-
-double longitude_max = -72.285408;
-double latitude_max = 43.706861;
+double longitudeDiff = .007639;
+double latitudeDiff = .004367;
 
 int map_uy = 46;  //map height
 int map_ux = 90;  //map width
@@ -55,17 +54,16 @@ WINDOW * inputWin;   //window where the input box is displayed
 
 
 
-static double scaleX(double x){
-	//double x2 = (x * map_ux) / longitude_x;
-	double x2 = fabs(((longitude_max - x) * map_ux) / longitude_x);
+static double scaleX(double x)
+{
+	double x2 = (x - longitudeTopLeft) / longitudeDiff * map_ux;
 	return x2;
 }
 
 
-static double scaleY(double y){
-	//double y2 = map_uy - ((y * map_uy) / latitude_y);
-
-	double y2 = map_uy - ((latitude_max - y) * map_uy) / latitude_y;
+static double scaleY(double y)
+{
+	double y2 = (latitudeTopLeft - y) / latitudeDiff * map_uy;
 	return y2;
 }
 
@@ -316,21 +314,19 @@ void updateString_I(char * revealedString){
 //helper function to print out all the clues
 static void printClues(void *arg, const char *key, void *item){
 
-	int *ly = (int *)arg;  ////y coordinate where the clues is displayed
+	int *ly = (int *)arg;  //// y coordinate where the clues is displayed
 	char * clue = item;
 
-	if (clue != NULL){
+ 	int x, y;
+	getbegyx(cluesWin, y, x);
+	int max = y + (map_uy - stats_uy - string_uy) - 3;  //max y before exiting the clues window
 
-	 	int x, y;
-		getbegyx(cluesWin, y, x);
-		int max = y + (map_uy - stats_uy - string_uy) - 3;  //max y before exiting the clues window
-
-		//make sure clues dont go out the window boundaries
-		if ( *ly < max){
-			mvprintw( *ly + 2, x + 1,  "%s", clue);  //print the clue
-			refresh();
-		}
+	//make sure clues dont go out the window boundaries
+	if ( *ly < max){
 		(*ly)++;  //increment y coordinate
+		mvprintw(*ly + 2, x + 1,  "%s", clue);  //print the clue
+
+		refresh();
 	}
 }
 

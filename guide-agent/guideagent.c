@@ -16,6 +16,7 @@
 #include <arpa/inet.h>        // socket-related calls
 #include <sys/select.h>       // select-related stuff 
 #include <ncurses.h>
+#include <time.h>
 #include "guideagent.h"
 
 /******** function declarations ********/
@@ -177,6 +178,7 @@ int main(int argc, char **argv)
 	// invalid guideId length
 	if (strlen(guideId) > 8 || strlen(guideId) == 0) {
 		fprintf(stderr, "guideId should be 1-8 characters\n");
+		exit(4);
 	}
 
 	// invalid hexidecimal format
@@ -247,7 +249,7 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 	FILE *log;
 	char *filePath = "../logs/guideagent.log";
 	if ((log = fopen(filePath, "w")) == NULL) {
-		fprintf(stderr, "error opening log file\n");
+		fprintf(stderr, "error opening log file '../logs/guideagent.log'\n");
 		return 6;
 	}
 
@@ -278,11 +280,16 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 
 	// declare message types needed
 	char *messagep = NULL;
-	char *gameId = NULL;
+	char *gameId = "0";
+
 	int statusReq = 0;
 
 	// loop runs until GAME_OVER message received, then breaks
 	while (true) {
+
+		struct timeval *timeout = calloc(sizeof(struct timeval), 1);
+		timeout->tv_sec = 5;
+		timeout->tv_usec = 0;
 
 		/**** from chatclient2.c in udp-select *****/
 		// for use with select()
@@ -297,7 +304,7 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 	    int nfds = socket+1;   // highest-numbered fd in rfds
 	    /****** end source code ********/
 
-		int select_response = select(nfds, &rfds, NULL, NULL, NULL);
+		int select_response = select(nfds, &rfds, NULL, NULL, timeout);
 
 		// input from one of two sources found
 		if (select_response > 0) {
@@ -309,10 +316,9 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 
 				if (hint != NULL) {
 					handleHint(gameId, guideId, team, player, hint, connection, filePath, teamp);
+					free(hint);
+					hint = NULL;
 				}
-
-				free(hint);
-				hint = NULL;
 
 			}
 
@@ -328,36 +334,36 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 
 					// GAME_OVER opCode received and handled
 					if (statusCheck == 1) {
+						free(timeout);
 						break;
 					}
 
 					// assign gameId when first GAME_STATUS is received for later use
-					if (gameId == NULL) {
+					if (strcmp(gameId, "0") == 0) {
 						gameId = teamp->guideAgent->gameID;
-					}
-
-					// keep track of when to send GA_STATUS (every 3 messages received)
-					if (statusReq == 3) {
-						sendGA_STATUS(gameId, guideId, team, player, "0", connection, filePath);
-						statusReq++;
-					}
-
-					else if (statusReq == 6) {
-						sendGA_STATUS(gameId, guideId, team, player, "1", connection, filePath);
-						statusReq = 0;
-					}
-
-					else {
-						statusReq++;
 					}
 
 					messagep = NULL;
 
 				}
-			
+
 			}
 
 		}
+
+		statusReq++;
+
+		// send a GA_STATUS every 3 times through the loop, asking for a GAME_STATUS every 7 times
+		if (statusReq == 7) {
+			sendGA_STATUS(gameId, guideId, team, player, "1", connection, filePath);
+			statusReq = 0;
+		}
+
+		else if (statusReq % 3 == 0) {
+			sendGA_STATUS(gameId, guideId, team, player, "0", connection, filePath);
+		}
+
+		free(timeout);
 
 	}
 
@@ -408,8 +414,6 @@ void handleHint(char *gameId, char *guideId, char *team, char *player, char *hin
 		char *name = calloc(140, 1);
 
 		sscanf(hint, "%s", name);
-
-		NormalizeWord(name);
 
 		for (int i = 0; ; i++) {
 			if (!isalpha(name[i])) {
@@ -580,6 +584,10 @@ static void GSAgentHandler(char *messagep, message_t *message, team_t *teamp, co
 		logMessage(filePath, messagep, "FROM", connection);
 
 	}
+
+	else {
+		fprintf(stderr, "GSAgent not valid\n");
+	}
 }
 
 static void GSClueHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, char *filePath, hashtable_t *teams)
@@ -595,9 +603,9 @@ static void GSClueHandler(char *messagep, message_t *message, team_t *teamp, con
 
 			int length = strlen(clue);
 
-			if (!isalpha(clue[length])) {
-				clue[length + 1] = ' ';
-				clue[length + 2] = '\0';
+			if (!isalpha(clue[length - 2])) {
+				clue[length - 1] = ' ';
+				clue[length] = '\0';
 			}
 
 			set_t *clues = teamp->clues;
@@ -611,6 +619,10 @@ static void GSClueHandler(char *messagep, message_t *message, team_t *teamp, con
 		}
 
 	}
+
+	else {
+		printf("GSClue not valid\n");
+	}
 }
 
 static void GSClaimedHandler(char *messagep, message_t *message, team_t *teamp, connection_t *connection, char *filePath, hashtable_t *teams)
@@ -618,10 +630,12 @@ static void GSClaimedHandler(char *messagep, message_t *message, team_t *teamp, 
 	if (GSClaimedValidate(message)) {
 
 		// display the new krag
-		krag_t *new = kragNew(message->latitude, message->longitude);
+		krag_t *new = kragNew(message->longitude, message->latitude);
 
 		set_insert(teamp->krags, message->kragId, new);
 		updateMap_I(teamp->FAset, teamp->krags);
+
+		updateKragsClaimed_I(++teamp->claimed);
 
 		// check if the kragId was already inserted to the clues (to remove)
 		if(set_find(teamp->clues, message->kragId) != NULL) {
@@ -629,11 +643,20 @@ static void GSClaimedHandler(char *messagep, message_t *message, team_t *teamp, 
 			char *clue;
 
 			if ((clue = set_find(teamp->clues, message->kragId)) != NULL) {
-				clue[0] = '\0';
+				int length = strlen(clue);
+
+				// make the entire clue white space to make it "disappear"
+				for (int i = 0; i < length; i++) {
+					clue[i] = ' ';
+				}
 			}
 
 			updateClues_I(teamp->clues);
 		}
+	}
+
+	else {
+		printf("GSClaimed not valid\n");
 	}
 }
 
@@ -654,6 +677,10 @@ static void GSSecretHandler(char *messagep, message_t *message, team_t *teamp, c
 		free(revealedString);
 		revealedString = NULL;
 
+	}
+
+	else {
+		printf("GSSecret not valid\n");
 	}
 }
 

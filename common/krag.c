@@ -114,23 +114,27 @@ int revealCharacters(char * kragID, char * teamname, char * secret, hashtable_t 
 	if (team != NULL){
 
 		//if the team calls this function for the first time
-		if (!(team->revealedString)){
+		if (!(team->revealedString) || kragID == NULL){
 
-			team->revealedString = realloc(team->revealedString, strlen(secret) + 1);
+			team->revealedString = malloc(strlen(secret) + 1);
 			char c = '_'; 
 			char * string = malloc(strlen(secret) + 1);
 			int x = 0;
 
 			//create a string with all undescores '_' and with the size of the secret string
 			for (x = 0; x < strlen(secret); x++){
-				string[x] = c;
+				if(secret[x] != ' '){
+					string[x] = c;
+				}
+				else{
+					string[x] = ' ';
+				}
 			}
 
 			string[x] = '\0';  //add null character
 
 			//assign it to the revealedString (AKA current string) of the team
 			strcpy(team->revealedString,string);
-			team->claimed = 0;  //set the number of claimed krags to zero
 
 			free(string);
 		}
@@ -145,8 +149,6 @@ int revealCharacters(char * kragID, char * teamname, char * secret, hashtable_t 
 					(team->revealedString)[x] = secret[x];
 				}
 			}
-
-			team->claimed = team->claimed + 1;  //increment the number of krags found by the team
 
 			//return 1 if team has claimed all krags
 			if (team->claimed == nkrags){
@@ -206,7 +208,6 @@ void printKrags(hashtable_t * kraghash){
 
 static char* findClue(char * teamname, hashtable_t * kraghash, hashtable_t * teamhash){
 
-	//printf("AA\n");
 	srand(time(NULL)); 
 	int r = rand() % totalKrags(kraghash);  //random number
 	char* kragID = calloc(5,1);

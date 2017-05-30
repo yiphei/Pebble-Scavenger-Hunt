@@ -27,7 +27,13 @@ Exit Status:
 * 6: could not open log file
 * 7: memory allocation error
 
-### Functions
+### Components
+
+The Guide Agent consists of two main components: the guideagent.c program that
+handles the game logic itself, and the display.c module that implements
+programs to initialize and update the Guide Agent's visual interface.
+
+### guideagent.c Functions
 
 ##### main
 
@@ -67,13 +73,39 @@ the function dispatch table implemented to handle different types of messages.
 Handles parsing and sending user input as hints to the guide agent when there
 is pending input at stdin.
 
+##### Handler functions
+
+The guideagent.c component includes a lot of handler functions for specific
+message types. These are called by a function dispatch table declared at the 
+beginning of the guideagent.c file.
+
+##### Validate functions
+
+The guideagent.c component also includes message validate functions that 
+make sure everybody is following the rules of the protocol and the requirement
+spec in terms of a message.
+
 ### Assumptions
 
 * The messages received will contain the message fields in the requirement spec
 	or else will be ignored.
 * The user will input teams and players that correspond to those coded for the 
 	Pebble.
+* GA_STATUS will, at most, every 35 seconds. Will likely be faster because its
+	timing is also event-driven, as receiving user input or messages from the 
+	socket prompts the Guide Agent to send its GA_STATUS quicker.
+* The krags and field agents given will only appear on the interface if their
+	latitudes and longitudes are within given limits on the campus map.
+* There exists a writable directory "../logs" in which to open and write the 
+	guideagent.log file.
 
 ### Limitations
 
 * Implementation with ncurses causes still reachable memory.
+* The clues will disappear but at time the whole clue will not be overwritten,
+	or a clue will overwrite part of another clue due to the way ncurses 
+	handles displaying these strings.
+* Because of the use of select and the implementation of an accumulator, 
+	sending GA_STATUS can sometime get sporatic depending on how much
+	input the Guide Agent is receiving at one time (which can sometimes
+	correlate with the amount of field agents on the guide agent's team.

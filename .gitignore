@@ -1,4 +1,4 @@
-# Object files
+'1;95;0c# Object files
 *.o
 
 # Emacs change files
@@ -10,10 +10,9 @@ guide-agent/displaytest
 guide-agent/inboundmessagetest.c
 guide-agent/outboundmessagetest.c
 */core
-guide-agent/file.c
-guide-agent/file.h
 guide-agent/server
-guide-agent/servertest.c
 logs/guideagent.log
-guide-agent/servertest2.c
 guide-agent/server.c
+guide-agent/memorytest
+logs/
+testing/server

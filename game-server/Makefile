@@ -3,7 +3,6 @@
 
 PROG = gameserver
 OBJS = gameserver.o ../common/network.o ../common/message.o ../common/log.o ../common/team.o  ../common/krag.o ../common/word.o
-OBJS2 = ../common/network.o ../common/message.o ../common/log.o ../common/team.o ../common/krag.o
 LIBS = -lm
 LLIBS = ../libcs50/libcs50.a-Linux
 

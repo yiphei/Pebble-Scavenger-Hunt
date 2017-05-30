@@ -16,10 +16,11 @@
 // windows and layers
 static Window *my_dialog_window;
 static TextLayer *my_dialog_text_layer;
+//static TextLayer *my_dialog_type_layer;
 static Layer *s_background_layer;
 
 // text and type strings
-static char *type;
+//static char *type;
 static char *text;
 
 // See link
@@ -49,13 +50,19 @@ static void window_load(Window *window)
   layer_add_child(window_layer, s_background_layer);
 
   // type layer
+  /*my_dialog_type_layer = text_layer_create(GRect(TYPE_MESSAGE_WINDOW_MARGIN, bounds.size.h + TYPE_MESSAGE_WINDOW_MARGIN, bounds.size.w - (2 * TYPE_MESSAGE_WINDOW_MARGIN), bounds.size.h));
+  text_layer_set_text(my_dialog_type_layer, type);
+  text_layer_set_background_color(my_dialog_type_layer, GColorClear);
+  text_layer_set_text_alignment(my_dialog_type_layer, PBL_IF_ROUND_ELSE(GTextAlignmentCenter, GTextAlignmentLeft));
+  text_layer_set_font(my_dialog_type_layer, fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD));
+  layer_add_child(window_layer, text_layer_get_layer(my_dialog_type_layer));*/
 
   // text layer
   my_dialog_text_layer = text_layer_create(GRect(DIALOG_MESSAGE_WINDOW_MARGIN, bounds.size.h + DIALOG_MESSAGE_WINDOW_MARGIN, bounds.size.w - (2 * DIALOG_MESSAGE_WINDOW_MARGIN), bounds.size.h));
   text_layer_set_text(my_dialog_text_layer, text);
   text_layer_set_background_color(my_dialog_text_layer, GColorClear);
   text_layer_set_text_alignment(my_dialog_text_layer, PBL_IF_ROUND_ELSE(GTextAlignmentCenter, GTextAlignmentLeft));
-  text_layer_set_font(my_dialog_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+  text_layer_set_font(my_dialog_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_14));
   layer_add_child(window_layer, text_layer_get_layer(my_dialog_text_layer));
 }
 
@@ -68,8 +75,11 @@ static void window_unload(Window *window)
   window_destroy(window);
   my_dialog_window = NULL;
 
-  free(type);
-  free(text);
+  //free(type);
+  if (text) {
+    free(text);
+  }
+  //free(text);
   //type = NULL;
   //text = NULL;
 }
@@ -105,17 +115,17 @@ static void window_appear(Window *window)
   animation_schedule(s_appear_anim);
 }
 
-void my_dialog_window_push(char *p_type, char *p_text)
+void my_dialog_window_push(/*char *p_type, */char *p_text)
 {
   // only pushes window if p_type and p_text are not null
-  if (p_type != NULL && p_text != NULL) {
-    type = malloc(sizeof(p_type)+1);
-    text = malloc(sizeof(p_text)+1);
-    if (type == NULL || text == NULL) {
+  if (/*p_type != NULL && */p_text != NULL) {
+    //type = calloc(sizeof(p_type), strlen(p_type));
+    text = calloc(sizeof(p_text), strlen(p_text));
+    if (/*type == NULL || */text == NULL) {
       APP_LOG(APP_LOG_LEVEL_ERROR, "Malloc error");
       return;
     }
-    strcpy(type, p_type);
+    //strcpy(type, p_type);
     strcpy(text, p_text);
 
     if(!my_dialog_window) {

@@ -82,6 +82,7 @@ int addKrag(char * teamname, char * kragID, hashtable_t * kraghash, hashtable_t 
 		return 1;
 	}
 	set_insert(team->krags, kragID, krag);
+	team->claimed = team->claimed + 1;
 	return 0;
 }
 
@@ -188,19 +189,23 @@ static void deleteFA(void * item){
 	if (item){
 		free(((fieldAgent_t *) item)->gameID);
 		deleteConnection(((fieldAgent_t *) item)->conn);
+		free(((fieldAgent_t*) item)->lastContactTime);
 		free((fieldAgent_t *) item);
+
 	}
 }
 
 //helper functino to free krags
 static void deleteKrags(void * item){
 	if (item){
+		free(item);
 	}
 }
 
 //helper functino to free clues
 static void deleteClues(void * item){
 	if (item){
+		free(item);
 	}
 }
 
@@ -208,6 +213,7 @@ static void deleteClues(void * item){
 static void deletePebble(void * item){
 
 	if (item){
+		free(item);
 	}
 }
 
@@ -358,13 +364,14 @@ fieldAgent_t * newFieldAgent(char * gameID, char * pebbleID, connection_t * conn
 
   	if (conn != NULL){
   		fa->conn = newConnection(conn->socket, conn->address); // copy connection
+  		fa->lastContact = 0;
+  		fa->lastContactTime = malloc(sizeof(time_t));
+  		time(fa->lastContactTime);
   	}
   	else{
   		fa->conn = NULL;
+  		fa->lastContactTime = NULL;
   	}
-  	fa->lastContact = 0;
-  	fa->lastContactTime = malloc(sizeof(time_t));
-  	time(fa->lastContactTime);
     return fa;
  }
 }
