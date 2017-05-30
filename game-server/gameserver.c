@@ -326,14 +326,17 @@ int gameserver(char* gameId, char* kff, char* sf, int port)
 		team_t* team = hashtable_find(teams, winner);
 		fprintf(stdout, "************ GAME SUMMARY ***********\n");
 		fprintf(stdout, "Winner: %s\n", winner);
-		fprintf(stdout, "Krags Claimed: %d/%d\n", team->claimed, totalKrags(krags));
+		if(team != NULL && krags != NULL){
+			fprintf(stdout, "Krags Claimed: %d/%d\n", team->claimed, totalKrags(krags));
+		}
 	}
 	// clean up
 	deleteKragHash(krags); // delete the krag hashtable
-	deleteTeamHashGA(teams); // delete the teams hashtable
+	deleteTeamHash(teams); // delete the teams hashtable
 	closeSocket(socket); // close the socket
 	deleteConnection(server); // delete the server connection
 	free(secret); // free the secret string
+	free(winner);
 	return 0; // return 0 for success
 }
 
@@ -389,24 +392,23 @@ static void FAClaimHandler(char* gameId, char *messagep, message_t *message, has
 			if(revCode == 1){
 				// end the game but update the string
 				gameInProgress = false;
-				winner = message->team;
+				winner = malloc(strlen(message->team)+1);
+				strcpy(winner, message->team);
 				printf("Game won!\n");
 				return;
 			}
 			
-
-		
-
-			char* kragId;
+			
 			krag_t* krag;
 			// add two clues to the team and send them
 			for(int i = 0; i < 2; i++){
 				// get random clue
-				kragId = randomClue(message->team, krags, teams);
+				char* kragId = randomClue(message->team, krags, teams);
 				// get krag
 				krag = hashtable_find(krags, kragId);
 				//sendClue
 				sendClue(gameId, ga->guideID, krag->clue, kragId, connection, log);
+				free(kragId);
 			}
 		}
 	}
