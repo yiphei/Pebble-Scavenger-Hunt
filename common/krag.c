@@ -114,7 +114,7 @@ int revealCharacters(char * kragID, char * teamname, char * secret, hashtable_t 
 	if (team != NULL){
 
 		//if the team calls this function for the first time
-		if (!(team->revealedString)){
+		if (!(team->revealedString) || kragID == NULL){
 
 			team->revealedString = malloc(strlen(secret) + 1);
 			char c = '_'; 
@@ -130,7 +130,6 @@ int revealCharacters(char * kragID, char * teamname, char * secret, hashtable_t 
 
 			//assign it to the revealedString (AKA current string) of the team
 			strcpy(team->revealedString,string);
-			team->claimed = 0;  //set the number of claimed krags to zero
 
 			free(string);
 		}
@@ -145,8 +144,6 @@ int revealCharacters(char * kragID, char * teamname, char * secret, hashtable_t 
 					(team->revealedString)[x] = secret[x];
 				}
 			}
-
-			team->claimed = team->claimed + 1;  //increment the number of krags found by the team
 
 			//return 1 if team has claimed all krags
 			if (team->claimed == nkrags){

@@ -82,6 +82,7 @@ int addKrag(char * teamname, char * kragID, hashtable_t * kraghash, hashtable_t 
 		return 1;
 	}
 	set_insert(team->krags, kragID, krag);
+	team->claimed = team->claimed + 1;
 	return 0;
 }
 

@@ -27,7 +27,14 @@
 typedef struct messageConn {
 	connection_t* connection;
 	char* message;
-} messageConn_t;
+} messageConn_t; // used for iteration to send messages
+
+
+typedef struct pebbleTeam {
+	hashtable_t* teams;
+	char* team;
+	char* pebbleId;
+} pebbleTeam_t; // used to find field agents by pebble ID
 
 
 /******** globals *******/
@@ -372,6 +379,7 @@ static void FAClaimHandler(char* gameId, char *messagep, message_t *message, has
 				// end the game but update the string
 				gameInProgress = false;
 				sendSecret(gameId, ga->guideID, getRevealedString(message->team,teams), connection,log);
+				printf("Game won!\n");
 				return;
 			}
 			// send claimed
@@ -405,7 +413,6 @@ static void FAClaimHandler(char* gameId, char *messagep, message_t *message, has
 static void FALogHandler(char* gameId, char *messagep, message_t *message, hashtable_t* teams, hashtable_t* krags, connection_t *connection, char* log)
 {
 	logMessage(log, messagep, "FROM", connection); // log message
-	resetTime(message->player, message->team, teams); // reset last contact time
 }
 
 /*
@@ -452,6 +459,8 @@ static void GAStatusHandler(char* gameId, char *messagep, message_t *message, ha
 
 		// send the guide agent the first clue if they are new to the game
 		if(returnVal == 0){
+			// initialize the reveal string if the guide agent is new
+			revealCharacters(NULL, message->team, secret, teams, krags);
 			// get random clue
 			char* kragId = randomClue(message->team, krags, teams);
 			krag_t* krag = hashtable_find(krags, kragId);
@@ -460,7 +469,6 @@ static void GAStatusHandler(char* gameId, char *messagep, message_t *message, ha
 		}
 
 	}
-	
 }
 
 /*
@@ -1115,7 +1123,7 @@ static bool sendGSClaimed(char* gameId, char* guideId, char* pebbleId, char* kra
 	strcat(messagep, kragId);
 	strcat(messagep, "|latitude=");
 	strcat(messagep, latitudeStr);
-	strcat(messagep, "longitude=");
+	strcat(messagep, "|longitude=");
 	strcat(messagep, longitudeStr);
 	strcat(messagep, "\0");
 
