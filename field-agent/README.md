@@ -1,7 +1,7 @@
 # Readme for Field Agent
 ## Paolo Takagi-Atilano, May 2017
 ### Compiling:
-- `make all` (default): builds the Field Agent agg
+- `make all` (default): builds the Field Agent app
 - `make install-emulator`: Installs the app on the basalt emulator
 - `make kill`: Kills all running emulator istances
 - `make clean`: Cleans everything
