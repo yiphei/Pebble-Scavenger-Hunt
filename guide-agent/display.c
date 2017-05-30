@@ -81,7 +81,6 @@ void initialize_curses()
   cbreak(); // actually, this is the default
   noecho(); // don't show the characters users type
 
-  // I like yellow on a black background
   start_color();
 }
 
@@ -319,12 +318,12 @@ static void printClues(void *arg, const char *key, void *item){
 
  	int x, y;
 	getbegyx(cluesWin, y, x);
-	int max = y + (map_uy - stats_uy - string_uy) - 3;  //max y before exiting the clues window
+	int max = y + (map_uy - stats_uy - string_uy) - 4;  //max y before exiting the clues window
 
 	//make sure clues dont go out the window boundaries
 	if ( *ly < max){
 		(*ly)++;  //increment y coordinate
-		mvprintw(*ly + 2, x + 1,  "%s", clue);  //print the clue
+		mvprintw(*ly, x + 1,  "- %s", clue);  //print the clue
 
 		refresh();
 	}
