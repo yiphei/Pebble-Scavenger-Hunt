@@ -105,3 +105,7 @@ spec in terms of a message.
 * The clues will disappear but at time the whole clue will not be overwritten,
 	or a clue will overwrite part of another clue due to the way ncurses 
 	handles displaying these strings.
+* Because of the use of select and the implementation of an accumulator, 
+	sending GA_STATUS can sometime get sporatic depending on how much
+	input the Guide Agent is receiving at one time (which can sometimes
+	correlate with the amount of field agents on the guide agent's team.
