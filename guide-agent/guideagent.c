@@ -281,8 +281,14 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 	char *messagep = NULL;
 	char *gameId = NULL;
 
+	int statusReq = 0;
+
 	// loop runs until GAME_OVER message received, then breaks
 	while (true) {
+
+		struct timeval *timeout = calloc(sizeof(struct timeval), 1);
+		timeout->tv_sec = 5;
+		timeout->tv_usec = 0;
 
 		/**** from chatclient2.c in udp-select *****/
 		// for use with select()
@@ -297,7 +303,7 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 	    int nfds = socket+1;   // highest-numbered fd in rfds
 	    /****** end source code ********/
 
-		int select_response = select(nfds, &rfds, NULL, NULL, NULL);
+		int select_response = select(nfds, &rfds, NULL, NULL, timeout);
 
 		// input from one of two sources found
 		if (select_response > 0) {
@@ -343,9 +349,18 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 
 		}
 
-		sleep(1);
-		sendGA_STATUS(gameId, guideId, team, player, "1", connection, filePath);
+		statusReq++;
 
+		if (statusReq == 3) {
+			sendGA_STATUS(gameId, guideId, team, player, "1", connection, filePath);
+			statusReq = 0;
+		}
+
+		else {
+			sendGA_STATUS(gameId, guideId, team, player, "0", connection, filePath);
+		}
+
+		free(timeout);
 
 	}
 
