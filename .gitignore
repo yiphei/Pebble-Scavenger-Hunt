@@ -14,3 +14,5 @@ guide-agent/server
 logs/guideagent.log
 guide-agent/server.c
 guide-agent/memorytest
+logs/
+testing/server
