@@ -16,6 +16,7 @@
 #include <arpa/inet.h>        // socket-related calls
 #include <sys/select.h>       // select-related stuff 
 #include <ncurses.h>
+#include <time.h>
 #include "guideagent.h"
 
 /******** function declarations ********/
@@ -279,7 +280,6 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 	// declare message types needed
 	char *messagep = NULL;
 	char *gameId = NULL;
-	int statusReq = 0;
 
 	// loop runs until GAME_OVER message received, then breaks
 	while (true) {
@@ -309,10 +309,9 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 
 				if (hint != NULL) {
 					handleHint(gameId, guideId, team, player, hint, connection, filePath, teamp);
+					free(hint);
+					hint = NULL;
 				}
-
-				free(hint);
-				hint = NULL;
 
 			}
 
@@ -336,28 +335,17 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 						gameId = teamp->guideAgent->gameID;
 					}
 
-					// keep track of when to send GA_STATUS (every 3 messages received)
-					if (statusReq == 3) {
-						sendGA_STATUS(gameId, guideId, team, player, "0", connection, filePath);
-						statusReq++;
-					}
-
-					else if (statusReq == 6) {
-						sendGA_STATUS(gameId, guideId, team, player, "1", connection, filePath);
-						statusReq = 0;
-					}
-
-					else {
-						statusReq++;
-					}
-
 					messagep = NULL;
 
 				}
-			
+
 			}
 
 		}
+
+		sleep(1);
+		sendGA_STATUS(gameId, guideId, team, player, "1", connection, filePath);
+
 
 	}
 
@@ -408,8 +396,6 @@ void handleHint(char *gameId, char *guideId, char *team, char *player, char *hin
 		char *name = calloc(140, 1);
 
 		sscanf(hint, "%s", name);
-
-		NormalizeWord(name);
 
 		for (int i = 0; ; i++) {
 			if (!isalpha(name[i])) {
@@ -571,8 +557,6 @@ static void GSAgentHandler(char *messagep, message_t *message, team_t *teamp, co
 			FA = newFieldAgent(message->gameId, message->pebbleId, NULL);
 			FA->latitude = latitude;
 			FA->longitude = longitude;
-
-			NormalizeWord(message->player);
 
 			set_insert(teamp->FAset, message->player, FA);
 		}
