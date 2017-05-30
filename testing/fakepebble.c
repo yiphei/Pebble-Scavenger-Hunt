@@ -19,7 +19,7 @@
 #include <netdb.h>            // socket-related structures
 #include <arpa/inet.h>        // socket-related calls
 #include <sys/select.h>       // select-related stuff 
-#include "file.h"             // readlinep
+#include "../common/file.h"             // readlinep
 
 /**************** file-local constants and functions ****************/
 static const int BUFSIZE = 1024;     // read/write buffer size
