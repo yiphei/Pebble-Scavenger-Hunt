@@ -41,6 +41,7 @@ typedef struct pebbleTeam {
 static bool gameInProgress;
 static char* secret;
 static int MAXOUTMESSAGELENGTH = 8191; // used for mallocing out-messages
+static char* winner;
 
 /******* functions *******/
 int gameserver(char* gameId, char* kff, char* sf, int port);
@@ -321,7 +322,12 @@ int gameserver(char* gameId, char* kff, char* sf, int port)
 	sendTeamRecord(gameId, teams, log);
 	sendGameOver(gameId, teams, secret, log);
 	
-
+	if(winner != NULL){
+		team_t* team = hashtable_find(teams, winner);
+		fprintf(stdout, "************ GAME SUMMARY ***********\n");
+		fprintf(stdout, "Winner: %s\n", winner);
+		fprintf(stdout, "Krags Claimed: %d/%d\n", team->claimed, totalKrags(krags));
+	}
 	// clean up
 	deleteKragHash(krags); // delete the krag hashtable
 	deleteTeamHashGA(teams); // delete the teams hashtable
@@ -383,6 +389,7 @@ static void FAClaimHandler(char* gameId, char *messagep, message_t *message, has
 			if(revCode == 1){
 				// end the game but update the string
 				gameInProgress = false;
+				winner = message->team;
 				printf("Game won!\n");
 				return;
 			}
@@ -508,9 +515,15 @@ static void GAHintHandler(char* gameId, char *messagep, message_t *message, hash
 		// get the connection via pebble ID
 		team_t* team = hashtable_find(teams, message->team);
 		char* FAName = set_find(team->FAPebbleIds, message->pebbleId);
+		// check nulls for name
+		if(FAName == NULL){
+			sendResponse(gameId, "SH_ERROR_INVALID_PLAYERNAME", "No name for pebbleId", connection, log);
+		}
+		// get the agent
 		fieldAgent_t* agent = set_find(team->FAset, FAName);
 		// check that agent exists
 		if(agent == NULL){
+			printf("GAHint: Could not find agent: %s\n",FAName);
 			sendResponse(gameId, "SH_ERROR_INVALID_ID", message->pebbleId, connection, log);
 			return;
 		}
@@ -750,7 +763,7 @@ static bool validateGA(char* gameId, message_t* message, hashtable_t* teams, has
 */
 static bool validatePebbleId(char* pebbleId, char* player, char* team, hashtable_t* teams, bool testPlayer)
 {
-	printf("Debug: Validating pebbleId: '%s'\n",pebbleId);
+	printf("Pebble: Validating pebbleId: '%s'\n",pebbleId);
 	// check pebble Id for all character
 	if(strlen(pebbleId) <=2 && pebbleId[0] == '*'){
 		return true;
@@ -759,13 +772,16 @@ static bool validatePebbleId(char* pebbleId, char* player, char* team, hashtable
 	team_t* teamObj = hashtable_find(teams, team); // get the team
 	char* teamPlayer = set_find(teamObj->FAPebbleIds, pebbleId); // search for the pebble Id
 	if(teamPlayer == NULL){
+		printf("Pebble: teamPlayer is null\n");
 		return false; // return false
 	}
 	if(testPlayer){
 		if(strcmp(player, teamPlayer) != 0){
+			printf("Pebble: Player names don't match\n");
 			return false; // make sure name and pebbleId match
 		}
 	}
+	printf("Pebble: Returning true, ID valid\n");
 	return true; // return true
 }
 
