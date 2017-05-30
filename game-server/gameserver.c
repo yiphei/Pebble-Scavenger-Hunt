@@ -16,12 +16,18 @@
 #include <ctype.h>
 #include <math.h>
 #include <arpa/inet.h>        // socket-related calls
+#include <time.h>
 #include "../libcs50/hashtable.h"
 #include "../common/team.h"
 #include "../common/message.h"
 #include "../common/log.h"
 #include "../common/krag.h"
 
+/******** struct *******/
+typedef struct messageConn {
+	connection_t* connection;
+	char* message;
+} messageConn_t;
 
 
 /******** globals *******/
@@ -50,7 +56,8 @@ static bool validatePebbleId(char* pebbleId, char* team, hashtable_t* teams);
 static bool sendGameStatus(char* gameId, char* guideId, int numClaimed, int numKrags, connection_t* connection, char* log);
 static bool forwardHint(char* hintMessage, connection_t* connection, char* log);
 static bool forwardHintToAll(char* hintMessage, char* team, hashtable_t* teams, char* log);
-static bool sendAllGSAgents(char* gameId, char* team, hashtable_t* teams, connection_t* connection, char* log);
+static void sendAllGSAgents(char* gameId, char* team, hashtable_t* teams, connection_t* connection, char* log);
+static void sendGSAgentIterator(void* arg, const char* key, void* item);
 static bool sendClue(char* gameId, char* guideId, char* clue, char* kragId, connection_t* connection, char* log);
 static bool sendSecret(char* gameId, char* guideId, char* secret, connection_t* connection, char* log);
 static bool sendGameOver(char* gameId, hashtable_t* teams, char* secret, char* log);
@@ -183,6 +190,7 @@ int main(int argc, char* argv[])
     // parse arguments for their substrings
     char *gameId = malloc(strlen(gameIdTemp) - 7);
 	strcpy(gameId, gameIdTemp + 7);
+	strcat(gameId, "\0");
 
     // invalid guideId length
     if (strlen(gameId) > 7 || strlen(gameId) == 0) {
@@ -359,6 +367,11 @@ static void FAClaimHandler(char* gameId, char *messagep, message_t *message, has
 			sendSecret(gameId, message->guideId, getRevealedString(message->team,teams), connection,log);
 			return;
 		}
+
+		// update claimed clues
+		krag_t* foundKrag = hashtable_find(krags, message->kragId);
+		sendGSClaimed(gameId, message->guideId, message->pebbleId, message->kragId, foundKrag->latitude, foundKrag->longitude, connection, log);
+
 		// send the updated message
 		sendSecret(gameId, message->guideId, getRevealedString(message->team,teams), connection,log);
 
@@ -374,6 +387,7 @@ static void FAClaimHandler(char* gameId, char *messagep, message_t *message, has
 			sendClue(gameId, message->guideId, krag->clue, kragId, connection, log);
 		}
 	}
+	resetTime(message->player, message->team, teams); // reset last contact time
 }
 
 /*
@@ -384,6 +398,7 @@ static void FAClaimHandler(char* gameId, char *messagep, message_t *message, has
 static void FALogHandler(char* gameId, char *messagep, message_t *message, hashtable_t* teams, hashtable_t* krags, connection_t *connection, char* log)
 {
 	logMessage(log, messagep, "FROM", connection); // log message
+	resetTime(message->player, message->team, teams); // reset last contact time
 }
 
 /*
@@ -420,6 +435,16 @@ static void GAStatusHandler(char* gameId, char *messagep, message_t *message, ha
 			return;
 		}
 
+		// respond with GAME_STATUS
+		printf("NumClaimed: %d\n", team->claimed);
+		if(!sendGameStatus(gameId, message->guideId, team->claimed, totalKrags(krags), connection,log)){
+			return;
+		}
+
+		// send GS_AGENT messages
+		sendAllGSAgents(gameId, message->team, teams, connection, log);
+
+
 		// send the guide agent the first clue if they are new to the game
 		if(returnVal == 0){
 			// get random clue
@@ -428,17 +453,8 @@ static void GAStatusHandler(char* gameId, char *messagep, message_t *message, ha
 			//sendClue
 			sendClue(gameId, message->guideId, krag->clue, kragId, connection, log);
 		}
-		// respond with GAME_STATUS
-		if(!sendGameStatus(gameId, message->guideId, team->claimed, totalKrags(krags), connection,log)){
-			return;
-		}
 	
-		// send GS_AGENT messages
-		if(!sendAllGSAgents(gameId, message->team, teams, connection, log)){
-			return;
-		}
 	}
-
 	
 }
 
@@ -453,6 +469,9 @@ static void GAHintHandler(char* gameId, char *messagep, message_t *message, hash
 	logMessage(log, messagep, "FROM", connection); // log message
 
 	// validate gameId
+	for(int i=0; i<strlen(gameId); i++){
+		printf("gameId[i]: '%c', message->gameId[i]: '%c', the same: %d\n",gameId[i],(message->gameId)[i],gameId[i]==(message->gameId)[i]);
+	}
 	if(strcmp(gameId, message->gameId) !=0){
 		// send response
 		sendResponse(gameId, "SH_ERROR_INVALID_GAME_ID", message->gameId,connection, log);
@@ -489,7 +508,6 @@ static void GAHintHandler(char* gameId, char *messagep, message_t *message, hash
 */
 static void FALocationHandler(char* gameId, char *messagep, message_t *message, hashtable_t* teams, hashtable_t* krags, connection_t *connection, char* log)
 {
-	printf("Debug: Handling FA Location\n");
 	logMessage(log, messagep, "FROM", connection); // log message
 
 	// validate gameId
@@ -525,6 +543,7 @@ static void FALocationHandler(char* gameId, char *messagep, message_t *message, 
 			return;
 		}
 	}
+	resetTime(message->player, message->team, teams); // reset last contact time
 }
 
 /*
@@ -688,15 +707,13 @@ static bool sendGameStatus(char* gameId, char* guideId, int numClaimed, int numK
 	}
 
 	// convert numClaimed to a string
-	int numClaimedDigits = (int)((ceil(log10(numClaimed))+1)); // get the length of the string
-	char* numClaimedStr= malloc(numClaimedDigits*sizeof(char));
+	char* numClaimedStr= calloc(20,1);
 	sprintf(numClaimedStr,"%d", numClaimed);
 
 
 
 	// convert numKrags to a string
-	int numKragsDigits = (int)((ceil(log10(numClaimed))+1)); // get the length of the string
-	char* numKragsStr = malloc(numKragsDigits*sizeof(char));
+	char* numKragsStr = calloc(20,1);
 	sprintf(numKragsStr, "%d", numKrags);
 
 	// check for null
@@ -717,15 +734,19 @@ static bool sendGameStatus(char* gameId, char* guideId, int numClaimed, int numK
 
 	// send the message
 	if (!sendMessage(messagep, connection)){
+		free(messagep);
+		free(numKragsStr);
+		free(numClaimedStr);
 		return false;
 	}
-
+	printf("Sent: %s\n",messagep);
 	// log the message
 	logMessage(log, messagep, "TO", connection);
 
 	// free the message
 	free(messagep);
-
+	free(numKragsStr);
+	free(numClaimedStr);
 	return true;
 }
 
@@ -740,7 +761,7 @@ static bool forwardHint(char* hintMessage, connection_t* connection, char* log)
 	if (!sendMessage(hintMessage, connection)){
 		return false;
 	}
-
+	printf("Sent: %s\n",hintMessage);
 	// log the message
 	logMessage(log, hintMessage, "TO", connection);
 
@@ -769,9 +790,88 @@ static bool forwardHintToAll(char* hintMessage, char* team, hashtable_t* teams, 
 * Returns true on sent
 *
 */
-static bool sendAllGSAgents(char* gameId, char* team, hashtable_t* teams, connection_t* connection, char* log)
+static void sendAllGSAgents(char* gameId, char* team, hashtable_t* teams, connection_t* connection, char* log)
 {
-	return true;
+	team_t* teamObj = hashtable_find(teams, team); // get the team
+	// check for NULL
+	if(teamObj == NULL){
+		return;
+	}
+	// create the message
+	char* messagep = calloc(sizeof(char),MAXOUTMESSAGELENGTH);
+
+	if(messagep == NULL){
+		return;
+	}
+	strcat(messagep, "opCode=GS_AGENT|gameId=");
+	strcat(messagep, gameId);
+	strcat(messagep, "|team=");
+	strcat(messagep, team);
+
+	// create a struct to hold message and connection
+	messageConn_t* mconn = malloc(sizeof(messageConn_t));
+	if(mconn == NULL){
+		return;
+	}
+	mconn->connection = connection;
+	mconn->message = messagep;
+
+	// iterate through the field agents
+	set_iterate(teamObj->FAset, mconn, sendGSAgentIterator);
+	
+	// clean up
+	mconn->connection = NULL;
+	free(messagep);
+	free(mconn);
+}
+
+/*
+* Send GS agent (set_iterate helper)
+*
+*
+*/
+static void sendGSAgentIterator(void* arg, const char* key, void* item)
+{
+	// cast the args
+	messageConn_t* mconn = (messageConn_t*)arg;
+	fieldAgent_t* agent = (fieldAgent_t*)item;
+
+
+	// convert latitude to a string
+	char* latitudeStr = calloc(15,1);
+	sprintf(latitudeStr, "%9.6f", agent->latitude);
+
+	// convert longitude to a string
+	char* longitudeStr = calloc(15,1);
+	sprintf(longitudeStr, "%9.6f", agent->longitude);
+
+	incrementTime(agent); // increment the time for the field agent
+
+	// convert time to a string
+	char* lastContactStr = calloc(20,1);
+	sprintf(lastContactStr, "%d", agent->lastContact);
+
+	// construct the message
+	char* messagep = malloc(sizeof(mconn->message));
+	if(messagep == NULL){
+		return;
+	}
+	strcpy(messagep, mconn->message); // copy the message so not to change the parameter
+	strcat(messagep, "|pebbleId=");
+	strcat(messagep, agent->pebbleID);
+	strcat(messagep, "|latitude=");
+	strcat(messagep, latitudeStr);
+	strcat(messagep, "|longitude=");
+	strcat(messagep, longitudeStr);
+	strcat(messagep, "|lastContact=");
+
+	sendMessage(messagep, mconn->connection);
+	printf("Sent: %s\n",messagep);
+
+	free(messagep);
+	free(latitudeStr);
+	free(longitudeStr);
+	free(lastContactStr);
 }
 
 /*
@@ -801,9 +901,10 @@ static bool sendClue(char* gameId, char* guideId, char* clue, char* kragId, conn
 
 	// send the message
 	if (!sendMessage(messagep, connection)){
+		free(messagep);
 		return false;
 	}
-
+	printf("Sent: %s\n",messagep);
 	// log the message
 	logMessage(log, messagep, "TO", connection);
 
@@ -837,9 +938,10 @@ static bool sendSecret(char* gameId, char* guideId, char* secret, connection_t* 
 
 	// send the message
 	if (!sendMessage(messagep, connection)){
+		free(messagep);
 		return false;
 	}
-
+	printf("Sent: %s\n",messagep);
 	// log the message
 	logMessage(log, messagep, "TO", connection);
 
@@ -928,13 +1030,11 @@ static bool sendGSClaimed(char* gameId,char* guideId, char* pebbleId, char* krag
 	}
 
 	// convert latitude to a string
-	int latitudeDigits = (int)((ceil(log10(latitude))+1)); // get the length of the string
-	char* latitudeStr = calloc(latitudeDigits,sizeof(char));
+	char* latitudeStr = calloc(15,1);
 	sprintf(latitudeStr, "%9.6f", latitude);
 
 	// convert longitude to a string
-	int longitudeDigits = (int)((ceil(log10(latitude))+1)); // get the length of the string
-	char* longitudeStr = calloc(longitudeDigits,sizeof(char));
+	char* longitudeStr = calloc(15,1);
 	sprintf(longitudeStr, "%9.6f", longitude);
 
 
@@ -956,14 +1056,18 @@ static bool sendGSClaimed(char* gameId,char* guideId, char* pebbleId, char* krag
 	// send the message
 	if (!sendMessage(messagep, connection)){
 		free(messagep);
+		free(latitudeStr);
+		free(longitudeStr);
 		return false;
 	}
-
+	printf("Sent: %s\n",messagep);
 	// log the message
 	logMessage(log, messagep, "TO", connection);
 
 	// free the message
 	free(messagep);
+	free(latitudeStr);
+	free(longitudeStr);
 	return true;
 }
 
@@ -995,6 +1099,7 @@ static bool sendResponse(char* gameId, char* respCode, char* text, connection_t*
 		free(messagep);
 		return false;
 	}
+	printf("Sent: %s\n",messagep);
 
 	// log the message
 	logMessage(log, messagep, "TO", connection);
@@ -1029,7 +1134,7 @@ static void sendToALLFAHelper(void* arg, const char* key, void* item)
 	char* message = (char*)arg; // cast arg
 	fieldAgent_t* agent = (fieldAgent_t*)item; // cast item
 	sendMessage(message, agent->conn); // send the message
-
+	printf("Sent: %s\n",message);
 }
 
 /*
@@ -1043,7 +1148,7 @@ static void sendToAll(void* arg, const char* key, void* item)
 	team_t* team = (team_t*)item; // cast item
 	// send message to GA
 	sendMessage(message, team->guideAgent->conn);
-
+	printf("Sent: %s\n",message);
 	// send message to all FAs
 	sendToAllFA(message, team);
 }
@@ -1061,13 +1166,11 @@ static void sendTeamRecordToAll(void* arg, const char* key, void* item)
 	team_t* team = (team_t*)item; // cast item
 
 	// convert numClaimed to a string
-	int numClaimedDigits = (int)((ceil(log10(team->claimed))+1)); // get the length of the string
-	char* numClaimedStr= malloc(numClaimedDigits*sizeof(char));
+	char* numClaimedStr= calloc(20,1);
 	sprintf(numClaimedStr,"%d", team->claimed);
 
 	// convert numPlayers to a string
-	int numPlayersDigits = (int)((ceil(log10(team->claimed))+1)); // get the length of the string
-	char* numPlayersStr= malloc(numPlayersDigits*sizeof(char));
+	char* numPlayersStr= calloc(20,1);
 	sprintf(numPlayersStr,"%d", team->numPlayers);
 
 	// construct the message inductively
@@ -1080,9 +1183,11 @@ static void sendTeamRecordToAll(void* arg, const char* key, void* item)
 
 	// send message to GA
 	sendMessage(newMessage, team->guideAgent->conn);
-
+	printf("Sent: %s\n",newMessage);
 	// send message to all FAs
 	sendToAllFA(newMessage, team);
 
 	free(newMessage);
+	free(numPlayersStr);
+	free(numClaimedStr);
 }

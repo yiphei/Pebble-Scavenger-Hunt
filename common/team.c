@@ -159,11 +159,20 @@ void updateLocation(char * name, char * teamname, double longitude, double latit
 }
 
 
-void incrementTime(char * name, char * teamname, hashtable_t * teamhash){
+void incrementTime(fieldAgent_t* fa){
 
+	time_t* endtime = malloc(sizeof(time_t));
+	time(endtime);
+	double seconds = difftime(*(fa->lastContactTime),*endtime);
+	fa->lastContact = fa->lastContact + (int)seconds;
+	free(endtime);
+}
+
+void resetTime(char* name, char* teamname, hashtable_t * teamhash){
 	team_t * team = hashtable_find(teamhash, teamname);
 	fieldAgent_t * fa = set_find(team->FAset, name);
-	fa->lastContact = fa->lastContact + 1;
+	time(fa->lastContactTime);
+	fa->lastContact = 0;
 }
 
 
@@ -354,6 +363,7 @@ fieldAgent_t * newFieldAgent(char * gameID, char * pebbleID, connection_t * conn
   		fa->conn = NULL;
   	}
   	fa->lastContact = 0;
+  	time(fa->lastContactTime);
     return fa;
  }
 }
