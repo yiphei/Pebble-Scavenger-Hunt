@@ -93,13 +93,12 @@ spec in terms of a message.
 	Pebble.
 * GA_STATUS will, at most, every 35 seconds. Will likely be faster because its
 	timing is also event-driven, as receiving user input or messages from the 
-	socket prompts the Guide Agent to send its GA_STATUS quicker
+	socket prompts the Guide Agent to send its GA_STATUS quicker.
 * The krags and field agents given will only appear on the interface if their
 	latitudes and longitudes are within given limits on the campus map.
+* There exists a writable directory "../logs" in which to open and write the 
+	guideagent.log file.
 
 ### Limitations
 
 * Implementation with ncurses causes still reachable memory.
-* When a krag is found, the clue associated with that krag is overwritten but if
-  there was a previously written clue there that was longer, some of that
-  clue's string may still be left in the clues window

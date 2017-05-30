@@ -178,6 +178,7 @@ int main(int argc, char **argv)
 	// invalid guideId length
 	if (strlen(guideId) > 8 || strlen(guideId) == 0) {
 		fprintf(stderr, "guideId should be 1-8 characters\n");
+		exit(4);
 	}
 
 	// invalid hexidecimal format
@@ -248,7 +249,7 @@ int game(char *guideId, char *team, char *player, char *host, int port)
 	FILE *log;
 	char *filePath = "../logs/guideagent.log";
 	if ((log = fopen(filePath, "w")) == NULL) {
-		fprintf(stderr, "error opening log file\n");
+		fprintf(stderr, "error opening log file '../logs/guideagent.log'\n");
 		return 6;
 	}
 

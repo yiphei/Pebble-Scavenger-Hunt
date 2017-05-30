@@ -104,7 +104,7 @@ socket_setup()
   struct sockaddr_in server;  // server address
   server.sin_family = AF_INET;
   server.sin_addr.s_addr = INADDR_ANY;
-  server.sin_port = htons(36590);
+  server.sin_port = htons(36587);
   if (bind(comm_sock, (struct sockaddr *) &server, sizeof(server))) {
     perror("binding socket name");
     exit(2);
