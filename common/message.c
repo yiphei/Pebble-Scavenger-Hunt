@@ -500,12 +500,12 @@ void deleteMessage(message_t *message) {
 
 	if (message->secret != NULL) {
 		free(message->secret);
-		message->clue = NULL;
+		message->secret = NULL;
 	}
 
 	if (message->text != NULL) {
-		free(message->secret);
-		message->secret = NULL;
+		free(message->text);
+		message->text = NULL;
 	}
 
 	free(message);

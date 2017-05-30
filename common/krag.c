@@ -123,7 +123,12 @@ int revealCharacters(char * kragID, char * teamname, char * secret, hashtable_t 
 
 			//create a string with all undescores '_' and with the size of the secret string
 			for (x = 0; x < strlen(secret); x++){
-				string[x] = c;
+				if(secret[x] != ' '){
+					string[x] = c;
+				}
+				else{
+					string[x] = ' ';
+				}
 			}
 
 			string[x] = '\0';  //add null character
