@@ -116,7 +116,7 @@ int revealCharacters(char * kragID, char * teamname, char * secret, hashtable_t 
 		//if the team calls this function for the first time
 		if (!(team->revealedString)){
 
-			team->revealedString = realloc(team->revealedString, strlen(secret) + 1);
+			team->revealedString = malloc(strlen(secret) + 1);
 			char c = '_'; 
 			char * string = malloc(strlen(secret) + 1);
 			int x = 0;
