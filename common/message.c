@@ -272,8 +272,9 @@ int parseHelper(char *message, message_t *parsedMessage)
 				return 1;
 			}
 
-			char *lastContactTemp = calloc(strlen(field) - 12, 1);
+			char *lastContactTemp = calloc(strlen(field) - 11, 1);
 			strcpy(lastContactTemp, field + 12);
+			strcat(lastContactTemp, "\0");
 
 			int lastContact;
 
@@ -295,8 +296,9 @@ int parseHelper(char *message, message_t *parsedMessage)
 				return 1;
 			}
 
-			char *latitudeTemp = calloc(strlen(field) - 9, 1);
+			char *latitudeTemp = calloc(strlen(field) - 8, 1);
 			strcpy(latitudeTemp, field + 9);
+			strcat(latitudeTemp, "\0");
 
 			double latitude;
 
@@ -322,8 +324,9 @@ int parseHelper(char *message, message_t *parsedMessage)
 				return 1;
 			}
 
-			char *longitudeTemp = calloc(strlen(field) - 10, 1);
+			char *longitudeTemp = calloc(strlen(field) - 9, 1);
 			strcpy(longitudeTemp, field + 10);
+			strcat(longitudeTemp, "\0");
 
 			double longitude;
 
@@ -349,8 +352,9 @@ int parseHelper(char *message, message_t *parsedMessage)
 				return 1;
 			}
 
-			char *numPlayersTemp = calloc(strlen(field) - 11, 1);
+			char *numPlayersTemp = calloc(strlen(field) - 10, 1);
 			strcpy(numPlayersTemp, field + 11);
+			strcat(numPlayersTemp, "\0");
 
 			int numPlayers;
 			if (sscanf(numPlayersTemp, "%d", &numPlayers) != 1) {
@@ -370,8 +374,9 @@ int parseHelper(char *message, message_t *parsedMessage)
 				return 1;
 			}
 
-			char *numClaimedTemp = calloc(strlen(field) - 11, 1);
+			char *numClaimedTemp = calloc(strlen(field) - 10, 1);
 			strcpy(numClaimedTemp, field + 11);
+			strcat(numClaimedTemp, "\0");
 
 			int numClaimed;
 
@@ -393,8 +398,9 @@ int parseHelper(char *message, message_t *parsedMessage)
 				return 1;
 			}
 
-			char *numKragsTemp = calloc(strlen(field) - 9, 1);
+			char *numKragsTemp = calloc(strlen(field) - 8, 1);
 			strcpy(numKragsTemp, field + 9);
+			strcat(numKragsTemp, "\0");
 
 			int numKrags;
 
@@ -417,8 +423,9 @@ int parseHelper(char *message, message_t *parsedMessage)
 				return 1;
 			}
 
-			char *statusReqTemp = calloc(strlen(field) - 10, 1);
+			char *statusReqTemp = calloc(strlen(field) - 9, 1);
 			strcpy(statusReqTemp, field + 10);
+			strcat(statusReqTemp, "\0");
 
 			int statusReq;
 
