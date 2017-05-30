@@ -40,6 +40,10 @@ hashtable_t * readKrag(char * filename){
 
 	FILE *fp;
  	fp = fopen(filename, "r");
+ 	if (fp == NULL){
+ 		return;
+ 	}
+ 	
  	hashtable_t * kraghash = hashtable_new(50);
  	int x = 0;  //position counter
 
