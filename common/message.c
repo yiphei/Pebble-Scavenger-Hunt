@@ -170,7 +170,7 @@ int parseHelper(char *message, message_t *parsedMessage)
 			strcpy(parsedMessage->pebbleId, field + 9);
 			strcat(parsedMessage->pebbleId, "\0");
 
-			if (strlen(parsedMessage->pebbleId) != 8) {
+			if (strlen(parsedMessage->pebbleId) != 8 && strcmp(parsedMessage->pebbleId, "*") != 0) {
 				return 4;
 			}
 		}
