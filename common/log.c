@@ -36,21 +36,26 @@ void logMessage(char *filePath, char *message, char *direction, connection_t *co
 	sprintf(timestamp, "(%s", ctime(&clk));
 	timestamp[25] = ')';
 
-	// get ip address
-	struct sockaddr *addrp = (struct sockaddr *) &connect->address;
-	struct sockaddr_in *address = (struct sockaddr_in *)addrp;
+	if(connect != NULL){
+		// get ip address
+		struct sockaddr *addrp = (struct sockaddr *) &connect->address;
+		struct sockaddr_in *address = (struct sockaddr_in *)addrp;
 
-	char *ip = inet_ntoa(address->sin_addr);
+		char *ip = inet_ntoa(address->sin_addr);
 
-	// get port number
-	int port = connect->socket;
+		// get port number
+		int port = connect->socket;
 
-	if (ip != NULL && port != 0) {
-		fprintf(log, "%s %s %s@%d: %s \n", timestamp, direction, ip, port, messageNew);
+		if (ip != NULL && port != 0) {
+			fprintf(log, "%s %s %s@%d: %s \n", timestamp, direction, ip, port, messageNew);
+		}
+
+		else {
+			fprintf(log, "%s (error retrieving connection data) %s\n", timestamp, messageNew);
+		}
 	}
-
 	else {
-		fprintf(log, "%s (error retrieving connection data) %s\n", timestamp, messageNew);
+		fprintf(log, "%s %s Multiple Addresses %s\n", timestamp, direction, messageNew);
 	}
 
 	free(messageNew);
