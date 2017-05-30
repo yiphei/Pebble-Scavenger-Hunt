@@ -79,6 +79,15 @@ void initializeWindows_I(void){
 	int x,y;
 	mapWin =createWin_I(map_uy, map_ux, 0, 0);  //create map window
 
+	FILE * fp = fopen("campusmap", "r");
+	char **board1 = new_board();
+	load_board(board1, fp);
+	display_board(board1);
+	fclose(fp);
+
+	free(board1);
+	free(contents);
+
 	//create game stats window
 	statsWin =  createWin_I(stats_uy, stats_ux, 0, map_ux);  
 	getbegyx(statsWin, y,x);
@@ -124,10 +133,6 @@ void updateMap_I(set_t * fieldagents, set_t * krags){
 	addPlayers_I(fieldagents);  //display the agents
 	addKrags_I(krags);  //displat the krags
 
- 	// for (int y = 0; y < map_uy; y++) {
-  //   	free(board1[y]);
-  //   	board1[y] = NULL;
-  // 	}
 	free(board1);
 	free(contents);
 
