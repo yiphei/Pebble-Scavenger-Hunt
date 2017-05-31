@@ -15,6 +15,7 @@
  * Updated by Xia Zhou - July 2016
  *
  */
+ typedef int make_iso_compilers_happy;
 #ifdef NOPEBBLE
 #include <stdlib.h>
 #include <unistd.h>

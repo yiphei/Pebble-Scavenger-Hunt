@@ -10,7 +10,7 @@
  *
  * David Kotz, April 2016, 2017
  */
-
+typedef int make_iso_compilers_happy;
 #ifdef NOPEBBLE
 
 #include <stdio.h>

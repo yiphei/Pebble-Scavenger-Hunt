@@ -5,6 +5,7 @@
  *     http://www.burtleburtle.net/bob/hash/doobs.html
  * ========================================================================= 
  */
+ typedef int make_iso_compilers_happy;
 #ifdef NOPEBBLE
 
 #include <string.h>
