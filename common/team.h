@@ -170,7 +170,10 @@ int getTime(char * name, char * teamname, hashtable_t * teamhash);
 */
 void deleteTeamHash(hashtable_t * teamhash);
 
-
+/*
+* This function frees memory of the hashtable and everything in it.
+* This is used by the guide agent.
+*/
 void deleteTeamHashGA(hashtable_t * teamhash);
 
 /*
