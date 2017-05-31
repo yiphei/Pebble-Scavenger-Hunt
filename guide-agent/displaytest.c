@@ -13,10 +13,6 @@
 #include "../common/krag.h"
 
 
-static void 
-kragdelete(void *item);
-static void 
-setcluedelete(void *item);
 
 
 int
@@ -129,20 +125,5 @@ main(int argc, char *argv[])
    //set_delete(clues,setcluedelete);
 }
 
-static void 
-kragdelete(void *item)
-{
-  if (item) {
-    free(item);
-  }
-}
 
-
-static void 
-setcluedelete(void *item)
-{
-  if (item) {
-    free(item);
-  }
-}
 
