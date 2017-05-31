@@ -11,6 +11,8 @@
  * David Kotz, April 2016, 2017
  */
 
+#ifdef NOPEBBLE
+
 #ifndef __MEMORY_H
 #define __MEMORY_H
 
@@ -63,3 +65,4 @@ void count_report(FILE *fp, const char *message);
 int count_net(void);
 
 #endif // __MEMORY_H
+#endif

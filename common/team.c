@@ -5,7 +5,8 @@
  *
  * GREP
  */
-//#ifdef NOPEBBLE
+ typedef int make_iso_compilers_happy;
+#ifdef NOPEBBLE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -536,5 +537,5 @@ void printTeams(hashtable_t * teamhash){
 	hashtable_print(teamhash, stdout, teamPrint);
 }
 
-//#endif
+#endif
 

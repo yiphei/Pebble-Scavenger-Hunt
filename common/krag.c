@@ -6,8 +6,8 @@
  * GREP
  */
 
-//typedef int make_iso_compilers_happy;
-//#ifdef NOPEBBLE
+typedef int make_iso_compilers_happy;
+#ifdef NOPEBBLE
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -259,4 +259,4 @@ char* randomClue(char * teamname, hashtable_t * kraghash, hashtable_t * teamhash
 }
 
 
-//#endif
+#endif

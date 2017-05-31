@@ -9,7 +9,7 @@
  *
  * GREP
  */
-
+#ifdef NOPEBBLE
 #ifndef __KRAG_H
 #define __KRAG_H
 
@@ -86,3 +86,4 @@ char * randomClue(char * teamname, hashtable_t * kraghash, hashtable_t * teamhas
 
 
 #endif // __KRAG_H
+#endif

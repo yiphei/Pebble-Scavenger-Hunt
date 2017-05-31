@@ -8,6 +8,8 @@
  *
  */
 
+#ifdef NOPEBBLE
+
 #ifndef __WEBPAGE_INTERNAL_H
 #define __WEBPAGE_INTERNAL_H
 
@@ -25,3 +27,4 @@ typedef struct webpage {
 } webpage_t;
 
 #endif // __WEBPAGE_INTERNAL_H
+#endif

@@ -4,6 +4,7 @@
  * David Kotz, May 2016
  */
 
+#ifdef NOPEBBLE
 #ifndef __FILE_H
 #define __FILE_H
 
@@ -61,3 +62,4 @@ char *readlinep(FILE *fp);
 char *readwordp(FILE *fp);
 
 #endif // __FILE_H
+#endif

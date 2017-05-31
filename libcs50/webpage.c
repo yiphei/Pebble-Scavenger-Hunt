@@ -12,6 +12,9 @@
 /* students shouldn't take advantage of the gnu extensions, 
  * but parsing html without them is a pain.
  */
+ typedef int make_iso_compilers_happy;
+#ifdef NOPEBBLE
+
 #define _GNU_SOURCE	      // strncasecmp, strdup
 
 #include <stdlib.h>
@@ -899,3 +902,5 @@ checkp(void *p, char *message)
   }
   return p;
 }
+
+#endif

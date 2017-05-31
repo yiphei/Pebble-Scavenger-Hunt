@@ -5,6 +5,8 @@
  *
  * David Kotz, April 2016, 2017
  */
+typedef int make_iso_compilers_happy;
+#ifdef NOPEBBLE
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -157,3 +159,5 @@ bag_delete(bag_t *bag, void (*itemdelete)(void *item) )
   count_report(stdout, "End of bag_delete");
 #endif
 }
+
+#endif

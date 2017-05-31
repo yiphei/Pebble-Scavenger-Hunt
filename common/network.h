@@ -6,6 +6,8 @@
 *
 */
 
+#ifdef NOPEBBLE
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -90,3 +92,5 @@ void deleteConnection(connection_t* connection);
 *
 */
 void closeSocket(int comm);
+
+#endif

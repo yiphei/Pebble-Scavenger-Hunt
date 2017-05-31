@@ -5,6 +5,8 @@
  *     http://www.burtleburtle.net/bob/hash/doobs.html
  * ========================================================================= 
  */
+ typedef int make_iso_compilers_happy;
+#ifdef NOPEBBLE
 
 #include <string.h>
 #include "jhash.h" 
@@ -32,3 +34,5 @@ JenkinsHash(const char *str, unsigned long mod)
 
   return (hash % mod);
 }
+
+#endif

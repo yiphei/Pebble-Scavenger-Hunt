@@ -5,7 +5,7 @@
  *     http://www.burtleburtle.net/bob/hash/doobs.html
  * ========================================================================= 
  */
-
+#ifdef NOPEBBLE
 #ifndef JHASH_H
 #define JHASH_H
 
@@ -19,3 +19,4 @@
 unsigned long JenkinsHash(const char *str, unsigned long mod);
 
 #endif // JHASH_H
+#endif

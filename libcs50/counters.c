@@ -5,6 +5,8 @@
  *
  * Yifei Yan
  */
+typedef int make_iso_compilers_happy;
+#ifdef NOPEBBLE
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -209,3 +211,5 @@ void counters_delete(counters_t *ctrs){
     count_free(ctrs);
   }
 }
+
+#endif

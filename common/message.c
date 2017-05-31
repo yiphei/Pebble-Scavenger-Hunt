@@ -5,6 +5,8 @@
  * GREP, CS50, May 2017
  */
 
+#ifdef NOPEBBLE
+
 #include <stddef.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -513,4 +515,6 @@ void deleteMessage(message_t *message) {
 	message = NULL;
 
 }
+
+#endif
 

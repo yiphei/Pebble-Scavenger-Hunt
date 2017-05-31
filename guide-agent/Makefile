@@ -9,7 +9,7 @@ OBJS2 = ../common/network.o ../common/message.o ../common/log.o ../common/team.o
 LIBS = -lm -lncurses
 LLIBS = ../libcs50/libcs50.a-Linux
 
-CFLAGS = -Wall -pedantic -std=c11 -ggdb -I../common/ -I../libcs50/
+CFLAGS = -Wall -pedantic -std=c11 -ggdb -DNOPEBBLE -I../common/ -I../libcs50/
 CC = gcc
 MAKE = make
 

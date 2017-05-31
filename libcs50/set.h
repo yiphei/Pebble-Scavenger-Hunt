@@ -9,6 +9,8 @@
  * Yifei Yan
  */
 
+#ifdef NOPEBBLE
+
 #ifndef __SET_H
 #define __SET_H
 
@@ -57,3 +59,4 @@ void set_delete(set_t *set, void (*itemdelete)(void *item) );
 
 
 #endif // __SET_H
+#endif

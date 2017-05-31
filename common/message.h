@@ -5,6 +5,8 @@
  * GREP, CS50, May 2017
  */
 
+#ifdef NOPEBBLE
+
 #include "word.h"
 
 // message struct allows storage of all message field types
@@ -58,3 +60,5 @@ comparing specific fields of the message to known field names and
 error checking based on the requirement spec
 */
 int parseHelper(char *message, message_t *parsedMessage);
+
+#endif

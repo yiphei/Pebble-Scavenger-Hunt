@@ -10,6 +10,8 @@
  * David Kotz, April 2016, 2017
  */
 
+#ifdef NOPEBBLE
+
 #ifndef __BAG_H
 #define __BAG_H
 
@@ -48,3 +50,4 @@ void bag_iterate(bag_t *bag, void *arg,
 void bag_delete(bag_t *bag, void (*itemdelete)(void *item) );
 
 #endif // __BAG_H
+#endif

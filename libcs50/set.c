@@ -5,6 +5,8 @@
  *
  * Yifei Yan
  */
+typedef int make_iso_compilers_happy;
+#ifdef NOPEBBLE
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -158,3 +160,5 @@ void set_delete(set_t *set, void (*itemdelete)(void *item) ){
   }
 
 }
+
+#endif

@@ -15,7 +15,8 @@
  * Updated by Xia Zhou - July 2016
  *
  */
-
+ typedef int make_iso_compilers_happy;
+#ifdef NOPEBBLE
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
@@ -134,3 +135,4 @@ WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp)
 
   return realsize;
 }
+#endif

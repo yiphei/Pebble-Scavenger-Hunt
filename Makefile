@@ -9,7 +9,7 @@ MAKE = make
 
 all: 
 	@echo "Making everything..."
-	$(MAKE) -C field-agent
+	#$(MAKE) -C field-agent # commented out because only compiles on a mac
 	$(MAKE) -C guide-agent
 	$(MAKE) -C game-server
 
@@ -31,7 +31,7 @@ install-proxy-deps:
 
 clean:
 	@echo "Cleaning everything..."
-	$(MAKE) -C field-agent clean
+	#$(MAKE) -C field-agent clean # commented out because only compiles on a mac
 	$(MAKE) -C guide-agent clean
 	$(MAKE) -C game-server clean
 	rm -f *~ *.o

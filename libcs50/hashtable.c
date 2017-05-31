@@ -5,6 +5,8 @@
  *
  * Yifei Yan
  */
+typedef int make_iso_compilers_happy;
+#ifdef NOPEBBLE
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -132,3 +134,4 @@ void hashtable_delete(hashtable_t *ht, void (*itemdelete)(void *item) ){
   }
 }
 
+#endif

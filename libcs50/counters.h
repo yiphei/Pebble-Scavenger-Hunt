@@ -10,6 +10,8 @@
  * Yifei Yan
  */
 
+#ifdef NOPEBBLE
+
 #ifndef __COUNTERS_H
 #define __COUNTERS_H
 
@@ -56,3 +58,4 @@ void counters_delete(counters_t *ctrs);
 
 
 #endif // __COUNTERS_H
+#endif
