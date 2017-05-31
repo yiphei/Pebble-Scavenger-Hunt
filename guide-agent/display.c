@@ -53,14 +53,14 @@ WINDOW * cluesWin;   //window where all avaible clues are displayed
 WINDOW * inputWin;   //window where the input box is displayed
 
 
-
+//scales longitude
 static double scaleX(double x)
 {
 	double x2 = (x - longitudeTopLeft) / longitudeDiff * map_ux;
 	return x2;
 }
 
-
+//scales latitude
 static double scaleY(double y)
 {
 	double y2 = (latitudeTopLeft - y) / latitudeDiff * map_uy;
@@ -323,7 +323,7 @@ static void printClues(void *arg, const char *key, void *item){
 	//make sure clues dont go out the window boundaries
 	if ( *ly < max){
 		mvwprintw(cluesWin,*ly - 11, x - 88,  "- %s", clue);  //print the clue
-		
+
 		for (int i = 0; i <= increase; i++){
 			(*ly)++;  //increment y coordinate
 		}

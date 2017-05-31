@@ -85,6 +85,45 @@ The guideagent.c component also includes message validate functions that
 make sure everybody is following the rules of the protocol and the requirement
 spec in terms of a message.
 
+### display.h Functions
+The display.h is the module that handles the GUI part of the guide agent. It displays five windows in total. The map window will have field agents name on the top left, their current locations in the map, and a ASCII based map of the campus. The stats window will display the total number of krags in the game and the total nuber of krags claimed. The current string windown displays the current revealed string of the team. The clues window displays all the known clues to the team. The input window reads from stdin. When game ends, then it will display a game over window.
+
+#####initialize_curses
+Initialize curses like screen and color. This function should be called first in order to call all other functions in the module. From life.c program of David Kotz.
+
+#####createWin_I
+This function creates and returns a window given a height, width, and start x and y coordinates. From NCURSES Programming HOWTO http://www.tldp.org/HOWTO/NCURSES-Programming-HOWTO/windows.html
+
+#####initializeWindows_I
+This function initialites the five windows of the game and print their window names on the top left of each window. These windows are: game, game status, string, clues, and input. This function should be called after `initialize_curses()`
+
+#####updateMap_I
+This function displays the campus map with the name of the players and their locatins on the map with different colors. 
+
+#####addPlayers_I
+This function adds the field agents name on the top left corner of the mpa window, and their renspective location (marked with *) on the map. Each player and their location mark have an individual color. If there are more than seven field agents, then the colors will repeated since there are only 7 different colors available. This is called by `updateMap_I`
+
+#####addKrags_I
+This function adds krags in the map window in their respective location. They are marked with the name "krag". This is called by `updateMap_I`
+
+#####updateString_I
+This function displays the current revealed string of the team to the string window
+
+#####updateClues_I
+This function outputs all the clues to the the clue window. If clues exceed the borders of the clue window, then those clues wont be displayed
+
+#####updateTotalKrags_I
+This function displays the total krag number in the game. It is displayed in the stats window
+
+#####updateKragsClaimed_I
+This function displays the number of krags claimed by the team. It is displayed in the stats window
+
+#####input_I
+This function reads from stdin until user inputs a carriage return. When carriage return is inputted, then the function stops reading frmo stdin and returns the string to the caller. Caller is rensposible to free the pointer returned.
+
+#####gameOver_I
+This function displays the game over stats to the screen. For every team, it will diplay the teamname, number of players, and number of krags claimed. This function should be called at the end of the game. Then, to terminate GUI, press any key.
+
 ### Assumptions
 
 * The messages received will contain the message fields in the requirement spec
@@ -98,6 +137,9 @@ spec in terms of a message.
 	latitudes and longitudes are within given limits on the campus map.
 * There exists a writable directory "../logs" in which to open and write the 
 	guideagent.log file.
+* There exists a map file called `campusmap` in ASCII code of size 90x45 in the `guide-agent` directory
+* The window terminal has to meet the following minimum size: 126 width and 52 height. If the terminal window does not meet the following minimum size, then the GUI wont function and display properly
+* Assume that hint is no more than 140 characters
 
 ### Limitations
 
@@ -109,3 +151,7 @@ spec in terms of a message.
 	sending GA_STATUS can sometime get sporatic depending on how much
 	input the Guide Agent is receiving at one time (which can sometimes
 	correlate with the amount of field agents on the guide agent's team.
+* Because there are only seven colors in ncurses, so the colors for the field agent players will repeated if there are more than seven field agents
+* Only works with terminal window of size 126 width and 52 height
+* In the user input window of the GUI, backspace is not supported
+* The GUI only works with the map provided by the assignment
