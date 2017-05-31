@@ -3,7 +3,7 @@
 # Yifei Yan
 
 PROG = commontest
-OBJS = krag.o team.o # commontest.o
+OBJS = krag.o team.o commontest.o network.o
 LIB = common.a
 LIBS = -lm -lcurl
 LLIBS = ../libcs50/libcs50.a-Linux
@@ -32,7 +32,8 @@ $(PROG): $(OBJS) $(LLIBS)
 # Dependencies: object files depend on header files
 krag.o: krag.h team.h
 team.o: team.h krag.h network.h
-#commontest.o: krag.h team.h
+commontest.o: krag.h team.h
+network.o: network.h
 
 .PHONY: clean sourcelist pebble
 

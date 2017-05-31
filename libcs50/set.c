@@ -138,7 +138,6 @@ void set_iterate(set_t *set, void *arg,
       (*itemfunc)(arg, node->key, node->item); 
     }
   }
-
 }
 
 /**************** set_delete() ****************/  //from bag.c module
