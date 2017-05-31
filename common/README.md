@@ -337,10 +337,13 @@ void closeSocket(int comm);
 ```
 
 ### Implementation
+Implemented using UDP sockets. See `docs/IMPLEMENTATION.md` for details.
 
 ### Assumptions
+* Address and sockets are constructed and added to a connection before usage.
 
 ### Limitations
+* Doesn't time out when waiting to receive.
 
 
 ## Log module
