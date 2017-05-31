@@ -240,3 +240,31 @@ The `pebble` program can then be called by using the command `pebble host port`.
 #### Integration Testing
 
 To test the integrated system, the Guide Agents and Field Agents were added to the game via both the `fakepebble.c` program and the actual Field and Guide Agents. Several different game scenarios were played out including with different player types, numbers of players, and numbers of teams. This ensured that all three components work together seemlessly.
+
+##Field Agent
+
+### Unit Testing
+To apply unit testing to the Field Agent, a chat client modeled from the class chat client was used to send test messages to the Field Agent in a similar way to the Guide Agent and Game Server Testing.  With this, multiple agents could easily be created, and informatoin could be spoofed to test all aspects of the field agent and krag validification.  It was also easy to check certain events that may not necessarily happen during gameplay but could, such as getting messages that the Field Agent should not get, or just invalid messages.
+
+#### Usage
+To compile the unit testing chat bot, use the command in the `testing` directory:
+```
+mygcc fakepebble.c ../common/file.c -o pebble
+```
+
+The `pebble` program can then be called by using the command `pebble host port`.
+
+### Test Cases
+* Duplicate player names
+* Invalid game id
+* Invalid player id
+* Incorrect message syntax
+      * Invalid fields
+      * Duplicate fields
+      * Invalid types
+* Incorrect or erroneous data in message
+      * incorrect `gameId`
+      * incorrect `opCode`, both ones that exist and ones that do not.
+
+###Integration testing
+To test the integrated system, the Guide Agents and Field Agents were added to the game via both teh `fakepebble.c` program and the actual FIELD and GUIDE Agents. Severl different game scenarios were played out including with different player types, numbers of players, and numbers of teams. This ensured that all three components work together seemlessly.  Furthermore, different problems were tested, to see what happened when the same player name was picked twice, or if a krag was already calimed, etc.
