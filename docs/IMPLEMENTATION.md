@@ -1229,11 +1229,13 @@ The team struct will hold all the essential elements that a team has. Each time 
 typedef struct team {
   struct guideAgent * guideAgent;  //guide agent of the team
   set_t * FAset;      //set of field agents
+  set_t * FAPebbleIds; // set of pebble Ids with names as items
   char * revealedString;  //the current releaved string of the team
-  set_t * krags;     //set of all the krags the team has found
-  char * recentClues[2];   //array of the two most recent clues
-  set_t * clues;    //set of all the clues a team has
+  set_t * krags;   //set of all krags the team has found
+  char * recentClues[2];    //array of the two most recent clues
+  set_t * clues;   //set of all the clues a team has
   int claimed;  //number of claimed krags of the team
+  int numPlayers; // number of players on the team
 } team_t;
 ```
 
@@ -1262,6 +1264,7 @@ typedef struct fieldAgent {
 	char pebbleID[9]; 
 	connection_t * conn;  //conection struct form network module
 	int lastContact;  //number of seconds since guide agent last heard from field agent
+  time_t* lastContactTime;
 } fieldAgent_t;
 ```
 
@@ -1370,7 +1373,7 @@ This function updates the location of a field agent. If the team does not exists
 	
 This function increments time since guide agent last heard from a field agent
 
-	void incrementTime(char * name, char * teamname, hashtable_t * teamhash);
+	void incrementTime(fieldAgent_t* fa);
 	
 **getTime**	
 	
@@ -1383,6 +1386,12 @@ This fucntions returns the time since guide agent last heard from a field agent
 This function frees memory of the hashtable and everything in it.
 	
 	void deleteTeamHash(hashtable_t * teamhash);
+	
+**deleteTeamHashGA**	
+	
+This function frees memory of hashtable used specifically by the	 Guide Agent.
+
+	void deleteTeamHashGA(hashtable_t * teamhash);
 		
 **newFieldAgent**
 
@@ -1433,6 +1442,14 @@ typedef struct krag {
 ```
 
 ### Functions
+
+**kragNew**
+
+Creates a new krag struct.
+
+```c
+krag_t * kragNew(double longitude, double latitude);
+```
 
 **readKrag**
 
