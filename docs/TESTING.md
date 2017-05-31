@@ -19,47 +19,47 @@ Before the end of the game, but with most of the game progress made:
 ```
 |                                           //                                            GAME STATS────────────────────────┐
 |yifei                                     //                                             │                                 │
-|tony                                     //                         Kotz Tower	 //       │Total krags in game: 4           │
+|tony                                     //                         Kotz Tower      //       │Total krags in game: 4           │
 |                                        //                          X          //        │Total krags claimed: 4           │
 |                                       //                        Sudikoff     //         └─────────────────────────────────┘
 |=======================================||                                    //          CURRENT STRING────────────────────┐
-|                       ||              ||	    X                            //           │                                 │
+|                       ||              ||          X                            //           │                                 │
 |                       ||              ||    Kemeny                        //            │computer science 50 rocks!       │
 |                       ||              ||                                 //             │                                 │
 |                       ||              ||                                //              │                                 │
 |                       ||              ||                               //               └─────────────────────────────────┘
 |                       ||              ||                              ||         X      CLUES─────────────────────────────┐
-|     Fahey     Russell ||      	X	||                              ||     Fairchild  │                                 │
-|   	X          X    ||    Silsby    ||                              ||                │                                 │
+|     Fahey     Russell ||          X     ||                              ||     Fairchild  │                                 │
+|     X          X    ||    Silsby    ||                              ||                │                                 │
 |     McLane     Sage   ||              ||                              ||                │                                 │
 |                       ||              ||             Baker            ||                │                                 │
 |=======================================||               X              ||                │                                 │
 |                       ||              ||             Berry            ||                │                                 │
 |                       ||              ||            Library           ||                │                                 │
-|	        Gold Coast	||              ||                              ||	    X         │                                 │
-| X    X    X	   X    ||	         X	||	X                          krag               │                                 │
+|             Gold Coast      ||              ||                              ||        X         │                                 │
+| X    X    X        X    ||           X  ||    X                          krag               │                                 │
 |                       ||              ||                              ||                │                                 │
 |                       ||              ||                              ||            X   │                                 │
 |                       ||==============||                      Rauner  ||                │                                 │
-|                       ||              ||                        X     ||  	X         │                                 │
+|                       ||              ||                        X     ||    X         │                                 │
 |                       ||              ||                              ||    Rkragns     │                                 │
-|                  X	||              ||==============================||	Chapel        │                                 │
-|                       ||	        X	||\\                          //||                │                                 │
-|                Mass	||              || \\                        // ||                │                                 │
-|                  X	||              ||  \\                      //  ||                │                                 │
-|                 Row	||              ||   \\                    //   ||                │                                 │
+|                  X    ||              ||==============================||    Chapel        │                                 │
+|                       ||            X   ||\\                          //||                │                                 │
+|                Mass   ||              || \\                        // ||                │                                 │
+|                  X    ||              ||  \\                      //  ||                │                                 │
+|                 Row   ||              ||   \\                    //   ||                │                                 │
 |                       ||    McNutt    ||    \\                  //    ||                │                                 │
-|                  X	||	     X	    ||     \\                //     ||     X          │                                 │
-|                       ||              ||  	\\              //	    ||                │                                 │
-|                       ||              ||  	 \\            //	    || Dartmouth      │                                 │
+|                  X    ||         X          ||     \\                //     ||     X          │                                 │
+|                       ||              ||      \\              //          ||                │                                 │
+|                       ||              ||       \\            //     || Dartmouth      │                                 │
 |=======================||==============||==============================||     X          │                                 │
-|                       ||              ||	     //            \\	    ||   Hall         │                                 │
-|         X             ||  	 X	    ||  	//              \\  	||                │                                 │
+|                       ||              ||           //            \\       ||   Hall         │                                 │
+|         X             ||     X        ||      //              \\      ||                │                                 │
 |        Foco           ||              ||     //                \\     ||     X          │                                 │
 |                       ||              ||    //                  \\    ||                │                                 │
 |                       ||              ||   //                    \\   ||                │                                 │
-|                       ||  	 X  	||  //                      \\ *||                │                                 │
-|                       ||  	Collis  || //                        \\ ||                │                                 │
+|                       ||     X    ||  //                      \\ *||                │                                 │
+|                       ||    Collis  || //                        \\ ||                │                                 │
 |                       ||              ||//                          \\||                │                                 │
 ==========================================================================================│                                 │
                                                                                           └─────────────────────────────────┘
@@ -206,6 +206,24 @@ a separate text file to show this:
 ==20368== For counts of detected and suppressed errors, rerun with: -v
 ==20368== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
 ```
+## Guide Agent - display.c
+To test the display module, I wrote a `displaytest.c` file that tests the all the basic functionalities of the module.
+
+### Unit Testing
+In the `displaytest.c`, all the function of the two modules were individually tested.
+
+#### Usage
+To test, simply type `make test`
+
+#### Test Cases
+* creating the five windows: map, input, clue, stirng, and game stats
+* creating the map with the field agent players and krags on the map
+* display the clues to the clue window. Also testing that clues wont go out the clues window
+* display the revealed string
+* display the game stats
+* display the game over screen
+* listening from user input and returning the input to the caller
+
 
 ## Game Server
 
@@ -225,16 +243,16 @@ The `pebble` program can then be called by using the command `pebble host port`.
 #### Test Cases
 
 * Incorrect argument parameters
-	* Incorrect `kff` and `sf`
-	* `port` that is already in use
+      * Incorrect `kff` and `sf`
+      * `port` that is already in use
 * Incorrect message syntax
-	* Invalid fields
-	* Duplicate fields
-	* Invalid types
+      * Invalid fields
+      * Duplicate fields
+      * Invalid types
 * Incorrect data in message
-	* Incorrect `gameId`
-	* Incorrect player identifiers such as `gameId`, `guideId`, `player`, and `pebbleId`
-	* Incorrect `opCode`, both non-existent and codes unused by the Game Server
+      * Incorrect `gameId`
+      * Incorrect player identifiers such as `gameId`, `guideId`, `player`, and `pebbleId`
+      * Incorrect `opCode`, both non-existent and codes unused by the Game Server
 
 
 #### Integration Testing
@@ -268,3 +286,25 @@ The `pebble` program can then be called by using the command `pebble host port`.
 
 ###Integration testing
 To test the integrated system, the Guide Agents and Field Agents were added to the game via both teh `fakepebble.c` program and the actual FIELD and GUIDE Agents. Severl different game scenarios were played out including with different player types, numbers of players, and numbers of teams. This ensured that all three components work together seemlessly.  Furthermore, different problems were tested, to see what happened when the same player name was picked twice, or if a krag was already calimed, etc.
+
+
+
+## Common library - Team and Krag module
+
+To test the team and krag module, I wrote a `commontest.c` file that tests the all the basic functionalities of the two modules.
+
+### Unit Testing
+In the `commontest.c`, all the function of the two modules were individually tested.
+
+#### Usage
+
+To test, simply type `make test`
+
+#### Test Cases
+* adding two field agents of the same name
+* adding a guide agent to a team that already has a guide agent
+* revealing more characters when a krag is claimed
+* adding a krag that has already been found to the set of krags found by the team
+* increment the time of the last contact with field agent
+* get a random clue
+* delete the krag and team hashtables
