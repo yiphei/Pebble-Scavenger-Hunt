@@ -1,6 +1,8 @@
 # Testing Spec
 
-### Guide Agent Unit Testing
+## Guide Agent 
+
+###Unit Testing
 
 To test the Guide Agent by itself, I edited the chatserver2.c client-server
 communication so that the server could send messages back to the client, also
@@ -204,3 +206,37 @@ a separate text file to show this:
 ==20368== For counts of detected and suppressed errors, rerun with: -v
 ==20368== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
 ```
+
+## Game Server
+
+### Unit Testing
+
+To apply unit testing to the Game Server, a chat client modeled from the class chat client was used to send test messages to the Game Server in a similar way to the Guide Agent Testing. This multiple agents could easily be created and information such as location could be spoofed to test all aspects of the game server and krag validation.
+
+#### Usage
+To compile the unit testing chat bot, use the command in the `testing` directory:
+```
+mygcc fakepebble.c ../common/file.c -o pebble
+```
+
+The `pebble` program can then be called by using the command `pebble host port`.
+
+
+#### Test Cases
+
+* Incorrect argument parameters
+	* Incorrect `kff` and `sf`
+	* `port` that is already in use
+* Incorrect message syntax
+	* Invalid fields
+	* Duplicate fields
+	* Invalid types
+* Incorrect data in message
+	* Incorrect `gameId`
+	* Incorrect player identifiers such as `gameId`, `guideId`, `player`, and `pebbleId`
+	* Incorrect `opCode`, both non-existent and codes unused by the Game Server
+
+
+#### Integration Testing
+
+To test the integrated system, the Guide Agents and Field Agents were added to the game via both the `fakepebble.c` program and the actual Field and Guide Agents. Several different game scenarios were played out including with different player types, numbers of players, and numbers of teams. This ensured that all three components work together seemlessly.

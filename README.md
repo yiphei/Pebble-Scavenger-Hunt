@@ -5,6 +5,10 @@ Agent, and the Field Agent. The three work together to operate the
 Pebble smartwatch-based "KRAG" game around Dartmouth campus, with teams
 that search for hidden krags based on clues given to them by the Game Server.
 
+To make all run `make` from this directory.
+
+More information about each module and component can be found in the individual README.md files in their subdirectories.
+
 ### Game Server
 
 The Game Server acts mostly as an intermediary and a database for the game.
