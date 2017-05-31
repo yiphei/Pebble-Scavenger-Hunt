@@ -269,11 +269,11 @@ This function adds the field agents name on the top left corner of the mpa windo
 
 	void addPlayers_I(set_t * fieldagents);
 
-**loadMap**
+**addKrags_I**
 
-This funtion loads an ASCII based map from a file and renders it in the game window.
+This function adds the krags to the map.
 
-	void loadMap(FILE *fp);
+	void addKrags_I(set_t * krags);
 
 **updateString_I**
 
