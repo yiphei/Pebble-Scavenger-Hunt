@@ -15,7 +15,7 @@
  * Updated by Xia Zhou - July 2016
  *
  */
-
+#ifdef NOPEBBLE
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
@@ -134,3 +134,4 @@ WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp)
 
   return realsize;
 }
+#endif

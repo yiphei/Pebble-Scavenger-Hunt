@@ -7,6 +7,8 @@
  *
  */
 
+#ifdef NOPEBBLE
+
 #ifndef __WEBPAGE_H
 #define __WEBPAGE_H
 
@@ -178,3 +180,4 @@ static const
   char INTERNAL_URL_PREFIX[] = "http://old-www.cs.dartmouth.edu";
 
 #endif // __WEBPAGE_H
+#endif

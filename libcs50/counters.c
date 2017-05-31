@@ -6,6 +6,8 @@
  * Yifei Yan
  */
 
+#ifdef NOPEBBLE
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -209,3 +211,5 @@ void counters_delete(counters_t *ctrs){
     count_free(ctrs);
   }
 }
+
+#endif

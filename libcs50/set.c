@@ -6,6 +6,8 @@
  * Yifei Yan
  */
 
+#ifdef NOPEBBLE
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -159,3 +161,5 @@ void set_delete(set_t *set, void (*itemdelete)(void *item) ){
   }
 
 }
+
+#endif

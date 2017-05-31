@@ -7,6 +7,8 @@
  * Yifei Yan
  */
 
+#ifdef NOPEBBLE
+
 #ifndef __HASHTABLE_H
 #define __HASHTABLE_H
 
@@ -54,3 +56,4 @@ void hashtable_iterate(hashtable_t *ht, void *arg,
 void hashtable_delete(hashtable_t *ht, void (*itemdelete)(void *item) );
 
 #endif // __HASHTABLE_H
+#endif

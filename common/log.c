@@ -5,6 +5,8 @@
  * GREP, CS50, May 2017
  */
 
+#ifdef NOPEBBLE
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,6 +14,9 @@
 #include <string.h>
 #include <netdb.h>  // socket-related structures                                                                    
 #include <time.h>
+
+
+
 #ifndef LOG_H
 #define LOG_H
 #include "network.h"
@@ -61,3 +66,4 @@ void logMessage(char *filePath, char *message, char *direction, connection_t *co
 	free(messageNew);
 	fclose(log);
 }
+#endif

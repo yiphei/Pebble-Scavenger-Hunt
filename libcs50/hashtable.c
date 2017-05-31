@@ -6,6 +6,8 @@
  * Yifei Yan
  */
 
+#ifdef NOPEBBLE
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -132,3 +134,4 @@ void hashtable_delete(hashtable_t *ht, void (*itemdelete)(void *item) ){
   }
 }
 
+#endif

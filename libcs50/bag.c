@@ -6,6 +6,8 @@
  * David Kotz, April 2016, 2017
  */
 
+#ifdef NOPEBBLE
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -157,3 +159,5 @@ bag_delete(bag_t *bag, void (*itemdelete)(void *item) )
   count_report(stdout, "End of bag_delete");
 #endif
 }
+
+#endif

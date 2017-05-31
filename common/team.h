@@ -11,6 +11,8 @@
  * GREP
  */
 
+#ifdef NOPEBBLE
+
 #ifndef __TEAM_H
 #define __TEAM_H
 #include <stdio.h>
@@ -196,3 +198,4 @@ void printTeams(hashtable_t * teamhash);
 
 
 #endif // __TEAM_H
+#endif

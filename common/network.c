@@ -7,7 +7,7 @@
 * Code used from client-server-udp examples
 */
 
-//#ifdef NOPEBBLE
+#ifdef NOPEBBLE
 #include "network.h"
 
 /***** local global variables *****/
@@ -150,4 +150,4 @@ void closeSocket(int comm)
 	close(comm); // close the socket
 }
 
-//#endif
+#endif
