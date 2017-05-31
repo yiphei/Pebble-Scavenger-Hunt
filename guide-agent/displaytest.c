@@ -13,6 +13,12 @@
 #include "../common/krag.h"
 
 
+static void 
+kragdelete(void *item);
+static void 
+setcluedelete(void *item);
+
+
 int
 main(int argc, char *argv[])
 {
@@ -36,17 +42,15 @@ main(int argc, char *argv[])
   addFieldAgent("mark", "12345678", "one", "gameID", NULL, teamhash);
   addFieldAgent("john", "12345678", "one", "gameID", NULL, teamhash);
   addFieldAgent("yifei", "12345678", "one", "gameID", NULL, teamhash);
-  updateLocation("mark", "one", 4.5, 5.6, teamhash);
-  updateLocation("john", "one", 10.5, 2.6, teamhash);
-  updateLocation("yifei", "one", 18.5, 14.6, teamhash);
+  updateLocation("mark", "one", -72.288408, 43.704490, teamhash);
+  updateLocation("john", "one", -72.289408, 43.705390, teamhash);
+  updateLocation("yifei", "one", -72.290408, 43.706090, teamhash);
   set_t *  set = getAllFieldAgents("one", teamhash);
 
-  updateLocation("mark", "one", 30.6, 38.7, teamhash);
 
 
-
-  krag_t * k1 = kragNew(20.6, 35.2);
-  krag_t * k2 = kragNew(10, 10.2);
+  krag_t * k1 = kragNew(-72.288408, 43.706190);
+  krag_t * k2 = kragNew(-72.288408, 43.703590);
 
   set_t * kragset = set_new();
 
@@ -57,7 +61,14 @@ main(int argc, char *argv[])
   updateMap_I(set, kragset);
   
   set_t * clues = set_new();
+    set_insert(clues, "afsrgsefsrgr", "helloooo");
+  set_insert(clues, "afsrgefsfsrgr", "helloooo");
+  set_insert(clues, "afsrsdfgsrgr", "helloooo");
+  set_insert(clues, "afsrgdfessrgr", "helloooo");
+  set_insert(clues, "afsrgssrgr", "helloooo");
+  set_insert(clues, "afsrgsdrgr", "helloooo");
 
+  set_insert(clues, "afsrgsrgr", "helloooo");
   set_insert(clues, "a", "helloooo");
   set_insert(clues, "b", "helloooo");
   set_insert(clues, "c", "helloooo");
@@ -82,7 +93,7 @@ main(int argc, char *argv[])
   set_insert(clues, "zsf4", "helloooo");
   set_insert(clues, " fv", "helloooo");
   set_insert(clues, "sfg", "helloooo");
-  set_insert(clues, "zsg", "helloooo");
+    set_insert(clues, "asd", "asdd fr rgnd gdrkj gdrng dkrgnrdjkg drdrjgn drgkdrjgn dkjrgn drng dlg rl sf s flksflkrsn rsgsr grr g");
   set_insert(clues, "zhdr3", "helloooo");
   set_insert(clues, "zfsdxvb", "helloooo");
   set_insert(clues, "yfj", "helloooo");
@@ -92,6 +103,9 @@ main(int argc, char *argv[])
   set_insert(clues, "zfssfdsfgsdgfdxvb", "helloooo");
   set_insert(clues, "yfjsfrgdrgds", "helloooo");
   set_insert(clues, "fj6ytjy", "helloooo");
+  set_insert(clues, "sdsf", "helloooo");
+  set_insert(clues, "yfjsfsdfrgdrgds", "helloooo");
+  set_insert(clues, "fj6fdsytjy", "feffefsefse asdas asd ger gdrg drognrosf   efseofie fosef ef sefsef sef");
 
 
   updateClues_I(clues);
@@ -109,7 +123,26 @@ main(int argc, char *argv[])
 
   gameOver_I(teamhash);
 
+  //free(message);
+  //deleteTeamHash(teamhash);
+  // set_delete(kragset,kragdelete);
+   //set_delete(clues,setcluedelete);
+}
+
+static void 
+kragdelete(void *item)
+{
+  if (item) {
+    free(item);
+  }
+}
 
 
+static void 
+setcluedelete(void *item)
+{
+  if (item) {
+    free(item);
+  }
 }
 
