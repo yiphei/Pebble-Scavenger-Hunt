@@ -1,4 +1,4 @@
-# KRAG
+# KRAG - A Scavenger Hunt
 
 The KRAG game consists of three major components: the Game Server, the Guide 
 Agent, and the Field Agent. The three work together to operate the 
